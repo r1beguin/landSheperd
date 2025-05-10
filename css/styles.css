@@ -1,0 +1,106 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #222;
+}
+
+#game-container {
+    border: 2px solid #333;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+canvas {
+    display: block;
+}
+
+#debug-ui {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+}
+
+#debug-ui label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+#debug-ui input[type="range"] {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+#toggle-wind {
+    display: block;
+    margin-top: 10px;
+    padding: 5px 10px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#toggle-wind:hover {
+    background-color: #555;
+}
+
+#toggle-debug-ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 5px 10px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#toggle-debug-ui:hover {
+    background-color: #555;
+}
+
+#stop-time {
+    display: block;
+    margin-top: 10px;
+    padding: 5px 10px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#stop-time:hover {
+    background-color: #555;
+}
+
+#performance-stats {
+    margin-top: 10px;
+    font-size: 14px;
+    color: white;
+}
+
+#add-squirrel, #remove-squirrel {
+    display: block;
+    margin-top: 10px;
+    padding: 5px 10px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#add-squirrel:hover, #remove-squirrel:hover {
+    background-color: #555;
+}

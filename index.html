@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Land Shepherd - Pixel Art Nature Simulation</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    <div id="debug-ui">
+        <label for="wind-intensity">Wind Intensity:</label>
+        <input type="range" id="wind-intensity" min="0" max="100" value="50">
+        <label for="burst-frequency">Burst Frequency:</label>
+        <input type="range" id="burst-frequency" min="0" max="100" value="50">
+        <button id="toggle-wind">Stop Wind</button>
+        <button id="stop-time">Stop Time</button>
+        <button id="add-squirrel">Add Squirrel</button>
+        <button id="remove-squirrel">Remove Squirrel</button>
+        <div id="performance-stats">
+            <p>FPS: <span id="fps">0</span></p>
+        </div>
+    </div>
+    <button id="toggle-debug-ui">Hide Debug UI</button>
+    <script src="js/wind.js" type="module"></script>
+    <script src="js/game.js" type="module"></script>
+    <script src="js/debug.js" type="module"></script>
+</body>
+</html>
