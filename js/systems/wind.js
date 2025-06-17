@@ -1,4 +1,4 @@
-import { Plant } from './plants.js';
+import { Plant } from '../entities/plants.js';
 
 const WIND_MIN_INTENSITY = 0.3; 
 const WIND_MAX_INTENSITY = 5; 

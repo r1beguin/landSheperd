@@ -1,4 +1,4 @@
-import { setWindActive, updateWindIntensity, updateBurstFrequency } from './wind.js';
+import { setWindActive, updateWindIntensity, updateBurstFrequency } from './systems/wind.js';
 
 const windIntensitySlider = document.getElementById('wind-intensity');
 const burstFrequencySlider = document.getElementById('burst-frequency');
@@ -9,14 +9,33 @@ const debugUI = document.getElementById('debug-ui');
 let isWindActive = true; // Wind is stopped by default
 let isDebugUIVisible = false;
 
-windIntensitySlider.addEventListener('input', (event) => {
-    const windIntensity = event.target.value / 100; // Normalize to 0-1 range
+let windIntensity = 1;
+let windBurstFrequency = 1;
+
+if (windIntensitySlider) {
+    windIntensitySlider.addEventListener('input', (event) => {
+        windIntensity = event.target.value / 100; // Normalize to 0-1 range
+        updateWindIntensity(windIntensity);
+    });
+    windIntensity = windIntensitySlider.value / 100;
+}
+
+if (burstFrequencySlider) {
+    burstFrequencySlider.addEventListener('input', (event) => {
+        windBurstFrequency = event.target.value / 100; // Normalize to 0-1 range
+        updateBurstFrequency(windBurstFrequency);
+    });
+    windBurstFrequency = burstFrequencySlider.value / 100;
+}
+
+window.addEventListener('windIntensityChanged', (e) => {
+    windIntensity = e.detail;
     updateWindIntensity(windIntensity);
 });
 
-burstFrequencySlider.addEventListener('input', (event) => {
-    const burstFrequency = event.target.value / 100; // Normalize to 0-1 range
-    updateBurstFrequency(burstFrequency);
+window.addEventListener('windBurstFrequencyChanged', (e) => {
+    windBurstFrequency = e.detail;
+    updateBurstFrequency(windBurstFrequency);
 });
 
 toggleWindButton.addEventListener('click', () => {
@@ -51,22 +70,16 @@ removeSquirrelButton.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('removeSquirrel'));
 });
 
-let lastFrameTime = performance.now();
 let frameCount = 0;
 let fps = 0;
 
-function updateFPS() {
-    const now = performance.now();
+export function countFrame() {
     frameCount++;
-
-    if (now - lastFrameTime >= 1000) {
-        fps = frameCount;
-        frameCount = 0;
-        lastFrameTime = now;
-        document.getElementById('fps').textContent = fps;
-    }
-
-    requestAnimationFrame(updateFPS);
 }
 
-updateFPS();
+setInterval(() => {
+    fps = frameCount;
+    frameCount = 0;
+    const fpsElem = document.getElementById('fps');
+    if (fpsElem) fpsElem.textContent = fps;
+}, 1000);

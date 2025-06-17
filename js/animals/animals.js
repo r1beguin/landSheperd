@@ -1,6 +1,6 @@
-import { Plant } from './plants.js';
-import { Soil } from './soil.js';
-import { PLANT_TYPES } from './plants.js';
+import { Plant } from '../entities/plants.js';
+import { Soil } from '../systems/soil.js';
+import { PLANT_TYPES } from '../entities/plants.js';
 
 class Squirrel {
     constructor(x, y) {
