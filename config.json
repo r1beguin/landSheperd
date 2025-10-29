@@ -1,0 +1,73 @@
+{
+    "debug": {
+        "enabled": true,
+        "showFPS": true,
+        "showGeometryCount": true,
+        "showPlayerPosition": true,
+        "refreshRate": 144
+    },
+    "graphics": {
+        "vsync": true,
+        "backgroundColor": [0.5, 0.5, 0.5, 1.0]
+    },
+    "world": {
+        "map": {
+            "gridWidth": 50,
+            "gridHeight": 50,
+            "cellSize": 20
+        },
+        "soil": {
+            "fertility": {
+                "hotspots": 8,
+                "baseValue": 30,
+                "maxIntensity": 85,
+                "falloffRate": 0.15,
+                "noiseIntensity": 10,
+                "radiusMin": 8,
+                "radiusMax": 20,
+                "nutrientVariation": {
+                    "nitrogen": 10,
+                    "phosphorus": 15,
+                    "potassium": 12,
+                    "organicMatter": 8
+                }
+            },
+            "water": {
+                "hotspots": 5,
+                "baseValue": 20,
+                "maxIntensity": 90,
+                "falloffRate": 0.12,
+                "noiseIntensity": 8,
+                "radiusMin": 6,
+                "radiusMax": 18
+            },
+            "pollution": {
+                "hotspots": 3,
+                "baseValue": 5,
+                "maxIntensity": 80,
+                "falloffRate": 0.08,
+                "noiseIntensity": 5,
+                "radiusMin": 10,
+                "radiusMax": 25
+            }
+        },
+        "textures": {
+            "soilTextureSize": 20,
+            "generateVariations": 2,
+            "waterPixelThreshold": 20,
+            "pollutionPixelThreshold": 15,
+            "waterMaxCoverage": 0.25,
+            "pollutionMaxCoverage": 0.15,
+            "waterIntensityLevels": [
+                { "threshold": 20, "coverage": 0.05, "color": [50, 120, 255] },
+                { "threshold": 40, "coverage": 0.15, "color": [30, 100, 255] },
+                { "threshold": 70, "coverage": 0.25, "color": [10, 80, 255] }
+            ],
+            "pollutionIntensityLevels": [
+                { "threshold": 15, "coverage": 0.03, "color": [100, 255, 120] },
+                { "threshold": 35, "coverage": 0.08, "color": [50, 255, 80] },
+                { "threshold": 60, "coverage": 0.15, "color": [20, 255, 60] }
+            ]
+        }
+    }
+}

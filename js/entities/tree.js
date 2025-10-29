@@ -1,184 +1,155 @@
-import { Plant } from './plants.js';
+/**
+ * Tree - Classe entité représentant un arbre avec positionnement flexible
+ * 
+ * Version refactorisée utilisant les modules de configuration et de texture
+ * séparés. Supporte le positionnement libre sur les cellules de sol avec
+ * débordement et transparence.
+ */
 
-class Tree extends Plant {
-    constructor(type, color, x, y) {
-        super(type, color);
-        this.x = x;
-        this.y = y;
-        this.height = 1;
-        this.width = 2;
+class Tree {
+    constructor(x, y, species = null, offsetX = 0, offsetY = 0) {
+        // Position de la cellule de sol de base
+        this.gridX = x;
+        this.gridY = y;
+        
+        // Offset dans la cellule (0-1) pour positionnement libre
+        this.offsetX = offsetX || Math.random();
+        this.offsetY = offsetY || Math.random();
+        
+        // Position monde calculée avec offset
+        this.worldX = x * 20 + this.offsetX * 20 - 32; // -32 pour centrer la texture 64x64
+        this.worldY = y * 20 + this.offsetY * 20 - 32;
+        
+        // Dimensions de la texture (plus grande pour débordement)
+        this.size = 64; // Doublé de 32 à 64
+        
+        // Espèce
+        this.species = species || this.selectRandomSpecies();
+        this.variation = Math.floor(Math.random() * 3); // 0-2 pour variation
+        
+        // État de l'arbre
         this.age = 0;
-        this.maxAge = 15 + Math.floor(Math.random() * 16);
-        this.isDead = false;
-        this.branches = [];
-        this.hasLeaves = false;
-        this.leafCells = [];
-        this.trunkCurve = [this.x]; // Store trunk x-offset for each row
-        this.maxThickness = 5; // Max thickness is now 1 less cell (was 6)
-        // Adult phase
-        this.adultPhase = false;
-        this.adultTime = 0;
-        this.maxAdultTime = 30 + Math.random() * 30; // 30-60 seconds
+        this.maturity = Math.random() * 0.3 + 0.7; // Entre 70% et 100% - SERA ÉCRASÉ si défini explicitement
+        this.health = 100;
+        this.isAlive = true;
+        
+        // Cache de texture et suivi de maturité
+        this.cachedTexture = null;
+        this.lastMaturityStep = undefined;
     }
-
-    grow() {
-        if (this.isDead) return;
-        // Adult phase: gradually boost fertility
-        if (this.adultPhase) {
-            this.adultTime++;
-            if (this.onFertilityBoost) this.onFertilityBoost(this.x, this.y, 10, 0.025); // 2.5% per second
-            if (this.adultTime >= this.maxAdultTime) {
-                this.isDead = true;
-            }
-            return;
-        }
-        this.age++;
-        if (this.age >= this.maxAge) {
-            // Enter adult phase instead of dying
-            this.adultPhase = true;
-            this.adultTime = 0;
-            return;
-        }
-        // Grow taller
-        this.height++;
-        // Trunk curve: decide next row's x offset
-        let prevX = this.trunkCurve[this.trunkCurve.length - 1];
-        let newX = prevX;
-        if (this.height > 3 && Math.random() < 0.35) {
-            const dir = Math.random() < 0.5 ? -1 : 1;
-            if (Math.abs(prevX + dir - this.x) < Math.floor(this.height / 4)) {
-                newX = prevX + dir;
-            }
-        }
-        this.trunkCurve.push(newX);
-        // Randomly grow wider
-        if (Math.random() < 0.3 && this.width < this.maxThickness) this.width++;
-        // Randomly add a branch
-        if (this.height > 4 && Math.random() < 0.4) {
-            const dir = Math.random() < 0.5 ? -1 : 1;
-            const branchY = this.y - this.height + 2 + Math.floor(Math.random() * (this.height - 3));
-            const branch = {
-                x: newX + dir * (1 + Math.floor(Math.random() * 2)),
-                y: branchY,
-                dir,
-                length: 2 + Math.floor(Math.random() * 3),
-                leaf: null
-            };
-            branch.leaf = {
-                x: branch.x + branch.dir * (branch.length - 1),
-                y: branch.y - (branch.length - 1)
-            };
-            this.branches.push(branch);
-            // Add a leaf at the end of the new branch
-            const leafColors = [this.color, '#2E8B57', '#3CB371', '#228B22'];
-            this.leafCells.push({
-                x: branch.leaf.x,
-                y: branch.leaf.y,
-                color: leafColors[Math.floor(Math.random() * leafColors.length)],
-                windOffset: 0
-            });
-        }
-        // Grow leaves if in range, add incrementally and move up with growth
-        if (this.height >= 10 && this.height <= 15) {
-            this.hasLeaves = true;
-            const leafColors = [this.color, '#2E8B57', '#3CB371', '#228B22'];
-            const topY = this.y - this.height + 2;
-            const leafRadius = 3 + Math.floor(this.width / 2);
-            // Increase density: add more leaves per step
-            for (let i = 0; i < 18; i++) {
-                const angle = Math.random() * 2 * Math.PI;
-                const r = leafRadius * Math.sqrt(Math.random());
-                const dx = Math.round(r * Math.cos(angle));
-                const dy = Math.round(r * Math.sin(angle));
-                this.leafCells.push({
-                    x: newX + dx,
-                    y: topY + dy,
-                    color: leafColors[Math.floor(Math.random() * leafColors.length)],
-                    windOffset: 0
-                });
-            }
-        }
-        // Move all canopy leaves up by 1 cell with each growth
-        if (this.hasLeaves) {
-            for (let leaf of this.leafCells) {
-                // Only move leaves that are above the trunk (not branch-end leaves)
-                if (leaf.y < this.y - 2) {
-                    leaf.y -= 1;
-                }
-            }
-        }
+    
+    // Sélectionne une espèce aléatoire
+    selectRandomSpecies() {
+        const species = TreeSpeciesConfig.getAllSpeciesNames();
+        return species[Math.floor(Math.random() * species.length)];
     }
-
-    updateLeafWindOffsets(globalWindPhase, windIntensity) {
-        // Animate each leaf's windOffset for swaying effect
-        for (let i = 0; i < this.leafCells.length; i++) {
-            const leaf = this.leafCells[i];
-            // Each leaf has a unique phase offset for natural look
-            const phase = globalWindPhase + i * 0.3;
-            // Reduce sway amplitude for more subtle effect
-            leaf.windOffset = Math.sin(phase) * windIntensity * 0.4; // 0.4: smaller max sway in cells
+    
+    // Vérifie si une espèce peut pousser sur un sol
+    static canGrowOnSoil(soil, species = null) {
+        return TreeSpeciesConfig.canGrowOnSoil(soil, species);
+    }
+    
+    // Calcule la probabilité de spawn sur un sol donné
+    getSpawnProbability(soil) {
+        const config = TreeSpeciesConfig.getSpecies(this.species);
+        if (!TreeSpeciesConfig.canGrowOnSoil(soil, this.species)) {
+            return 0;
+        }
+        
+        // Calcul de l'optimalité du sol
+        let optimalityScore = 0;
+        const req = config.requirements;
+        
+        optimalityScore += this.calculateOptimalityScore(soil.nitrogen, req.nitrogen);
+        optimalityScore += this.calculateOptimalityScore(soil.phosphorus, req.phosphorus);
+        optimalityScore += this.calculateOptimalityScore(soil.potassium, req.potassium);
+        optimalityScore += this.calculateOptimalityScore(soil.organicMatter, req.organicMatter);
+        
+        // Score pollution (inversé)
+        const pollutionScore = Math.max(0, (req.pollutionTolerance - soil.pollution) / req.pollutionTolerance);
+        optimalityScore += pollutionScore;
+        
+        optimalityScore /= 5; // Moyenne
+        
+        return config.probability * optimalityScore;
+    }
+    
+    // Score d'optimalité pour un nutriment
+    calculateOptimalityScore(value, requirement) {
+        if (value < requirement.min) return 0;
+        if (value >= requirement.optimal) return 1;
+        return (value - requirement.min) / (requirement.optimal - requirement.min);
+    }
+    
+    // Génère ou récupère la texture
+    generateTexture(textureGenerator) {
+        // Invalider le cache si la maturité a changé significativement
+        const currentMaturityStep = Math.floor(this.maturity * 10) / 10;
+        if (!this.cachedTexture || this.lastMaturityStep !== currentMaturityStep) {
+            this.cachedTexture = textureGenerator.generateTexture(this.species, this.variation, this.maturity);
+            this.lastMaturityStep = currentMaturityStep;
+        }
+        return this.cachedTexture;
+    }
+    
+    // Interface pour le système de rendu
+    getRenderData() {
+        return {
+            position: { x: this.worldX, y: this.worldY },
+            size: this.size,
+            species: this.species,
+            variation: this.variation,
+            maturity: this.maturity,
+            health: this.health,
+            offsetX: this.offsetX,
+            offsetY: this.offsetY
+        };
+    }
+    
+    getRenderType() {
+        return 'tree';
+    }
+    
+    // Informations pour debug
+    getInfo() {
+        return {
+            species: TreeSpeciesConfig.getSpeciesDisplayName(this.species),
+            position: { x: this.gridX, y: this.gridY },
+            offset: { x: Math.round(this.offsetX * 100), y: Math.round(this.offsetY * 100) },
+            age: this.age,
+            health: this.health,
+            maturity: Math.round(this.maturity * 100),
+            requirements: TreeSpeciesConfig.getSpecies(this.species).requirements
+        };
+    }
+    
+    // Mise à jour avec croissance ralentie pour observation
+    update(deltaTime) {
+        if (!this.isAlive) return;
+        
+        // Croissance ralentie pour atteindre maturité complète en ~10 secondes
+        this.age += deltaTime * 0.001; // Ralenti x10
+        this.maturity = Math.min(1.0, this.maturity + deltaTime * 0.0001); // Ralenti x10
+        
+        // Forcer la régénération de texture quand la maturité change
+        const currentMaturityStep = Math.floor(this.maturity * 10) / 10;
+        if (this.lastMaturityStep !== currentMaturityStep) {
+            this.cachedTexture = null; // Forcer la régénération
         }
     }
-
-    render(ctx, pixelSize) {
-        if (this.isDead) return; // Do not render anything if the tree is dead
-        // Shadow
-        ctx.save();
-        ctx.globalAlpha = 0.22;
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.ellipse(
-            this.x * pixelSize,
-            (this.y + 0.7) * pixelSize,
-            3.2 * pixelSize,
-            1.1 * pixelSize,
-            0, 0, 2 * Math.PI
-        );
-        ctx.fill();
-        ctx.restore();
-        // Trunk with curve (use stored trunkCurve)
-        for (let i = 0; i < this.height; i++) {
-            const trunkX = this.trunkCurve[i] || this.x;
-            ctx.fillStyle = '#8B5A2B';
-            ctx.fillRect(
-                (trunkX - Math.floor(this.width / 2)) * pixelSize,
-                (this.y - i) * pixelSize,
-                this.width * pixelSize,
-                pixelSize
-            );
-            ctx.fillStyle = '#B8864B';
-            ctx.fillRect(
-                trunkX * pixelSize,
-                (this.y - i) * pixelSize,
-                0.5 * pixelSize,
-                pixelSize
-            );
-        }
-        // Branches
-        ctx.fillStyle = '#8B5A2B';
-        for (const branch of this.branches) {
-            for (let l = 0; l < branch.length; l++) {
-                ctx.fillRect(
-                    (branch.x + branch.dir * l) * pixelSize,
-                    (branch.y - l) * pixelSize,
-                    pixelSize,
-                    pixelSize
-                );
-            }
-        }
-        // Leaves as colored cells (persistent, no flicker, incremental)
-        if (this.hasLeaves && this.leafCells) {
-            for (const leaf of this.leafCells) {
-                ctx.fillStyle = leaf.color;
-                ctx.fillRect(
-                    (leaf.x + (leaf.windOffset || 0)) * pixelSize,
-                    leaf.y * pixelSize,
-                    pixelSize,
-                    pixelSize
-                );
-            }
-        }
+    
+    // Nettoyage
+    cleanup(gl) {
+        // La texture est gérée par TreeTextureGenerator, pas besoin de nettoyer ici
+        this.cachedTexture = null;
+    }
+    
+    // Méthodes statiques utilitaires
+    static getAllSpecies() {
+        return TreeSpeciesConfig.getAllSpeciesNames();
+    }
+    
+    static getSpeciesName(species) {
+        return TreeSpeciesConfig.getSpeciesDisplayName(species);
     }
 }
-
-export { Tree };

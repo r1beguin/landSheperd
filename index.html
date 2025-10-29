@@ -10,22 +10,32 @@
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
     </div>
-    <div id="debug-ui">
-        <label for="wind-intensity">Wind Intensity:</label>
-        <input type="range" id="wind-intensity" min="0" max="100" value="50">
-        <label for="burst-frequency">Burst Frequency:</label>
-        <input type="range" id="burst-frequency" min="0" max="100" value="50">
-        <button id="toggle-wind">Stop Wind</button>
-        <button id="stop-time">Stop Time</button>
-        <button id="add-squirrel">Add Squirrel</button>
-        <button id="remove-squirrel">Remove Squirrel</button>
-        <div id="performance-stats">
-            <p>FPS: <span id="fps">0</span></p>
-        </div>
-    </div>
-    <button id="toggle-debug-ui">Hide Debug UI</button>
-    <script src="js/systems/wind.js" type="module"></script>
-    <script src="js/core/game.js" type="module"></script>
-    <script src="js/debug.js" type="module"></script>
+    
+    <!-- Charger les modules dans l'ordre correct -->
+    <!-- Core systems -->
+    <script src="js/core/debug_manager.js"></script>
+    <script src="js/core/shader_manager.js"></script>
+    <script src="js/core/geometry_manager.js"></script>
+    <script src="js/core/procedural_generator.js"></script>
+    <script src="js/core/texture_generator.js"></script>
+    <script src="js/core/soil_manager.js"></script>
+    
+    <!-- Tree systems -->
+    <script src="js/core/trees/tree_species_config.js"></script>
+    <script src="js/core/trees/tree_texture_generator.js"></script>
+    <script src="js/core/trees/tree_manager.js"></script>
+    
+    <!-- Game systems -->
+    <script src="js/systems/input_manager.js"></script>
+    <script src="js/systems/camera_manager.js"></script>
+    <script src="js/systems/render_system.js"></script>
+    
+    <!-- Entities -->
+    <script src="js/entities/character.js"></script>
+    <script src="js/entities/soil.js"></script>
+    <script src="js/entities/tree.js"></script>
+    
+    <!-- Main engine -->
+    <script src="js/core/main_graphics.js"></script>
 </body>
 </html>
