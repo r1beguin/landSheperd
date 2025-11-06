@@ -33,6 +33,9 @@ class Soil {
         this.waterRetention = options.waterRetention ?? this.randomValue(0, 100);
         this.pollution = options.pollution ?? this.randomValue(0, 100);
         
+        // Plant placement restrictions
+        this.isPlantable = options.isPlantable ?? true;
+        
         // Propriétés dérivées
         this.fertility = this.calculateFertility();
         

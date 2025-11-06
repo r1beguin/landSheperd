@@ -1,15 +1,15 @@
 /**
- * GraphicsEngine - Moteur de rendu WebGL principal du jeu Land Shepherd
+ * GraphicsEngine - Main WebGL rendering engine for Land Shepherd game
  * 
- * Ce module constitue le cœur du système de rendu, orchestrant tous les composants
- * graphiques du jeu. Il coordonne les gestionnaires modulaires (input, caméra, rendu)
- * et gère la boucle de jeu principale avec une architecture découplée.
+ * This module constitutes the heart of the rendering system, orchestrating all
+ * graphics components of the game. It coordinates modular managers (input, camera, rendering)
+ * and manages the main game loop with a decoupled architecture.
  * 
- * Fonctionnalités principales :
- * - Orchestration des systèmes modulaires
- * - Boucle de jeu optimisée avec deltaTime
- * - Initialisation et configuration du contexte WebGL
- * - Interface unifiée pour le contrôle du jeu
+ * Main features:
+ * - Orchestration of modular systems
+ * - Optimized game loop with deltaTime
+ * - WebGL context initialization and configuration
+ * - Unified interface for game control
  */
 
 class GraphicsEngine {
@@ -17,7 +17,7 @@ class GraphicsEngine {
         this.canvas = document.getElementById(canvasId);
         this.gl = null;
         
-        // Gestionnaires modulaires
+        // Modular managers
         this.shaderManager = null;
         this.geometryManager = null;
         this.debugManager = null;
@@ -25,15 +25,15 @@ class GraphicsEngine {
         this.cameraManager = null;
         this.renderSystem = null;
         
-        // Entités
+        // Entities
         this.player = null;
         this.entities = [];
         
-        // Timing pour les performances
+        // Timing for performance
         this.lastTime = 0;
         this.deltaTime = 0;
         
-        // Flag pour synchronisation des calques (une seule fois)
+        // Flag for layer synchronization (once only)
         this.layersSynchronized = false;
         
         this.initEngine();
@@ -49,56 +49,50 @@ class GraphicsEngine {
             this.setupGameSystems();
             this.initPlayer();
             
-            // Démarrer la boucle de rendu
+            // Start render loop
             this.render(0);
-            console.log('Moteur graphique initialisé avec succès');
+            console.log('Graphics engine initialized successfully');
         } catch (error) {
-            console.error('Erreur lors de l\'initialisation du moteur:', error);
+            console.error('Error during engine initialization:', error);
             throw error;
         }
     }
     
     initWebGL() {
-        // Obtenir le contexte WebGL
+        // Get WebGL context
         this.gl = this.canvas.getContext('webgl2') || this.canvas.getContext('webgl');
         
         if (!this.gl) {
-            throw new Error('WebGL n\'est pas supporté sur ce navigateur');
+            throw new Error('WebGL is not supported on this browser');
         }
         
-        console.log('WebGL initialisé avec succès');
+        console.log('WebGL initialized successfully');
     }
     
     async initManagers() {
-        // Gestionnaires de base
+        // Base managers
         this.shaderManager = new ShaderManager(this.gl);
         this.geometryManager = new GeometryManager(this.gl);
         this.debugManager = new DebugManager();
         
-        // Attendre l'initialisation du debug manager pour récupérer la config
+        // Wait for debug manager initialization to get config
         const debugEnabled = await this.debugManager.initialize();
         this.config = this.debugManager.getConfig();
-        console.log('Debug manager initialisé. Mode debug:', debugEnabled ? 'activé' : 'désactivé');
+        console.log('Debug manager initialized. Debug mode:', debugEnabled ? 'enabled' : 'disabled');
         
-        // Gestionnaire de textures avec configuration
+        // Texture manager with configuration
         this.textureGenerator = new TextureGenerator(this.gl, this.config);
         
-        // Gestionnaire de sol avec configuration
+        // Soil manager with configuration
         this.soilManager = new SoilManager(this.gl, this.geometryManager, this.textureGenerator, this.config);
         
-        // Gestionnaire d'arbres avec dépendances
-        this.treeManager = new TreeManager(this.gl, this.geometryManager, this.soilManager, this.config);
+        // Initialize plant manager after soil manager
+        this.plantManager = new PlantManager(this.soilManager);
         
-        // Gestionnaires de systèmes
+        // System managers
         this.inputManager = new InputManager(this.canvas);
         this.cameraManager = new CameraManager(this.canvas.width, this.canvas.height);
         this.renderSystem = new RenderSystem(this.gl, this.shaderManager, this.geometryManager);
-        
-        // Forcer la synchronisation des calques après l'initialisation du TextureGenerator
-        // SUPPRIMÉ - cause des régénérations inutiles
-        // if (this.debugManager.isDebugEnabled()) {
-        //     this.debugManager.forceSynchronization(this.textureGenerator);
-        // }
     }
     
     setupShaders() {
@@ -114,23 +108,23 @@ class GraphicsEngine {
             varying vec4 v_color;
             
             void main() {
-                // Appliquer le scale à la géométrie
+                // Apply scale to geometry
                 vec2 scaledPosition = a_position * u_scale;
                 
-                // Appliquer la translation (position de l'entité)
+                // Apply translation (entity position)
                 vec2 worldPosition = scaledPosition + u_translation;
                 
-                // Appliquer la caméra (décalage)
+                // Apply camera (offset)
                 vec2 cameraPosition = worldPosition - u_camera;
                 
-                // Appliquer le zoom
+                // Apply zoom
                 vec2 zoomedPosition = cameraPosition * u_zoom;
                 
-                // Centrer le zoom sur l'écran
+                // Center zoom on screen
                 vec2 screenCenter = u_resolution * 0.5;
                 vec2 finalPosition = zoomedPosition + screenCenter;
                 
-                // Convertir vers l'espace clip
+                // Convert to clip space
                 vec2 zeroToOne = finalPosition / u_resolution;
                 vec2 zeroToTwo = zeroToOne * 2.0;
                 vec2 clipSpace = zeroToTwo - 1.0;
@@ -149,7 +143,7 @@ class GraphicsEngine {
             }
         `;
 
-        // Shader pour textures
+        // Shader for textures
         const textureVertexShaderSource = `
             attribute vec2 a_position;
             attribute vec2 a_texCoord;
@@ -162,23 +156,23 @@ class GraphicsEngine {
             varying vec2 v_texCoord;
             
             void main() {
-                // Appliquer le scale à la géométrie
+                // Apply scale to geometry
                 vec2 scaledPosition = a_position * u_scale;
                 
-                // Appliquer la translation (position de l'entité)
+                // Apply translation (entity position)
                 vec2 worldPosition = scaledPosition + u_translation;
                 
-                // Appliquer la caméra (décalage)
+                // Apply camera (offset)
                 vec2 cameraPosition = worldPosition - u_camera;
                 
-                // Appliquer le zoom
+                // Apply zoom
                 vec2 zoomedPosition = cameraPosition * u_zoom;
                 
-                // Centrer le zoom sur l'écran
+                // Center zoom on screen
                 vec2 screenCenter = u_resolution * 0.5;
                 vec2 finalPosition = zoomedPosition + screenCenter;
                 
-                // Convertir vers l'espace clip
+                // Convert to clip space
                 vec2 zeroToOne = finalPosition / u_resolution;
                 vec2 zeroToTwo = zeroToOne * 2.0;
                 vec2 clipSpace = zeroToTwo - 1.0;
@@ -203,18 +197,18 @@ class GraphicsEngine {
     }
     
     setupGeometry() {
-        // Créer la géométrie réutilisable du carré
+        // Create reusable quad geometry
         this.geometryManager.createQuad(5, 5, false);
     }
     
     setupViewport() {
-        // Ajuster la taille du canvas à la fenêtre
+        // Adjust canvas size to window
         this.resizeCanvas();
         
-        // Définir le viewport WebGL
+        // Set WebGL viewport
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         
-        // Définir la couleur de fond (gris)
+        // Set background color (gray)
         this.gl.clearColor(0.5, 0.5, 0.5, 1.0); // RGB: 128, 128, 128
     }
 
@@ -224,22 +218,55 @@ class GraphicsEngine {
     }
     
     setupInputHandlers() {
-        // Gestion des clics pour déplacer le joueur
+        // Handle clicks to move player
         this.inputManager.on('click', (event) => {
-            if (event.button === 0 && this.player) { // Clic gauche
+            if (event.button === 0 && this.player) { // Left click
                 const worldCoords = this.cameraManager.screenToWorld(event.x, event.y);
                 this.player.moveTo(worldCoords.x, worldCoords.y);
             }
         });
         
-        // Gestion du redimensionnement
+        // Handle right-click cycle: spawn seedling → advance growth → delete plant
+        this.inputManager.on('mousedown', (event) => {
+            if (event.button === 2) { // Right click for plant cycle
+                const worldCoords = this.cameraManager.screenToWorld(event.x, event.y);
+                
+                // Use soil manager's worldToGrid method for proper coordinate conversion
+                const gridCoords = this.soilManager.worldToGrid(worldCoords.x, worldCoords.y);
+                const gridX = gridCoords.x;
+                const gridY = gridCoords.y;
+                
+                // Check if there's actually soil at this location AND if it's currently being rendered
+                const soil = this.soilManager.getSoilAt(gridX, gridY);
+                const isCurrentlyVisible = this.soilManager.isSoilCurrentlyVisible(gridX, gridY);
+                
+                if (soil && isCurrentlyVisible) {
+                    // Check if there's already a plant at this location
+                    const existingPlant = this.plantManager.getPlantAt(gridX, gridY);
+                    
+                    if (!existingPlant) {
+                        // First right click: spawn seedling at exact click position
+                        this.plantManager.addPlantAtPosition(gridX, gridY, worldCoords.x, worldCoords.y);
+                    } else {
+                        // Second right click: try to advance growth stage
+                        const advanced = existingPlant.advanceGrowthStage();
+                        if (!advanced) {
+                            // Third right click: delete the plant (already at final stage)
+                            this.plantManager.removePlant(gridX, gridY);
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Handle resize
         this.inputManager.on('resize', (event) => {
             this.resizeCanvas(event.width, event.height);
         });
     }
     
     setupCameraControls() {
-        // Gestion du zoom avec la molette
+        // Handle zoom with mouse wheel
         this.inputManager.on('wheel', (event) => {
             if (event.deltaY > 0) {
                 this.cameraManager.zoomOut(event.x, event.y);
@@ -250,11 +277,11 @@ class GraphicsEngine {
     }
 
     resizeCanvas(width = window.innerWidth, height = window.innerHeight) {
-        // Ajuster la résolution du canvas à la taille de la fenêtre
+        // Adjust canvas resolution to window size
         this.canvas.width = width;
         this.canvas.height = height;
         
-        // Ajuster la taille CSS
+        // Adjust CSS size
         this.canvas.style.width = width + 'px';
         this.canvas.style.height = height + 'px';
         
@@ -262,83 +289,83 @@ class GraphicsEngine {
             this.renderSystem.setViewport(width, height);
         }
         
-        // Mettre à jour la caméra
+        // Update camera
         if (this.cameraManager) {
             this.cameraManager.resize(width, height);
         }
         
-        // NE PAS repositionner le joueur au redimensionnement - garder sa position monde
-        // Le joueur doit rester au centre de la carte où se trouve l'arbre
+        // DO NOT reposition player on resize - keep world position
+        // Player should stay at the center of the map where the tree is
     }
     
     initPlayer() {
-        // Positionner le joueur au centre de l'écran (coordonnées écran)
-        const screenCenterX = 0; // Centre écran en coordonnées monde
-        const screenCenterY = 0; // Centre écran en coordonnées monde
+        // Position player at the center of the screen (screen coordinates)
+        const screenCenterX = 0; // Screen center in world coordinates
+        const screenCenterY = 0; // Screen center in world coordinates
         
-        console.log(`🎯 Positionnement du joueur au centre de l'écran: (${screenCenterX}, ${screenCenterY})`);
+        console.log(`🎯 Positioning player at the center of the screen: (${screenCenterX}, ${screenCenterY})`);
         
-        // Couleur plus visible : rouge vif au lieu de vert
-        this.player = new Character(screenCenterX, screenCenterY, 8, [1.0, 0.2, 0.2, 1.0]); // Rouge vif et plus gros
+        // More visible color: bright red instead of green
+        this.player = new Character(screenCenterX, screenCenterY, 8, [1.0, 0.2, 0.2, 1.0]); // Bright red and larger
         
-        // Centrer la caméra sur le centre de la carte où se trouve l'arbre
-        // Avec le système de coordonnées centrées, le centre de la carte est à (0,0)
-        const mapCenterX = 0; // Centre de la carte en coordonnées monde
-        const mapCenterY = 0; // Centre de la carte en coordonnées monde
+        // Center camera on the center of the map where the tree is
+        // With centered coordinate system, the center of the map is at (0,0)
+        const mapCenterX = 0; // Map center in world coordinates
+        const mapCenterY = 0; // Map center in world coordinates
         
         this.cameraManager.setPosition(mapCenterX, mapCenterY);
-        this.cameraManager.setZoom(2.0); // Zoom pour mieux voir l'arbre
+        this.cameraManager.setZoom(2.0); // Zoom to better see the tree
         
-        console.log(`📷 Caméra positionnée sur le centre de la carte: (${mapCenterX}, ${mapCenterY}) avec zoom 2.0`);
+        console.log(`📷 Camera positioned at the center of the map: (${mapCenterX}, ${mapCenterY}) with zoom 2.0`);
         
-        // Ajouter le joueur à la liste des entités
+        // Add player to the list of entities
         this.entities.push(this.player);
     }
     
     render(currentTime) {
-        // Calculer deltaTime pour des animations fluides
+        // Calculate deltaTime for smooth animations
         this.deltaTime = currentTime - this.lastTime;
         this.lastTime = currentTime;
         
-        // Mettre à jour les systèmes
+        // Update systems
         this.update(this.deltaTime);
         
-        // Commencer le rendu
+        // Start rendering
         this.renderSystem.beginFrame();
         
-        // Obtenir la matrice de vue de la caméra
+        // Get camera view matrix
         const viewMatrix = this.cameraManager.getViewMatrix();
         
-        // Rendre toutes les entités
+        // Render all entities
         this.renderEntities(viewMatrix);
         
-        // Terminer le rendu
+        // End rendering
         this.renderSystem.endFrame();
         
-        // Mettre à jour les métriques de debug
+        // Update debug metrics
         this.updateDebugMetrics(currentTime);
         
-        // Synchronisation supprimée - les calques sont correctement initialisés par défaut
+        // Synchronization removed - layers are correctly initialized by default
         // if (!this.layersSynchronized && this.debugManager && this.debugManager.isDebugEnabled()) {
         //     this.debugManager.synchronizeInitialState();
         //     this.layersSynchronized = true;
         // }
         
-        // Continuer la boucle de rendu
+        // Continue render loop
         requestAnimationFrame((time) => this.render(time));
     }
     
     update(deltaTime) {
-        // Mettre à jour la caméra
+        // Update camera
         this.cameraManager.update();
         
-        // Mettre à jour le système de sol
+        // Update soil system
         this.soilManager.update(deltaTime);
         
-        // Mettre à jour le système d'arbres
-        this.treeManager.update(deltaTime);
+        // Update plant manager
+        this.plantManager.update(deltaTime);
         
-        // Mettre à jour toutes les entités
+        // Update all entities
         this.entities.forEach(entity => {
             if (entity.update) {
                 entity.update(deltaTime);
@@ -347,27 +374,31 @@ class GraphicsEngine {
     }
     
     renderEntities(viewMatrix) {
-        // 1. Rendre le sol en premier (arrière-plan)
+        // 1. Render soil first (background)
         this.soilManager.renderSoil(this.renderSystem, viewMatrix, this.cameraManager);
         
-        // 2. Rendre les arbres par-dessus le sol
-        this.treeManager.renderTrees(this.renderSystem, viewMatrix, this.cameraManager);
+        // 2. Render plants (middle layer)
+        const visibleBounds = this.cameraManager.getVisibleBounds();
+        const visiblePlants = this.plantManager.getVisiblePlants(visibleBounds);
+        if (visiblePlants.length > 0) {
+            this.renderSystem.renderBatch(visiblePlants, viewMatrix);
+        }
         
-        // 3. Rendre les autres entités par-dessus (personnage, etc.)
+        // 3. Render other entities on top (character, etc.)
         this.renderSystem.renderBatch(this.entities, viewMatrix);
     }
     
     updateDebugMetrics(currentTime) {
         if (!this.debugManager || !this.debugManager.isDebugEnabled()) return;
         
-        // Mettre à jour les FPS
+        // Update FPS
         this.debugManager.updateFPS(currentTime);
         
-        // Mettre à jour le nombre de géométries
+        // Update geometry count
         const geometryCount = this.geometryManager.geometries.size;
         this.debugManager.updateGeometryCount(geometryCount);
         
-        // Mettre à jour la position du joueur
+        // Update player position
         if (this.player) {
             this.debugManager.updatePlayerPosition(
                 this.player.position.x + this.player.size / 2,
@@ -375,35 +406,27 @@ class GraphicsEngine {
             );
         }
         
-        // Mettre à jour les métriques de rendu
+        // Update render metrics
         this.debugManager.updateRenderCalls(this.renderSystem.getRenderCalls());
         this.debugManager.updateZoomLevel(this.cameraManager.zoom);
         
-        // Mettre à jour les métriques du système de sol
+        // Update soil system metrics
         this.debugManager.updateSoilMetrics(
             this.soilManager.getVisibleCellsCount(),
             this.soilManager.getTotalCells()
         );
         
-        // Mettre à jour les métriques du système d'arbres
-        this.debugManager.updateTreeMetrics(
-            this.treeManager.getVisibleTreesCount(),
-            this.treeManager.getTotalTrees()
-        );
-        this.debugManager.updateTreeSpecies(this.treeManager.getSpeciesCount());
+        // Update plant count
+        this.debugManager.updatePlantCount(this.plantManager.plants.size);
         
-        // Mettre à jour les informations du sol sous le joueur
+        // Update soil information under player
         if (this.player) {
             const playerCenterX = this.player.position.x + this.player.size / 2;
             const playerCenterY = this.player.position.y + this.player.size / 2;
             const soilInfo = this.soilManager.getSoilInfoAt(playerCenterX, playerCenterY);
             this.debugManager.updateSoilInfo(soilInfo);
             
-            // Mettre à jour les informations de l'arbre sous le joueur
-            const treeInfo = this.treeManager.getTreeInfoAt(playerCenterX, playerCenterY);
-            this.debugManager.updateTreeInfo(treeInfo);
-            
-            // Mettre à jour les niveaux d'intensité d'eau et de pollution
+            // Update water and pollution intensity levels
             if (soilInfo) {
                 this.debugManager.updateWaterLevel(soilInfo.waterRetention, this.textureGenerator);
                 this.debugManager.updatePollutionLevel(soilInfo.pollution, this.textureGenerator);
@@ -411,7 +434,7 @@ class GraphicsEngine {
         }
     }
     
-    // API publique pour ajouter/supprimer des entités
+    // Public API to add/remove entities
     addEntity(entity) {
         this.entities.push(entity);
     }
@@ -423,7 +446,7 @@ class GraphicsEngine {
         }
     }
     
-    // Getters pour accéder aux systèmes depuis l'extérieur
+    // Getters to access systems from outside
     getCamera() {
         return this.cameraManager;
     }
@@ -436,7 +459,7 @@ class GraphicsEngine {
         return this.renderSystem;
     }
     
-    // Méthodes utilitaires
+    // Utility methods
     setBackgroundColor(r, g, b, a = 1.0) {
         this.renderSystem.setBackgroundColor(r, g, b, a);
     }
@@ -451,17 +474,17 @@ class GraphicsEngine {
     }
 }
 
-// Initialiser le moteur graphique quand le DOM est prêt
+// Initialize graphics engine when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         const graphics = new GraphicsEngine('gameCanvas');
         
-        // Exposer globalement pour debug
+        // Expose globally for debug
         window.graphics = graphics;
         
-        console.log('Land Shepherd - Moteur graphique démarré');
+        console.log('Land Shepherd - Graphics engine started');
     } catch (error) {
-        console.error('Erreur lors de l\'initialisation:', error);
-        document.body.innerHTML = `<div style="color: red; padding: 20px;">Erreur: ${error.message}</div>`;
+        console.error('Error during initialization:', error);
+        document.body.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error.message}</div>`;
     }
 });

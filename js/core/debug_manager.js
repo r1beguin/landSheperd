@@ -112,20 +112,8 @@ class DebugManager {
                     <span id="debug-soil-cells">0 / 0</span>
                 </div>
                 <div class="debug-metric">
-                    <span class="debug-label">Arbres:</span>
-                    <span id="debug-trees">0 / 0</span>
-                </div>
-                <div class="debug-metric">
-                    <span class="debug-label">Espèces:</span>
-                    <span id="debug-tree-species">Chênes: 0, Pins: 0, Châtaigniers: 0</span>
-                </div>
-                <div class="debug-metric">
                     <span class="debug-label">Sol sous joueur:</span>
                     <span id="debug-soil-info">N/A</span>
-                </div>
-                <div class="debug-metric">
-                    <span class="debug-label">Arbre sous joueur:</span>
-                    <span id="debug-tree-info">N/A</span>
                 </div>
                 <div class="debug-metric">
                     <span class="debug-label">Niveau eau:</span>
@@ -135,41 +123,13 @@ class DebugManager {
                     <span class="debug-label">Niveau pollution:</span>
                     <span id="debug-pollution-level">N/A</span>
                 </div>
+                <div class="debug-metric">
+                    <span class="debug-label">Plantes:</span>
+                    <span id="debug-plant-count">0</span>
+                </div>
                 <div class="debug-controls">
                     <button id="toggle-water-layer" class="debug-toggle-btn inactive">💧 Eau</button>
                     <button id="toggle-pollution-layer" class="debug-toggle-btn inactive">☢️ Pollution</button>
-                </div>
-                <div class="debug-shadow-controls">
-                    <div class="debug-section-title">🌑 Contrôles d'Ombre</div>
-                    <div class="debug-slider-group">
-                        <label class="debug-slider-label">Largeur: <span id="shadow-width-value">1.0x</span></label>
-                        <input type="range" id="shadow-width" min="0.5" max="3" step="0.1" value="1.0" class="debug-slider">
-                    </div>
-                    <div class="debug-slider-group">
-                        <label class="debug-slider-label">Hauteur: <span id="shadow-height-value">0.6x</span></label>
-                        <input type="range" id="shadow-height" min="0.2" max="1.5" step="0.1" value="0.6" class="debug-slider">
-                    </div>
-                    <div class="debug-slider-group">
-                        <label class="debug-slider-label">Longueur: <span id="shadow-length-value">1.5x</span></label>
-                        <input type="range" id="shadow-length" min="0.5" max="3" step="0.1" value="1.5" class="debug-slider">
-                    </div>
-                    <div class="debug-slider-group">
-                        <label class="debug-slider-label">Rotation: <span id="shadow-rotation-value">0°</span></label>
-                        <input type="range" id="shadow-rotation" min="0" max="360" value="0" class="debug-slider">
-                    </div>
-                    <div class="debug-slider-group">
-                        <label class="debug-slider-label">Translation X: <span id="shadow-translate-x-value">0px</span></label>
-                        <input type="range" id="shadow-translate-x" min="-50" max="50" value="0" class="debug-slider">
-                    </div>
-                    <div class="debug-slider-group">
-                        <label class="debug-slider-label">Translation Y: <span id="shadow-translate-y-value">0px</span></label>
-                        <input type="range" id="shadow-translate-y" min="-50" max="50" value="0" class="debug-slider">
-                    </div>
-                    <div class="debug-slider-group">
-                        <label class="debug-slider-label">Opacité: <span id="shadow-opacity-value">50%</span></label>
-                        <input type="range" id="shadow-opacity" min="10" max="80" value="50" class="debug-slider">
-                    </div>
-                    <button id="toggle-shadows" class="debug-toggle-btn active">🌑 Ombres</button>
                 </div>
             </div>
         `;
@@ -592,77 +552,20 @@ class DebugManager {
         }
     }
 
-    updateTreeMetrics(visibleTrees, totalTrees) {
+    updatePlantCount(count) {
         if (!this.isEnabled) return;
         
-        const element = document.getElementById('debug-trees');
+        const element = document.getElementById('debug-plant-count');
         if (element) {
-            element.textContent = `${visibleTrees} / ${totalTrees}`;
+            element.textContent = count;
             
-            // Colorer selon la densité d'arbres
-            if (totalTrees === 0) {
-                element.style.color = '#888888'; // Gris pour aucun arbre
+            // Color based on plant population
+            if (count === 0) {
+                element.style.color = '#888888'; // Gray for no plants
+            } else if (count < 10) {
+                element.style.color = '#ffff00'; // Yellow for few plants
             } else {
-                const ratio = visibleTrees / totalTrees;
-                if (ratio < 0.1) {
-                    element.style.color = '#00ff00'; // Vert pour faible charge
-                } else if (ratio < 0.3) {
-                    element.style.color = '#ffff00'; // Jaune pour charge moyenne
-                } else {
-                    element.style.color = '#ff8800'; // Orange pour charge élevée
-                }
-            }
-        }
-    }
-
-    updateTreeSpecies(speciesCount) {
-        if (!this.isEnabled) return;
-        
-        const element = document.getElementById('debug-tree-species');
-        if (element) {
-            const chenes = speciesCount.chene || 0;
-            const pins = speciesCount.pin || 0;
-            const chataigniers = speciesCount.chataignier || 0;
-            
-            element.textContent = `Chênes: ${chenes}, Pins: ${pins}, Châtaigniers: ${chataigniers}`;
-            
-            // Colorer selon la diversité
-            const total = chenes + pins + chataigniers;
-            const diversity = (chenes > 0 ? 1 : 0) + (pins > 0 ? 1 : 0) + (chataigniers > 0 ? 1 : 0);
-            
-            if (total === 0) {
-                element.style.color = '#888888'; // Gris pour aucun arbre
-            } else if (diversity === 3) {
-                element.style.color = '#00ff00'; // Vert pour diversité maximale
-            } else if (diversity === 2) {
-                element.style.color = '#ffff00'; // Jaune pour diversité moyenne
-            } else {
-                element.style.color = '#ff8800'; // Orange pour faible diversité
-            }
-        }
-    }
-
-    updateTreeInfo(treeInfo) {
-        if (!this.isEnabled) return;
-        
-        const element = document.getElementById('debug-tree-info');
-        if (element) {
-            if (treeInfo) {
-                const health = Math.round(treeInfo.health);
-                const maturity = Math.round(treeInfo.maturity);
-                element.textContent = `${treeInfo.species} (${maturity}%, S:${health}%)`;
-                
-                // Colorer selon la santé de l'arbre
-                if (health > 80) {
-                    element.style.color = '#00ff00'; // Vert pour arbre sain
-                } else if (health > 50) {
-                    element.style.color = '#ffff00'; // Jaune pour arbre moyen
-                } else {
-                    element.style.color = '#ff8800'; // Orange pour arbre en mauvaise santé
-                }
-            } else {
-                element.textContent = 'N/A';
-                element.style.color = '#888888';
+                element.style.color = '#00ff00'; // Green for many plants
             }
         }
     }
@@ -704,101 +607,16 @@ class DebugManager {
     }
     
     initializeShadowControls() {
-        // Paramètres d'ombre par défaut
-        this.shadowParams = {
-            width: 1.0,
-            height: 0.6,
-            length: 1.5,
-            rotation: 0,
-            translateX: 0,
-            translateY: 0,
-            opacity: 50,
-            enabled: true
-        };
-        
-        // Gestionnaires des sliders
-        const shadowWidth = document.getElementById('shadow-width');
-        const shadowHeight = document.getElementById('shadow-height');
-        const shadowLength = document.getElementById('shadow-length');
-        const shadowRotation = document.getElementById('shadow-rotation');
-        const shadowOpacity = document.getElementById('shadow-opacity');
-        const shadowTranslateX = document.getElementById('shadow-translate-x');
-        const shadowTranslateY = document.getElementById('shadow-translate-y');
-        const shadowToggle = document.getElementById('toggle-shadows');
-        
-        if (shadowWidth) {
-            shadowWidth.addEventListener('input', (e) => {
-                this.shadowParams.width = parseFloat(e.target.value);
-                document.getElementById('shadow-width-value').textContent = `${this.shadowParams.width}x`;
-                this.onShadowParamChange();
-            });
-        }
-        
-        if (shadowHeight) {
-            shadowHeight.addEventListener('input', (e) => {
-                this.shadowParams.height = parseFloat(e.target.value);
-                document.getElementById('shadow-height-value').textContent = `${this.shadowParams.height}x`;
-                this.onShadowParamChange();
-            });
-        }
-        
-        if (shadowLength) {
-            shadowLength.addEventListener('input', (e) => {
-                this.shadowParams.length = parseFloat(e.target.value);
-                document.getElementById('shadow-length-value').textContent = `${this.shadowParams.length}x`;
-                this.onShadowParamChange();
-            });
-        }
-        
-        if (shadowRotation) {
-            shadowRotation.addEventListener('input', (e) => {
-                this.shadowParams.rotation = parseInt(e.target.value);
-                document.getElementById('shadow-rotation-value').textContent = `${this.shadowParams.rotation}°`;
-                this.onShadowParamChange();
-            });
-        }
-        
-        if (shadowOpacity) {
-            shadowOpacity.addEventListener('input', (e) => {
-                this.shadowParams.opacity = parseInt(e.target.value);
-                document.getElementById('shadow-opacity-value').textContent = `${this.shadowParams.opacity}%`;
-                this.onShadowParamChange();
-            });
-        }
-        
-        if (shadowTranslateX) {
-            shadowTranslateX.addEventListener('input', (e) => {
-                this.shadowParams.translateX = parseInt(e.target.value);
-                document.getElementById('shadow-translate-x-value').textContent = `${this.shadowParams.translateX}px`;
-                this.onShadowParamChange();
-            });
-        }
-        
-        if (shadowTranslateY) {
-            shadowTranslateY.addEventListener('input', (e) => {
-                this.shadowParams.translateY = parseInt(e.target.value);
-                document.getElementById('shadow-translate-y-value').textContent = `${this.shadowParams.translateY}px`;
-                this.onShadowParamChange();
-            });
-        }
-        
-        if (shadowToggle) {
-            shadowToggle.addEventListener('click', (e) => {
-                this.shadowParams.enabled = !this.shadowParams.enabled;
-                this.updateToggleButton(e.target, this.shadowParams.enabled);
-                this.onShadowParamChange();
-            });
-        }
+        // Shadow controls removed - no longer needed without trees
+        console.log('Shadow controls disabled - no tree system present');
     }
     
     onShadowParamChange() {
-        // Notifier le système d'arbres des changements de paramètres d'ombre
-        if (window.graphics && window.graphics.treeManager) {
-            window.graphics.treeManager.setShadowParams(this.shadowParams);
-        }
+        // Shadow parameter change handler removed - no longer needed without trees
     }
     
     getShadowParams() {
-        return this.shadowParams;
+        // Shadow parameters removed - no longer needed without trees
+        return null;
     }
 }

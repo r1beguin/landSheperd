@@ -153,6 +153,48 @@ class RenderSystem {
         
         this.entitiesRendered++;
     }
+
+    // Rendu des plantes avec texture canvas
+    renderPlant(plant, viewMatrix) {
+        if (!plant.hasTexture()) return;
+        
+        const renderData = plant.getRenderData();
+        
+        // Create WebGL texture from canvas if needed
+        let webglTexture = plant.webglTexture;
+        if (!webglTexture && renderData.texture) {
+            webglTexture = this.createTextureFromCanvas(renderData.texture);
+            plant.webglTexture = webglTexture; // Cache the texture
+        }
+        
+        if (webglTexture) {
+            this.renderTexturedRect(
+                renderData.x, 
+                renderData.y, 
+                renderData.width, 
+                renderData.height, 
+                webglTexture, 
+                viewMatrix
+            );
+        }
+    }
+
+    // Create WebGL texture from canvas
+    createTextureFromCanvas(canvas) {
+        const texture = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+        
+        // Upload the canvas to the texture
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, canvas);
+        
+        // Set filtering
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        
+        return texture;
+    }
     
     // Configuration des uniformes de base (caméra, résolution)
     setBasicUniforms(programInfo, viewMatrix) {
@@ -214,7 +256,16 @@ class RenderSystem {
             case 'character':
                 entities.forEach(entity => this.renderCharacter(entity, viewMatrix));
                 break;
+            case 'plant':
+                entities.forEach(entity => this.renderPlant(entity, viewMatrix));
+                break;
             case 'rect':
+                entities.forEach(entity => {
+                    const data = entity.getRenderData();
+                    this.renderRect(data.x, data.y, data.width, data.height, data.color, viewMatrix);
+                });
+                break;
+            case 'click-marker':
                 entities.forEach(entity => {
                     const data = entity.getRenderData();
                     this.renderRect(data.x, data.y, data.width, data.height, data.color, viewMatrix);
@@ -224,24 +275,6 @@ class RenderSystem {
                 entities.forEach(entity => {
                     const data = entity.getRenderData();
                     this.renderCircle(data.x, data.y, data.radius, data.color, viewMatrix, data.segments);
-                });
-                break;
-            case 'tree':
-                entities.forEach(entity => {
-                    // Le rendu des arbres est géré par le TreeManager pour optimiser les performances
-                    // mais on peut aussi supporter le rendu individuel d'arbres
-                    if (entity.generateTexture) {
-                        const texture = entity.generateTexture(this.gl);
-                        const data = entity.getRenderData();
-                        this.renderTexturedRect(
-                            data.position.x,
-                            data.position.y,
-                            data.size,
-                            data.size,
-                            texture,
-                            viewMatrix
-                        );
-                    }
                 });
                 break;
             case 'soil':

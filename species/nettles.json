@@ -1,0 +1,55 @@
+{
+  "id": "urtica_dioica",
+  "commonName": "Stinging Nettle",
+  "category": "wild_herb",
+  "layer": "middle",
+
+  "appearance": {
+    "colorPalette": {
+      "leaf": ["#4a7c59", "#3d6b4a", "#2f5a3b"],
+      "stem": ["#6b8e23", "#556b2f", "#4a5f2a"]
+    }
+  },
+
+  "growthStages": [
+    {
+      "name": "Seedling",
+      "generator": "seedlingGeneration",
+      "visibleOrgans": ["stem", "leaf"]
+    },
+    {
+      "name": "Vegetative",
+      "generator": "vegetativeGeneration",
+      "visibleOrgans": ["stem", "leaf"]
+    }
+  ],
+
+  "proceduralModules": {
+    "stem": {
+      "segments": 3,
+      "curveIntensity": 0.1,
+      "colorVariation": 0.15,
+      "baseWidth": 0.4
+    },
+    "leaf": {
+      "shapeType": "serrated",
+      "irregularity": 0.3,
+      "pairCount": 2,
+      "edgeVariation": 0.8
+    },
+    "seedling": {
+      "stem": {
+        "segments": 1,
+        "curveIntensity": 0.05,
+        "colorVariation": 0.10,
+        "baseWidth": 0.2
+      },
+      "leaf": {
+        "shapeType": "serrated",
+        "irregularity": 0.2,
+        "pairCount": 1,
+        "edgeVariation": 0.6
+      }
+    }
+  }
+}

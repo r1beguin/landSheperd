@@ -1,15 +1,15 @@
 /**
- * SoilManager - Gestionnaire centralisé du système de sol
+ * SoilManager - Centralized soil system manager
  * 
- * Ce module gère la grille globale du sol, l'optimisation du rendu des cellules
- * et les interactions avec le système de sol. Il fournit une interface efficace
- * pour accéder aux propriétés du sol et gérer les mises à jour.
+ * This module manages the global soil grid, optimizes cell rendering,
+ * and interacts with the soil system. It provides an efficient interface
+ * for accessing soil properties and managing updates.
  * 
- * Fonctionnalités principales :
- * - Gestion de la grille de cellules de sol 20x20
- * - Optimisation du rendu par culling (cellules visibles uniquement)
- * - Cache des données de rendu pour les performances
- * - Interface pour l'interaction avec les autres systèmes (plantes, animaux)
+ * Main features:
+ * - Management of 20x20 soil cell grid
+ * - Rendering optimization by culling (only visible cells)
+ * - Rendering data cache for performance
+ * - Interface for interaction with other systems (plants, animals)
  */
 
 class SoilManager {
@@ -19,51 +19,46 @@ class SoilManager {
         this.textureGenerator = textureGenerator;
         this.config = config;
         
-        // Grille de sol (Map pour un accès efficace)
+        // Soil grid (Map for efficient access)
         this.soilGrid = new Map();
         
-        // Configuration de la grille depuis config.json
+        // Grid configuration from config.json
         this.cellSize = this.config.world.map.cellSize;
         this.gridWidth = this.config.world.map.gridWidth;
         this.gridHeight = this.config.world.map.gridHeight;
         
-        // Générateur procédural
+        // Procedural generator
         this.proceduralGenerator = new ProceduralGenerator(this.config.world.soil);
         
-        // Cache de rendu pour optimisation
+        // Rendering cache for optimization
         this.visibleCells = [];
         this.needsRefresh = true;
         
-        // Compteurs pour debug
+        // Counters for debugging
         this.totalCells = 0;
         this.visibleCellsCount = 0;
         
-        console.log(`🌍 SoilManager initialisé: ${this.gridWidth}x${this.gridHeight} cellules de ${this.cellSize}px`);
+        console.log(`🌍 SoilManager initialized: ${this.gridWidth}x${this.gridHeight} cells of ${this.cellSize}px`);
         
         this.initializeSoilGrid();
         this.createSoilGeometry();
     }
     
-    // Initialise la grille de sol avec génération procédurale
+    // Initialize soil grid with procedural generation
     initializeSoilGrid() {
-        console.log('🌍 Initialisation de la grille de sol avec génération procédurale...');
+        console.log('Initializing soil grid with procedural generation...');
         
         const startTime = performance.now();
         
-        // Générer les cartes de propriétés avec le générateur procédural
+        // Generate property maps with procedural generator
         const fertilityMap = this.proceduralGenerator.generateCoherentMap(this.gridWidth, this.gridHeight, 'fertility');
         const waterRetentionMap = this.proceduralGenerator.generateCoherentMap(this.gridWidth, this.gridHeight, 'water');
         const pollutionMap = this.proceduralGenerator.generateCoherentMap(this.gridWidth, this.gridHeight, 'pollution');
         
-        // Statistiques des cartes générées
-        console.log('📊 Statistiques fertilité:', this.proceduralGenerator.getMapStats(fertilityMap));
-        console.log('💧 Statistiques eau:', this.proceduralGenerator.getMapStats(waterRetentionMap));
-        console.log('☢️ Statistiques pollution:', this.proceduralGenerator.getMapStats(pollutionMap));
-        
-        // Créer les cellules avec les valeurs des cartes
+        // Create cells with map values - CREATE ALL SOIL CELLS
         for (let x = -this.gridWidth/2; x < this.gridWidth/2; x++) {
             for (let y = -this.gridHeight/2; y < this.gridHeight/2; y++) {
-                // Convertir les coordonnées du monde vers les indices de carte
+                // Convert world coordinates to map indices
                 const mapX = x + this.gridWidth/2;
                 const mapY = y + this.gridHeight/2;
                 
@@ -71,11 +66,12 @@ class SoilManager {
                 
                 const soil = new Soil(x, y, {
                     nitrogen: fertilityMap[mapY][mapX] + this.randomVariation(fertilityConfig.nitrogen),
-                    phosphorus: fertilityMap[mapY][mapX] + this.randomVariation(fertilityConfig.phosphorus),
+                    phosphorus: fertilityMap[mapY][mapX] + this.randomVariation(fertilityConfig.nitrogen),
                     potassium: fertilityMap[mapY][mapX] + this.randomVariation(fertilityConfig.potassium),
                     organicMatter: fertilityMap[mapY][mapX] + this.randomVariation(fertilityConfig.organicMatter),
                     waterRetention: waterRetentionMap[mapY][mapX],
-                    pollution: pollutionMap[mapY][mapX]
+                    pollution: pollutionMap[mapY][mapX],
+                    isPlantable: this.shouldHaveSoil(x, y) // Add plantable flag instead of restricting creation
                 });
                 
                 this.setSoilAt(x, y, soil);
@@ -84,14 +80,30 @@ class SoilManager {
         }
         
         const endTime = performance.now();
-        console.log(`✅ Grille de sol initialisée: ${this.totalCells} cellules en ${(endTime - startTime).toFixed(2)}ms`);
+        console.log(`Soil grid initialized: ${this.totalCells} cells in ${(endTime - startTime).toFixed(2)}ms`);
     }
-    
-    // Génère une carte 2D avec cohérence spatiale (zones et dégradés)
+
+    // Check if this location should allow plant placement (more restrictive than soil existence)
+    shouldHaveSoil(gridX, gridY) {
+        // Define a much larger plantable area - let's try 80% of grid size
+        const plantableRadius = Math.min(this.gridWidth, this.gridHeight) * 0.45; // 45% radius = 90% diameter
+        const centerX = 0;
+        const centerY = 0;
+        
+        // Use circular plantable area for more natural boundaries
+        const distance = Math.sqrt(
+            Math.pow(gridX - centerX, 2) + 
+            Math.pow(gridY - centerY, 2)
+        );
+        
+        return distance <= plantableRadius;
+    }
+
+    // Generate a 2D map with spatial coherence (zones and gradients)
     generateCoherentMap(width, height, type) {
         const map = [];
         
-        // Initialiser la carte
+        // Initialize the map
         for (let y = 0; y < height; y++) {
             map[y] = [];
             for (let x = 0; x < width; x++) {
@@ -99,20 +111,20 @@ class SoilManager {
             }
         }
         
-        // Paramètres selon le type de propriété
+        // Parameters according to the property type
         let config;
         switch (type) {
             case 'fertility':
                 config = {
-                    hotspots: 8,        // Nombre de zones fertiles
-                    baseValue: 30,      // Valeur de base
-                    maxIntensity: 85,   // Intensité maximale des hotspots
-                    falloffRate: 0.15   // Vitesse de dégradé
+                    hotspots: 8,        // Number of fertile zones
+                    baseValue: 30,      // Base value
+                    maxIntensity: 85,   // Maximum intensity of hotspots
+                    falloffRate: 0.15   // Gradient speed
                 };
                 break;
             case 'water':
                 config = {
-                    hotspots: 5,        // Zones d'eau (rivières, marécages)
+                    hotspots: 5,        // Water zones (rivers, swamps)
                     baseValue: 20,
                     maxIntensity: 90,
                     falloffRate: 0.12
@@ -120,57 +132,57 @@ class SoilManager {
                 break;
             case 'pollution':
                 config = {
-                    hotspots: 3,        // Quelques zones polluées
+                    hotspots: 3,        // Few polluted zones
                     baseValue: 5,
                     maxIntensity: 80,
-                    falloffRate: 0.08   // Pollution se propage plus lentement
+                    falloffRate: 0.08   // Pollution spreads more slowly
                 };
                 break;
         }
         
-        // Générer des points chauds (hotspots)
+        // Generate hotspots
         const hotspots = [];
         for (let i = 0; i < config.hotspots; i++) {
             hotspots.push({
                 x: Math.random() * width,
                 y: Math.random() * height,
                 intensity: config.baseValue + Math.random() * (config.maxIntensity - config.baseValue),
-                radius: 8 + Math.random() * 12 // Rayon variable entre 8 et 20
+                radius: 8 + Math.random() * 12 // Variable radius between 8 and 20
             });
         }
         
-        // Appliquer l'influence des hotspots avec dégradé
+        // Apply hotspot influence with gradient
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 let totalInfluence = config.baseValue;
                 
-                // Calculer l'influence de chaque hotspot
+                // Calculate the influence of each hotspot
                 hotspots.forEach(hotspot => {
                     const distance = Math.sqrt(
                         Math.pow(x - hotspot.x, 2) + Math.pow(y - hotspot.y, 2)
                     );
                     
                     if (distance < hotspot.radius) {
-                        // Fonction de dégradé exponentiel
+                        // Exponential gradient function
                         const influence = hotspot.intensity * Math.exp(-distance * config.falloffRate);
                         totalInfluence += influence;
                     }
                 });
                 
-                // Ajouter du bruit pour la variation locale
+                // Add noise for local variation
                 const noise = (Math.random() - 0.5) * 10;
                 totalInfluence += noise;
                 
-                // Clamper entre 0 et 100
+                // Clamp between 0 and 100
                 map[y][x] = Math.max(0, Math.min(100, totalInfluence));
             }
         }
         
-        // Post-traitement : lissage pour des transitions plus douces
+        // Post-processing: smoothing for smoother transitions
         return this.smoothMap(map, width, height);
     }
     
-    // Lisse la carte pour des transitions plus naturelles
+    // Smooth the map for more natural transitions
     smoothMap(map, width, height) {
         const smoothed = [];
         
@@ -180,7 +192,7 @@ class SoilManager {
                 let sum = 0;
                 let count = 0;
                 
-                // Moyenner avec les voisins (filtre 3x3)
+                // Average with neighbors (3x3 filter)
                 for (let dy = -1; dy <= 1; dy++) {
                     for (let dx = -1; dx <= 1; dx++) {
                         const nx = x + dx;
@@ -200,57 +212,71 @@ class SoilManager {
         return smoothed;
     }
     
-    // Ajoute une variation aléatoire contrôlée
+    // Add controlled random variation
     randomVariation(range) {
         return (Math.random() - 0.5) * range;
     }
     
-    // Crée la géométrie réutilisable pour les cellules de sol
+    // Create reusable geometry for soil cells
     createSoilGeometry() {
-        // Créer la géométrie de base pour les cellules 20x20
+        // Create base geometry for 20x20 cells
         this.geometryManager.createQuad(this.cellSize, this.cellSize, false);
         
-        // Créer une géométrie plus petite pour les pixels individuels (1x1)
+        // Create smaller geometry for individual pixels (1x1)
         this.geometryManager.createQuad(1, 1, false);
     }
     
-    // Conversion coordonnées -> clé de cellule
+    // Convert coordinates to cell key
     getCellKey(gridX, gridY) {
         return `${gridX},${gridY}`;
     }
     
-    // Obtenir les coordonnées de grille depuis une position monde
+    // Get grid coordinates from world position
     worldToGrid(worldX, worldY) {
+        // FIXED: Account for centered grid system
+        // The grid ranges from -gridWidth/2 to +gridWidth/2 in grid coordinates
+        // but the world coordinates are aligned with grid boundaries
+        const gridX = Math.floor(worldX / this.cellSize);
+        const gridY = Math.floor(worldY / this.cellSize);
+        
         return {
-            x: Math.floor(worldX / this.cellSize),
-            y: Math.floor(worldY / this.cellSize)
+            x: gridX,
+            y: gridY
         };
     }
     
-    // Obtenir la cellule de sol à une position de grille
+    // Get soil cell at grid position
     getSoilAt(gridX, gridY) {
         const key = this.getCellKey(gridX, gridY);
         return this.soilGrid.get(key);
     }
     
-    // Définir la cellule de sol à une position de grille
+    // Set soil cell at grid position
     setSoilAt(gridX, gridY, soil) {
         const key = this.getCellKey(gridX, gridY);
         this.soilGrid.set(key, soil);
         this.needsRefresh = true;
     }
     
-    // Obtenir la cellule de sol à une position monde
+    // Get soil cell at world position
     getSoilAtWorld(worldX, worldY) {
         const grid = this.worldToGrid(worldX, worldY);
         return this.getSoilAt(grid.x, grid.y);
     }
+
+    // Check if a soil cell is currently being rendered (visible)
+    isSoilCurrentlyVisible(gridX, gridY) {
+        // Check if this soil cell is in the current visible cells array
+        return this.visibleCells.some(soil => 
+            soil.gridX === gridX && soil.gridY === gridY
+        );
+    }
     
-    // Calculer les cellules visibles selon la caméra
+    // Calculate visible cells based on the camera
     updateVisibleCells(cameraManager) {
         const bounds = cameraManager.getVisibleBounds();
         
-        // Ajouter une marge pour éviter les pop-ins
+        // Add margin to avoid pop-ins
         const margin = this.cellSize * 2;
         const startX = Math.floor((bounds.left - margin) / this.cellSize);
         const endX = Math.ceil((bounds.right + margin) / this.cellSize);
@@ -272,40 +298,40 @@ class SoilManager {
         this.needsRefresh = false;
     }
     
-    // Rendu optimisé des cellules visibles
+    // Optimized rendering of visible cells
     renderSoil(renderSystem, viewMatrix, cameraManager) {
-        // Mettre à jour les cellules visibles si nécessaire
+        // Update visible cells if necessary
         if (this.needsRefresh) {
             this.updateVisibleCells(cameraManager);
         }
         
-        // Système de niveaux de détail basé sur le zoom
+        // Level of detail system based on zoom
         const zoom = viewMatrix.zoom;
         let renderDetailLevel;
         
         if (zoom < 0.5) {
-            renderDetailLevel = 0; // Très peu de détails
+            renderDetailLevel = 0; // Very few details
         } else if (zoom < 1.0) {
-            renderDetailLevel = 1; // Détails moyens
+            renderDetailLevel = 1; // Medium details
         } else {
-            renderDetailLevel = 2; // Tous les détails
+            renderDetailLevel = 2; // All details
         }
         
-        // Rendre les cellules avec le niveau de détail approprié
+        // Render cells with appropriate level of detail
         this.visibleCells.forEach(soil => {
             this.renderSoilCellWithLOD(soil, renderSystem, viewMatrix, renderDetailLevel);
         });
     }
     
-    // Rendu d'une cellule avec niveaux de détail
+    // Render a cell with levels of detail
     renderSoilCellWithLOD(soil, renderSystem, viewMatrix, detailLevel) {
         const data = soil.getRenderData();
         
-        // NOUVEAU SYSTÈME : Rendu avec texture procédurale
-        // Obtenir la texture appropriée pour cette cellule
+        // NEW SYSTEM: Rendering with procedural texture
+        // Get the appropriate texture for this cell
         const texture = this.textureGenerator.getTextureForSoil(soil);
         
-        // Rendre avec la texture au lieu des overlays multiples
+        // Render with texture instead of multiple overlays
         renderSystem.renderTexturedRect(
             data.position.x, 
             data.position.y, 
@@ -315,20 +341,20 @@ class SoilManager {
             viewMatrix
         );
         
-        // RÉSULTAT : 1 seul appel de rendu par cellule au lieu de 1-3
+        // RESULT: 1 render call per cell instead of 1-3
     }
     
-    // Mise à jour du système
+    // System update
     update(deltaTime) {
-        // Mettre à jour toutes les cellules (pour l'instant, juste marquer comme non-dirty)
+        // Update all cells (for now, just mark as non-dirty)
         this.soilGrid.forEach(soil => {
             soil.update(deltaTime);
         });
     }
     
-    // Méthodes utilitaires pour l'interaction avec d'autres systèmes
+    // Utility methods for interaction with other systems
     
-    // Obtenir la fertilité moyenne d'une zone
+    // Get average fertility of an area
     getAverageFertilityInArea(centerX, centerY, radius) {
         const cells = this.getCellsInRadius(centerX, centerY, radius);
         if (cells.length === 0) return 0;
@@ -337,14 +363,14 @@ class SoilManager {
         return totalFertility / cells.length;
     }
     
-    // Obtenir toutes les cellules dans un rayon donné
+    // Get all cells within a given radius
     getCellsInRadius(centerX, centerY, radius) {
         const cells = [];
         const gridCenter = this.worldToGrid(centerX, centerY);
         const gridRadius = Math.ceil(radius / this.cellSize);
         
         for (let x = gridCenter.x - gridRadius; x <= gridCenter.x + gridRadius; x++) {
-            for (let y = gridCenter.y - gridRadius; y <= gridCenter.y + gridRadius; y++) {
+            for (let y = gridCenter.y - gridRadius; y <= gridRadius; y++) {
                 const soil = this.getSoilAt(x, y);
                 if (soil) {
                     const distance = Math.sqrt(
@@ -361,7 +387,7 @@ class SoilManager {
         return cells;
     }
     
-    // Modifier les propriétés du sol dans une zone
+    // Modify soil properties in an area
     modifySoilInArea(centerX, centerY, radius, modifications) {
         const cells = this.getCellsInRadius(centerX, centerY, radius);
         
@@ -385,7 +411,7 @@ class SoilManager {
                 soil.waterRetention = Math.max(0, Math.min(100, soil.waterRetention + modifications.waterRetention));
             }
             
-            // Recalculer les propriétés dérivées
+            // Recalculate derived properties
             soil.fertility = soil.calculateFertility();
             soil.baseColor = soil.calculateBaseColor();
             soil.waterPixels = soil.generateWaterPixels();
@@ -396,13 +422,13 @@ class SoilManager {
         this.needsRefresh = true;
     }
     
-    // Obtenir des informations de debug sur une cellule
+    // Get debug information about a cell
     getSoilInfoAt(worldX, worldY) {
         const soil = this.getSoilAtWorld(worldX, worldY);
         return soil ? soil.getInfo() : null;
     }
     
-    // Getters pour les métriques de debug
+    // Getters for debug metrics
     getTotalCells() {
         return this.totalCells;
     }
@@ -411,7 +437,7 @@ class SoilManager {
         return this.visibleCellsCount;
     }
     
-    // Nettoyage des ressources
+    // Cleanup resources
     cleanup() {
         this.soilGrid.clear();
         this.visibleCells = [];

@@ -188,7 +188,15 @@ class GeometryManager {
 
     cleanup() {
         for (const geometry of this.geometries.values()) {
-            this.gl.deleteBuffer(geometry.buffer);
+            if (geometry.buffer) {
+                this.gl.deleteBuffer(geometry.buffer);
+            }
+            if (geometry.positionBuffer) {
+                this.gl.deleteBuffer(geometry.positionBuffer);
+            }
+            if (geometry.texCoordBuffer) {
+                this.gl.deleteBuffer(geometry.texCoordBuffer);
+            }
         }
         this.geometries.clear();
     }

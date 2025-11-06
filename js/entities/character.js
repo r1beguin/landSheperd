@@ -62,6 +62,10 @@ class Character {
         };
     }
 
+    getRenderType() {
+        return 'character';
+    }
+
     isAt(x, y, threshold = 5) {
         const dx = this.position.x + this.size / 2 - x;
         const dy = this.position.y + this.size / 2 - y;
