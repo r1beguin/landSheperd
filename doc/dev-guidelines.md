@@ -256,6 +256,60 @@ GraphicsEngine (main_graphics.js)
 
 ## Feature Implementation Log
 
+### Nettle Flowering and Withered Stages (November 6, 2025)
+
+**Purpose**: Complete the nettle species lifecycle with flowering and withered stages for realistic plant development and visual variety.
+
+**Changes Made**:
+
+1. **Species Configuration Enhancement**
+   - **File**: `species/nettles.json`
+   - **Implementation**: Added complete 4-stage lifecycle
+   - **Details**:
+     - Added purple flower color palette (`#8B4F9F`, `#7A4A8A`, `#6B3E7B`)
+     - Added brown withered color palettes for leaves and stems
+     - Added flower procedural module configuration
+     - Complete lifecycle: Seedling → Vegetative → Flowering → Withered
+
+2. **Plant Generator Expansion**
+   - **File**: `js/procedural/plant_generator.js`
+   - **Methods Added**: `generateFloweringSprite()`, `generateWitheredSprite()`
+   - **Implementation**: New generation methods for flowering and withered stages
+   - **Details**:
+     - **Flowering Stage**: Same as vegetative but with purple flower cluster on top
+     - **Withered Stage**: Brown colors with drooping leaves and curved petioles
+     - Updated main router to handle new stage generators
+
+3. **Specialized Drawing Methods**
+   - **File**: `js/procedural/plant_generator.js`
+   - **Methods Added**: `generateWitheredStem()`, `generateWitheredLeaves()`, `generateFlower()`, `drawWitheredLeaf()`
+   - **Implementation**: Stage-specific rendering logic
+   - **Details**:
+     - **Flower Generation**: Small purple circles clustered at stem top with color variation
+     - **Withered Stem**: Same structure as vegetative but with brown colors
+     - **Withered Leaves**: Elongated, drooping leaves positioned lower with curved connections
+     - **Visual Effects**: Proper drooping animation through quadratic curve petioles
+
+**Visual Features**:
+- **Flowering Stage**: Purple flower clusters at stem apex with size and color variation
+- **Withered Stage**: Realistic drooping leaves with elongated shapes and brown coloration
+- **Color Progression**: Green → Green + Purple → Brown transition through lifecycle
+- **Botanical Accuracy**: Nettle-like serrated leaves maintained throughout all stages
+
+**Impact**:
+- Complete realistic plant lifecycle with 4 distinct visual stages
+- Enhanced ecosystem realism with natural plant progression
+- Foundation for future seasonal and environmental effects
+- Improved visual variety in plant populations
+
+**Usage**: Right-click plants to advance through all stages: Seedling → Vegetative → Flowering → Withered → Remove
+
+**Technical Notes**:
+- Maintains existing procedural generation patterns
+- Fully compatible with current growth advancement system
+- Uses established color palette and module configuration architecture
+- No breaking changes to existing plant management system
+
 ### Plant Spawning Randomization (November 6, 2025)
 
 **Purpose**: Make plant placement more organic and natural-looking by adding randomization to both position and appearance.

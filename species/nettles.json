@@ -7,7 +7,10 @@
   "appearance": {
     "colorPalette": {
       "leaf": ["#4a7c59", "#3d6b4a", "#2f5a3b"],
-      "stem": ["#6b8e23", "#556b2f", "#4a5f2a"]
+      "stem": ["#6b8e23", "#556b2f", "#4a5f2a"],
+      "flower": ["#8B4F9F", "#7A4A8A", "#6B3E7B"],
+      "witheredLeaf": ["#8B6F3B", "#7A5F2A", "#6B4F19"],
+      "witheredStem": ["#8B7355", "#7A6245", "#6B5235"]
     }
   },
 
@@ -20,6 +23,16 @@
     {
       "name": "Vegetative",
       "generator": "vegetativeGeneration",
+      "visibleOrgans": ["stem", "leaf"]
+    },
+    {
+      "name": "Flowering",
+      "generator": "floweringGeneration",
+      "visibleOrgans": ["stem", "leaf", "flower"]
+    },
+    {
+      "name": "Withered",
+      "generator": "witheredGeneration",
       "visibleOrgans": ["stem", "leaf"]
     }
   ],
@@ -36,6 +49,12 @@
       "irregularity": 0.3,
       "pairCount": 2,
       "edgeVariation": 0.8
+    },
+    "flower": {
+      "shapeType": "cluster",
+      "size": 0.8,
+      "density": 0.7,
+      "colorVariation": 0.2
     },
     "seedling": {
       "stem": {
