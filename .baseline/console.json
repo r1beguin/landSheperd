@@ -1,0 +1,167 @@
+{
+  "logs": [
+    {
+      "type": "log",
+      "text": "WebGL initialized successfully",
+      "timestamp": "2025-11-16T16:56:51.240Z"
+    },
+    {
+      "type": "log",
+      "text": "Land Shepherd - Graphics engine started",
+      "timestamp": "2025-11-16T16:56:51.243Z"
+    },
+    {
+      "type": "warning",
+      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A0F02700244F0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+      "timestamp": "2025-11-16T16:56:51.245Z"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-11-16T16:56:51.247Z"
+    },
+    {
+      "type": "log",
+      "text": "Configuration chargée: {debug: Object, graphics: Object, world: Object}",
+      "timestamp": "2025-11-16T16:56:51.247Z"
+    },
+    {
+      "type": "log",
+      "text": "Debug mode activé - Interface créée",
+      "timestamp": "2025-11-16T16:56:51.248Z"
+    },
+    {
+      "type": "log",
+      "text": "Debug manager initialized. Debug mode: enabled",
+      "timestamp": "2025-11-16T16:56:51.248Z"
+    },
+    {
+      "type": "log",
+      "text": "🎨 TextureGenerator initialisé avec configuration: {textureSize: 20, variations: 2, waterLevels: 3, pollutionLevels: 3}",
+      "timestamp": "2025-11-16T16:56:51.248Z"
+    },
+    {
+      "type": "log",
+      "text": "🎨 Génération des textures de sol...",
+      "timestamp": "2025-11-16T16:56:51.248Z"
+    },
+    {
+      "type": "log",
+      "text": "✅ 90 textures générées en 14.00ms",
+      "timestamp": "2025-11-16T16:56:51.261Z"
+    },
+    {
+      "type": "log",
+      "text": "🔧 ProceduralGenerator initialisé avec configuration: {fertility: Object, water: Object, pollution: Object}",
+      "timestamp": "2025-11-16T16:56:51.261Z"
+    },
+    {
+      "type": "log",
+      "text": "🌍 SoilManager initialized: 50x50 cells of 20px",
+      "timestamp": "2025-11-16T16:56:51.261Z"
+    },
+    {
+      "type": "log",
+      "text": "Initializing soil grid with procedural generation...",
+      "timestamp": "2025-11-16T16:56:51.261Z"
+    },
+    {
+      "type": "log",
+      "text": "🗺️ Génération de carte fertility (50x50)",
+      "timestamp": "2025-11-16T16:56:51.261Z"
+    },
+    {
+      "type": "log",
+      "text": "  📍 8 hotspots générés",
+      "timestamp": "2025-11-16T16:56:51.261Z"
+    },
+    {
+      "type": "log",
+      "text": "🗺️ Génération de carte water (50x50)",
+      "timestamp": "2025-11-16T16:56:51.264Z"
+    },
+    {
+      "type": "log",
+      "text": "  📍 5 hotspots générés",
+      "timestamp": "2025-11-16T16:56:51.264Z"
+    },
+    {
+      "type": "log",
+      "text": "🗺️ Génération de carte pollution (50x50)",
+      "timestamp": "2025-11-16T16:56:51.265Z"
+    },
+    {
+      "type": "log",
+      "text": "  📍 3 hotspots générés",
+      "timestamp": "2025-11-16T16:56:51.265Z"
+    },
+    {
+      "type": "log",
+      "text": "Soil grid initialized: 2500 cells in 10.70ms",
+      "timestamp": "2025-11-16T16:56:51.272Z"
+    },
+    {
+      "type": "log",
+      "text": "🎯 Positioning player at the center of the screen: (0, 0)",
+      "timestamp": "2025-11-16T16:56:51.280Z"
+    },
+    {
+      "type": "log",
+      "text": "📷 Camera positioned at the center of the map: (0, 0) with zoom 2.0",
+      "timestamp": "2025-11-16T16:56:51.280Z"
+    },
+    {
+      "type": "log",
+      "text": "Graphics engine initialized successfully",
+      "timestamp": "2025-11-16T16:56:51.285Z"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-11-16T16:56:51.383Z"
+    },
+    {
+      "type": "log",
+      "text": "Shadow controls disabled - no tree system present",
+      "timestamp": "2025-11-16T16:56:51.409Z"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-11-16T16:56:51.410Z"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+      "timestamp": "2025-11-16T16:56:51.435Z"
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    {
+      "type": "warning",
+      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A0F02700244F0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+      "timestamp": "2025-11-16T16:56:51.245Z"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-11-16T16:56:51.247Z"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-11-16T16:56:51.383Z"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-11-16T16:56:51.410Z"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+      "timestamp": "2025-11-16T16:56:51.435Z"
+    }
+  ]
+}

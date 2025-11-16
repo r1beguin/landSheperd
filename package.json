@@ -1,0 +1,21 @@
+{
+  "name": "land-shepherd",
+  "version": "0.1.0",
+  "description": "2D sprite-based plant growing simulation with procedural generation",
+  "scripts": {
+    "verify": "node scripts/verify-changes.js",
+    "verify:baseline": "node scripts/verify-changes.js --baseline",
+    "verify:verbose": "node scripts/verify-changes.js --verbose",
+    "test": "playwright test",
+    "dev": "npx http-server -p 8080",
+    "postinstall": "playwright install chromium"
+  },
+  "keywords": ["webgl", "procedural-generation", "game", "simulation"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^7.0.0"
+  }
+}
