@@ -23,7 +23,8 @@ class DebugManager {
         // État initial des calques (défini dès le constructeur)
         this.layerStates = {
             water: false,
-            pollution: false
+            pollution: false,
+            fertility: false  // NEW: Fertility overlay state
         };
         
         // Métriques FPS
@@ -53,16 +54,16 @@ class DebugManager {
             this.config = await response.json();
             this.isEnabled = this.config.debug.enabled;
             
-            console.log('Configuration chargée:', this.config);
+            console.log('[CONFIG] Configuration loaded:', this.config);
             
             if (this.isEnabled) {
                 this.createDebugPanel();
-                console.log('Debug mode activé - Interface créée');
+                console.log('[DEBUG] Debug mode enabled - UI created');
             } else {
-                console.log('Debug mode désactivé via configuration');
+                console.log('[DEBUG] Debug mode disabled via configuration');
             }
         } catch (error) {
-            console.warn('Impossible de charger config.json, debug désactivé:', error);
+            console.warn('[CONFIG] Failed to load config.json, debug disabled:', error);
             this.isEnabled = false;
             // Créer une configuration par défaut
             this.config = {
@@ -83,7 +84,7 @@ class DebugManager {
         this.debugPanel.id = 'debug-panel';
         this.debugPanel.innerHTML = `
             <div class="debug-header">
-                <span>🐛 Debug Info</span>
+                <span>DEBUG</span>
                 <button id="debug-toggle">×</button>
             </div>
             <div class="debug-content">
@@ -128,8 +129,8 @@ class DebugManager {
                     <span id="debug-plant-count">0</span>
                 </div>
                 <div class="debug-controls">
-                    <button id="toggle-water-layer" class="debug-toggle-btn inactive">💧 Eau</button>
-                    <button id="toggle-pollution-layer" class="debug-toggle-btn inactive">☢️ Pollution</button>
+                    <button id="toggle-water-layer" class="debug-toggle-btn inactive">Water</button>
+                    <button id="toggle-pollution-layer" class="debug-toggle-btn inactive">Pollution</button>
                 </div>
             </div>
         `;
@@ -156,7 +157,8 @@ class DebugManager {
         // État initial des calques (désactivés par défaut)
         this.layerStates = {
             water: false,
-            pollution: false
+            pollution: false,
+            fertility: false  // NEW: Fertility overlay disabled by default
         };
         
         // Mettre à jour l'apparence des boutons pour refléter l'état désactivé
@@ -199,19 +201,20 @@ class DebugManager {
     
     onLayerToggleChange(layerType, isEnabled) {
         // Émettre un événement pour notifier les autres systèmes
-        if (window.graphics && window.graphics.textureGenerator) {
-            window.graphics.textureGenerator.setLayerVisibility(layerType, isEnabled);
-            console.log(`🎛️ Calque ${layerType} ${isEnabled ? 'activé' : 'désactivé'}`);
+        if (window.graphicsEngine && window.graphicsEngine.textureGenerator) {
+            window.graphicsEngine.textureGenerator.setLayerVisibility(layerType, isEnabled);
+            console.log(`[DEBUG] Layer ${layerType} ${isEnabled ? 'enabled' : 'disabled'}`);
         }
     }
     
     // Synchroniser l'état initial des calques avec le TextureGenerator
     synchronizeInitialState() {
-        if (window.graphics && window.graphics.textureGenerator) {
+        if (window.graphicsEngine && window.graphicsEngine.textureGenerator) {
             // Appliquer l'état initial (désactivé) aux calques
-            window.graphics.textureGenerator.setLayerVisibility('water', this.layerStates.water);
-            window.graphics.textureGenerator.setLayerVisibility('pollution', this.layerStates.pollution);
-            console.log('🔄 État initial des calques synchronisé avec TextureGenerator');
+            window.graphicsEngine.textureGenerator.setLayerVisibility('water', this.layerStates.water);
+            window.graphicsEngine.textureGenerator.setLayerVisibility('pollution', this.layerStates.pollution);
+            // Fertility is handled by SoilManager, not TextureGenerator
+            console.log('[DEBUG] Initial layer state synchronized with TextureGenerator');
             return true;
         }
         return false;
@@ -222,7 +225,8 @@ class DebugManager {
         if (textureGenerator && this.layerStates) {
             textureGenerator.setLayerVisibility('water', this.layerStates.water);
             textureGenerator.setLayerVisibility('pollution', this.layerStates.pollution);
-            console.log('🔄 Synchronisation forcée des calques');
+            // Fertility is handled by SoilManager, not TextureGenerator
+            console.log('[DEBUG] Forced layer synchronization');
         }
     }
 
@@ -587,6 +591,18 @@ class DebugManager {
     isDebugEnabled() {
         return this.isEnabled;
     }
+    
+    // NEW: Get fertility overlay state
+    getFertilityOverlayState() {
+        return this.layerStates.fertility;
+    }
+    
+    // NEW: Toggle fertility overlay
+    toggleFertilityOverlay() {
+        this.layerStates.fertility = !this.layerStates.fertility;
+        console.log(`[DEBUG] Fertility overlay ${this.layerStates.fertility ? 'enabled' : 'disabled'}`);
+        return this.layerStates.fertility;
+    }
 
     log(message, type = 'info') {
         if (!this.isEnabled) return;
@@ -608,7 +624,7 @@ class DebugManager {
     
     initializeShadowControls() {
         // Shadow controls removed - no longer needed without trees
-        console.log('Shadow controls disabled - no tree system present');
+        console.log('[DEBUG] Shadow controls disabled - no tree system present');
     }
     
     onShadowParamChange() {

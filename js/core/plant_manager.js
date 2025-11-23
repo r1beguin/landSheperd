@@ -21,7 +21,7 @@ class PlantManager {
         }
     }
     
-    addPlant(gridX, gridY, speciesId = 'urtica_dioica') {
+    addPlant(gridX, gridY, speciesId = 'urtica_dioica', currentDay = 0) {
         const key = `${gridX},${gridY}`;
         
         // Remove existing plant if any
@@ -36,22 +36,40 @@ class PlantManager {
             return null;
         }
         
-        // Place plant exactly at the center of the grid cell
-        // This ensures visual alignment with the logical grid
-        const cellCenterX = (gridX + 0.5) * this.soilManager.cellSize;
-        const cellCenterY = (gridY + 0.5) * this.soilManager.cellSize;
+        // FIXED: Calculate world position to ensure it stays within the cell bounds
+        // Grid cell starts at gridX * cellSize, gridY * cellSize
+        const cellLeft = gridX * this.soilManager.cellSize;
+        const cellTop = gridY * this.soilManager.cellSize;
         
-        // No random offset - place exactly at cell center for precise alignment
-        const worldX = cellCenterX;
-        const worldY = cellCenterY;
+        // Add random offset within cell with 2px margin from edges
+        // This ensures the plant position will always map back to the same grid cell
+        const margin = 2;
+        const maxOffset = this.soilManager.cellSize - 2 * margin;
+        const randomOffsetX = margin + Math.random() * maxOffset;
+        const randomOffsetY = margin + Math.random() * maxOffset;
         
-        const plant = new Plant(worldX, worldY, speciesConfig);
+        const worldX = cellLeft + randomOffsetX;
+        const worldY = cellTop + randomOffsetY;
+        
+        // Verify: world position should map back to the same grid cell
+        const verifyGrid = this.soilManager.worldToGrid(worldX, worldY);
+        if (verifyGrid.x !== gridX || verifyGrid.y !== gridY) {
+            console.warn(`[PLANT] Position mismatch! Intended grid (${gridX}, ${gridY}) but world (${worldX.toFixed(1)}, ${worldY.toFixed(1)}) maps to grid (${verifyGrid.x}, ${verifyGrid.y}). Using cell center instead.`);
+            // Fallback: use cell center
+            const worldXSafe = cellLeft + this.soilManager.cellSize / 2;
+            const worldYSafe = cellTop + this.soilManager.cellSize / 2;
+            const plant = new Plant(worldXSafe, worldYSafe, speciesConfig, 'Seedling', currentDay);
+            this.plants.set(key, plant);
+            return plant;
+        }
+        
+        const plant = new Plant(worldX, worldY, speciesConfig, 'Seedling', currentDay);
         this.plants.set(key, plant);
         
         return plant;
     }
 
-    addPlantAtPosition(gridX, gridY, exactWorldX, exactWorldY, speciesId = 'urtica_dioica') {
+    addPlantAtPosition(gridX, gridY, exactWorldX, exactWorldY, speciesId = 'urtica_dioica', currentDay = 0) {
         const key = `${gridX},${gridY}`;
         
         // Remove existing plant if any
@@ -66,8 +84,23 @@ class PlantManager {
             return null;
         }
         
-        // Place plant at exact click position
-        const plant = new Plant(exactWorldX, exactWorldY, speciesConfig);
+        // FIXED: Verify that the exact click position maps back to the intended grid cell
+        // This prevents plants from being created at positions that don't resolve correctly
+        const verifyGrid = this.soilManager.worldToGrid(exactWorldX, exactWorldY);
+        let finalWorldX = exactWorldX;
+        let finalWorldY = exactWorldY;
+        
+        if (verifyGrid.x !== gridX || verifyGrid.y !== gridY) {
+            console.warn(`[PLANT] Click position (${exactWorldX.toFixed(1)}, ${exactWorldY.toFixed(1)}) maps to grid (${verifyGrid.x}, ${verifyGrid.y}) but expected (${gridX}, ${gridY}). Using cell center instead.`);
+            // Fallback: use cell center to ensure correct grid mapping
+            const cellLeft = gridX * this.soilManager.cellSize;
+            const cellTop = gridY * this.soilManager.cellSize;
+            finalWorldX = cellLeft + this.soilManager.cellSize / 2;
+            finalWorldY = cellTop + this.soilManager.cellSize / 2;
+        }
+        
+        // Place plant at verified position
+        const plant = new Plant(finalWorldX, finalWorldY, speciesConfig, 'Seedling', currentDay);
         this.plants.set(key, plant);
         
         return plant;
@@ -83,10 +116,36 @@ class PlantManager {
         return this.plants.get(key);
     }
     
-    update(deltaTime) {
-        for (const plant of this.plants.values()) {
-            plant.update(deltaTime);
+    update(gameDaysElapsed, currentDay) {
+        const reproductionEvents = [];
+        const plantsToRemove = [];
+        
+        // Update all plants and collect reproduction events and despawn flags
+        for (const [key, plant] of this.plants.entries()) {
+            plant.update(gameDaysElapsed, currentDay);
+            
+            // Check for reproduction event
+            const reproEvent = plant.checkReproduction(currentDay);
+            if (reproEvent) {
+                reproductionEvents.push(reproEvent);
+            }
+            
+            // Check if plant should be removed
+            if (plant.shouldDespawn) {
+                plantsToRemove.push(key);
+            }
         }
+        
+        // Handle reproduction events
+        reproductionEvents.forEach(event => {
+            this.handleReproduction(event, currentDay);
+        });
+        
+        // Remove despawned plants
+        plantsToRemove.forEach(key => {
+            this.plants.delete(key);
+        });
+        
     }
     
     getAllPlants() {
@@ -98,5 +157,64 @@ class PlantManager {
             return plant.x >= bounds.left && plant.x <= bounds.right &&
                    plant.y >= bounds.top && plant.y <= bounds.bottom;
         });
+    }
+    
+    /**
+     * Handle reproduction event from a plant
+     * @param {Object} event - Reproduction event data
+     * @param {number} currentDay - Current game day
+     */
+    handleReproduction(event, currentDay) {
+        if (event.type !== 'rhizomeCloning') {
+            return;
+        }
+        
+        // Convert world position to grid
+        const parentGrid = this.soilManager.worldToGrid(event.parentX, event.parentY);
+        
+        // Get neighboring cells within maxDistance
+        const neighbors = this.getNeighborCells(parentGrid.x, parentGrid.y, event.maxDistance);
+        
+        // Filter to only empty, plantable cells
+        const validNeighbors = neighbors.filter(cell => {
+            const soil = this.soilManager.getSoilAt(cell.x, cell.y);
+            return soil && soil.isPlantable && !this.getPlantAt(cell.x, cell.y);
+        });
+        
+        if (validNeighbors.length === 0) {
+            return;
+        }
+        
+        // Pick a random valid neighbor
+        const targetCell = validNeighbors[Math.floor(Math.random() * validNeighbors.length)];
+        
+        // Spawn new plant at seedling stage
+        const newPlant = this.addPlant(targetCell.x, targetCell.y, event.species, currentDay);
+        
+    }
+    
+    /**
+     * Get neighboring grid cells within a given distance
+     * @param {number} gridX - Center grid X
+     * @param {number} gridY - Center grid Y
+     * @param {number} maxDistance - Maximum distance in grid cells
+     * @returns {Array} Array of {x, y} grid coordinates
+     */
+    getNeighborCells(gridX, gridY, maxDistance) {
+        const neighbors = [];
+        
+        for (let dx = -maxDistance; dx <= maxDistance; dx++) {
+            for (let dy = -maxDistance; dy <= maxDistance; dy++) {
+                // Skip the center cell
+                if (dx === 0 && dy === 0) continue;
+                
+                neighbors.push({
+                    x: gridX + dx,
+                    y: gridY + dy
+                });
+            }
+        }
+        
+        return neighbors;
     }
 }

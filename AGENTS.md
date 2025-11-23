@@ -10,6 +10,7 @@
 - **Classes**: PascalCase (`PlantManager`, `GraphicsEngine`) in snake_case files (`plant_manager.js`)
 - **Methods/Variables**: camelCase (`generateSprite`, `deltaTime`)
 - **Constants**: UPPER_SNAKE_CASE in config.json
+- **No emojis**: Never use emojis in console output, comments, or documentation
 - **No imports/exports**: Script tags in index.html - maintain load order (core → procedural → systems → entities → main)
 - **Comments**: JSDoc for classes/public methods, inline for complex algorithms
 - **Error handling**: `console.error()` for critical failures, `console.warn()` for non-critical, graceful degradation for missing resources

@@ -48,7 +48,7 @@ class ProceduralGenerator {
         // Fusionner avec la configuration fournie
         this.config = this.mergeConfig(this.defaultConfig, config);
         
-        console.log('🔧 ProceduralGenerator initialisé avec configuration:', this.config);
+        console.log('[INIT] ProceduralGenerator initialized with configuration:', this.config);
     }
     
     // Fusionne les configurations
@@ -71,11 +71,11 @@ class ProceduralGenerator {
         const config = customConfig || this.config[type];
         
         if (!config) {
-            console.warn(`Configuration manquante pour le type: ${type}`);
+            console.warn(`[CONFIG] Missing configuration for type: ${type}`);
             return this.generateUniformMap(width, height, 50);
         }
         
-        console.log(`🗺️ Génération de carte ${type} (${width}x${height})`);
+        console.log(`[GENERATION] Generating ${type} map (${width}x${height})`);
         
         const map = this.initializeMap(width, height);
         const hotspots = this.generateHotspots(width, height, config);
@@ -120,7 +120,7 @@ class ProceduralGenerator {
             hotspots.push(hotspot);
         }
         
-        console.log(`  📍 ${hotspots.length} hotspots générés`);
+        console.log(`  [GENERATION] ${hotspots.length} hotspots generated`);
         return hotspots;
     }
     
@@ -238,9 +238,9 @@ class ProceduralGenerator {
     updateConfig(type, newConfig) {
         if (this.config[type]) {
             Object.assign(this.config[type], newConfig);
-            console.log(`🔄 Configuration ${type} mise à jour:`, this.config[type]);
+            console.log(`[CONFIG] Configuration ${type} updated:`, this.config[type]);
         } else {
-            console.warn(`Type ${type} non trouvé dans la configuration`);
+            console.warn(`[CONFIG] Type ${type} not found in configuration`);
         }
     }
     

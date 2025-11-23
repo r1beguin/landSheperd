@@ -148,12 +148,19 @@ landSheperd/
   - Toggleable water/pollution layers in real-time
   - Configurable intensity levels (3 thresholds by default)
   - Instant dynamic regeneration
-- **Plant system** with species management
+- **Plant system** with species management and time-based growth
   - JSON-based species configuration
   - Procedural generation with modular components
+  - **Automatic growth progression** through multiple life stages
+  - **Time-based lifecycle** (Seedling → Vegetative → Flowering → Withered)
   - Right-click placement and removal
   - Currently includes Stinging Nettle (Urtica dioica)
 - **Player character** movable on click with animation
+- **Time system** with adjustable speed controls
+  - Configurable time scale (pause to 20x speed)
+  - Real-time to game-time conversion (10s = 1 game day at 1x)
+  - Keyboard controls for time manipulation
+  - Visual UI displaying current day and speed
 - **Camera system** with wheel zoom and tracking
 - **Interactive real-time debug interface**
   - Performance and soil metrics
@@ -169,6 +176,22 @@ landSheperd/
 - **Right click**: Place/remove plants on soil
 - **Mouse wheel**: Centered zoom in/out
 - **Resizing**: Automatic adaptation
+
+#### Time Controls
+- **Space**: Pause/Resume time
+- **+ or =**: Increase time speed
+- **- or _**: Decrease time speed
+- **0**: Pause time
+- **1**: Normal speed (1x)
+- **2**: Fast speed (5x)
+- **3**: Very fast speed (20x)
+
+**Plant Growth**: Plants automatically grow through multiple stages over time. At normal speed (1x), Stinging Nettles take:
+- Seedling → Vegetative: 3 game days (30 real seconds)
+- Vegetative → Flowering: 7 game days (70 real seconds)
+- Flowering → Withered: 10 game days (100 real seconds)
+
+Use time controls to speed up or slow down the simulation!
 
 #### Debug Interface
 - **Water Button**: Toggles the display of water pixels
@@ -232,6 +255,17 @@ landSheperd/
     "graphics": {
         "vsync": true,            // Vertical synchronization
         "backgroundColor": [0.5, 0.5, 0.5, 1.0] // RGBA background color
+    },
+    "time": {
+        "initialTimeScale": 1.0,  // Starting time speed
+        "realSecondsPerGameDay": 10, // Real seconds per game day
+        "timeScalePresets": {
+            "pause": 0,
+            "slow": 0.5,
+            "normal": 1.0,
+            "fast": 5.0,
+            "veryFast": 20.0
+        }
     },
     "world": {
         "map": {
@@ -400,7 +434,6 @@ Each system is independent and communicates through clear interfaces. This allow
 
 ### Suggested Next Steps
 - **Additional plant species** with diverse growth patterns
-- **Plant growth and lifecycle** over time
 - **Plant-soil interaction** (nutrient consumption, soil modification)
 - **Seasonal effects** on plant appearance and behavior
 - **Animals** with terrain and plant preferences

@@ -133,3 +133,51 @@ canvas {
 #add-squirrel:hover, #remove-squirrel:hover {
     background-color: #555;
 }
+
+/* Time UI Overlay */
+#time-ui {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    z-index: 1000;
+    min-width: 200px;
+    color: white;
+    font-family: 'Courier New', monospace;
+}
+
+#time-ui h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #4CAF50;
+}
+
+#time-ui .time-info {
+    margin-bottom: 5px;
+}
+
+#time-ui .time-label {
+    display: inline-block;
+    width: 80px;
+    color: #aaa;
+}
+
+#time-ui .time-value {
+    color: #fff;
+    font-weight: bold;
+}
+
+#time-ui .controls-hint {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #444;
+    font-size: 11px;
+    color: #888;
+}
+
+#time-ui .controls-hint div {
+    margin-bottom: 3px;
+}

@@ -11,9 +11,30 @@
         <canvas id="gameCanvas"></canvas>
     </div>
     
+    <!-- Time UI Overlay -->
+    <div id="time-ui">
+        <h3>Time System</h3>
+        <div class="time-info">
+            <span class="time-label">Day:</span>
+            <span class="time-value" id="current-day">0</span>
+        </div>
+        <div class="time-info">
+            <span class="time-label">Speed:</span>
+            <span class="time-value" id="time-speed">1x (Normal)</span>
+        </div>
+        <div class="controls-hint">
+            <div><strong>Controls:</strong></div>
+            <div>Space: Pause/Resume</div>
+            <div>+/-: Adjust speed</div>
+            <div>1/2/3: Set speed preset</div>
+            <div>0: Pause</div>
+        </div>
+    </div>
+    
     <!-- Charger les modules dans l'ordre correct -->
     <!-- Core systems -->
     <script src="js/core/debug_manager.js"></script>
+    <script src="js/core/time_manager.js"></script>
     <script src="js/core/shader_manager.js"></script>
     <script src="js/core/geometry_manager.js"></script>
     <script src="js/core/procedural_generator.js"></script>

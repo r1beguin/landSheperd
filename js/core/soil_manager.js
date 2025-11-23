@@ -38,7 +38,7 @@ class SoilManager {
         this.totalCells = 0;
         this.visibleCellsCount = 0;
         
-        console.log(`🌍 SoilManager initialized: ${this.gridWidth}x${this.gridHeight} cells of ${this.cellSize}px`);
+        console.log(`[INIT] SoilManager initialized: ${this.gridWidth}x${this.gridHeight} cells of ${this.cellSize}px`);
         
         this.initializeSoilGrid();
         this.createSoilGeometry();
@@ -46,7 +46,7 @@ class SoilManager {
     
     // Initialize soil grid with procedural generation
     initializeSoilGrid() {
-        console.log('Initializing soil grid with procedural generation...');
+        console.log('[INIT] Initializing soil grid with procedural generation...');
         
         const startTime = performance.now();
         
@@ -80,7 +80,7 @@ class SoilManager {
         }
         
         const endTime = performance.now();
-        console.log(`Soil grid initialized: ${this.totalCells} cells in ${(endTime - startTime).toFixed(2)}ms`);
+        console.log(`[INIT] Soil grid initialized: ${this.totalCells} cells in ${(endTime - startTime).toFixed(2)}ms`);
     }
 
     // Check if this location should allow plant placement (more restrictive than soil existence)
@@ -261,7 +261,18 @@ class SoilManager {
     // Get soil cell at world position
     getSoilAtWorld(worldX, worldY) {
         const grid = this.worldToGrid(worldX, worldY);
-        return this.getSoilAt(grid.x, grid.y);
+        const soil = this.getSoilAt(grid.x, grid.y);
+        
+        // Debug: Log failed lookups with grid bounds information
+        if (!soil) {
+            const minGridX = -this.gridWidth / 2;
+            const maxGridX = this.gridWidth / 2 - 1;
+            const minGridY = -this.gridHeight / 2;
+            const maxGridY = this.gridHeight / 2 - 1;
+            console.warn(`[DEBUG] Lookup failed at world (${worldX.toFixed(1)}, ${worldY.toFixed(1)}) → grid (${grid.x}, ${grid.y}). Valid grid range: X[${minGridX} to ${maxGridX}], Y[${minGridY} to ${maxGridY}]`);
+        }
+        
+        return soil;
     }
 
     // Check if a soil cell is currently being rendered (visible)
@@ -327,21 +338,68 @@ class SoilManager {
     renderSoilCellWithLOD(soil, renderSystem, viewMatrix, detailLevel) {
         const data = soil.getRenderData();
         
-        // NEW SYSTEM: Rendering with procedural texture
-        // Get the appropriate texture for this cell
-        const texture = this.textureGenerator.getTextureForSoil(soil);
+        // Check if fertility overlay is enabled
+        const showFertilityOverlay = window.graphicsEngine && 
+                                      window.graphicsEngine.debugManager && 
+                                      window.graphicsEngine.debugManager.getFertilityOverlayState();
         
-        // Render with texture instead of multiple overlays
-        renderSystem.renderTexturedRect(
-            data.position.x, 
-            data.position.y, 
-            data.size, 
-            data.size, 
-            texture,
-            viewMatrix
-        );
-        
-        // RESULT: 1 render call per cell instead of 1-3
+        if (showFertilityOverlay) {
+            // Render fertility overlay instead of normal texture
+            // Map fertility (0-100) to color gradient: red (low) -> yellow (mid) -> green (high)
+            const fertility = soil.fertility;
+            let r, g, b;
+            
+            if (fertility < 50) {
+                // Red to Yellow gradient (0-50)
+                r = 1.0;
+                g = fertility / 50;
+                b = 0.0;
+            } else {
+                // Yellow to Green gradient (50-100)
+                r = 1.0 - (fertility - 50) / 50;
+                g = 1.0;
+                b = 0.0;
+            }
+            
+            // Debug logging (only log first few cells to avoid spam)
+            if (!this._fertilityOverlayLogged) {
+                console.log(`[DEBUG] Rendering fertility overlay: fertility=${fertility.toFixed(2)}, r=${r.toFixed(2)}, g=${g.toFixed(2)}, b=${b.toFixed(2)}`);
+                this._fertilityOverlayLogCount = (this._fertilityOverlayLogCount || 0) + 1;
+                if (this._fertilityOverlayLogCount >= 5) {
+                    this._fertilityOverlayLogged = true;
+                    console.log('[DEBUG] Further fertility overlay logs suppressed to avoid spam');
+                }
+            }
+            
+            // Render as colored rect
+            renderSystem.renderRect(
+                data.position.x,
+                data.position.y,
+                data.size,
+                data.size,
+                [r, g, b, 1.0],
+                viewMatrix
+            );
+        } else {
+            // Reset debug logging flag when overlay is disabled
+            if (this._fertilityOverlayLogged) {
+                this._fertilityOverlayLogged = false;
+                this._fertilityOverlayLogCount = 0;
+                console.log('[DEBUG] Fertility overlay disabled');
+            }
+            
+            // Normal rendering with procedural texture
+            const texture = this.textureGenerator.getTextureForSoil(soil);
+            
+            renderSystem.renderTexturedRect(
+                data.position.x, 
+                data.position.y, 
+                data.size, 
+                data.size, 
+                texture,
+                viewMatrix
+            );
+        }
     }
     
     // System update
@@ -419,6 +477,7 @@ class SoilManager {
             soil.needsUpdate = true;
         });
         
+        // Invalidate texture cache when nutrients change
         this.needsRefresh = true;
     }
     

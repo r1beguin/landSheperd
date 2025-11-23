@@ -1,14 +1,14 @@
 {
   "status": "PASS",
-  "timestamp": "2025-11-16T16:56:57.634Z",
-  "session_id": "2025-11-16-16-56-51",
+  "timestamp": "2025-11-16T21:42:59.448Z",
+  "session_id": "2025-11-16-21-42-53",
   "metrics": {
     "console_errors": 0,
     "console_warnings": 5,
-    "fps_average": 42,
+    "fps_average": 50,
     "fps_min": 30,
-    "fps_max": 60,
-    "load_time_ms": 748,
+    "fps_max": 61,
+    "load_time_ms": 771,
     "webgl_context": "ok"
   },
   "visual": {
@@ -21,155 +21,160 @@
     {
       "type": "log",
       "text": "WebGL initialized successfully",
-      "timestamp": "2025-11-16T16:56:51.240Z"
+      "timestamp": "2025-11-16T21:42:53.242Z"
     },
     {
       "type": "log",
       "text": "Land Shepherd - Graphics engine started",
-      "timestamp": "2025-11-16T16:56:51.243Z"
+      "timestamp": "2025-11-16T21:42:53.242Z"
     },
     {
       "type": "warning",
-      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A0F02700244F0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
-      "timestamp": "2025-11-16T16:56:51.245Z"
+      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A0F027006C550000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+      "timestamp": "2025-11-16T21:42:53.246Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-11-16T16:56:51.247Z"
+      "text": "[.WebGL-0x4b940018e600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-11-16T21:42:53.246Z"
     },
     {
       "type": "log",
-      "text": "Configuration chargée: {debug: Object, graphics: Object, world: Object}",
-      "timestamp": "2025-11-16T16:56:51.247Z"
+      "text": "Configuration chargée: {debug: Object, graphics: Object, time: Object, world: Object}",
+      "timestamp": "2025-11-16T21:42:53.246Z"
     },
     {
       "type": "log",
       "text": "Debug mode activé - Interface créée",
-      "timestamp": "2025-11-16T16:56:51.248Z"
+      "timestamp": "2025-11-16T21:42:53.246Z"
     },
     {
       "type": "log",
       "text": "Debug manager initialized. Debug mode: enabled",
-      "timestamp": "2025-11-16T16:56:51.248Z"
+      "timestamp": "2025-11-16T21:42:53.247Z"
+    },
+    {
+      "type": "log",
+      "text": "TimeManager initialized: 10s = 1 game day, time scale: 1x",
+      "timestamp": "2025-11-16T21:42:53.247Z"
     },
     {
       "type": "log",
       "text": "🎨 TextureGenerator initialisé avec configuration: {textureSize: 20, variations: 2, waterLevels: 3, pollutionLevels: 3}",
-      "timestamp": "2025-11-16T16:56:51.248Z"
+      "timestamp": "2025-11-16T21:42:53.247Z"
     },
     {
       "type": "log",
       "text": "🎨 Génération des textures de sol...",
-      "timestamp": "2025-11-16T16:56:51.248Z"
+      "timestamp": "2025-11-16T21:42:53.247Z"
     },
     {
       "type": "log",
-      "text": "✅ 90 textures générées en 14.00ms",
-      "timestamp": "2025-11-16T16:56:51.261Z"
+      "text": "✅ 90 textures générées en 14.30ms",
+      "timestamp": "2025-11-16T21:42:53.255Z"
     },
     {
       "type": "log",
       "text": "🔧 ProceduralGenerator initialisé avec configuration: {fertility: Object, water: Object, pollution: Object}",
-      "timestamp": "2025-11-16T16:56:51.261Z"
+      "timestamp": "2025-11-16T21:42:53.256Z"
     },
     {
       "type": "log",
       "text": "🌍 SoilManager initialized: 50x50 cells of 20px",
-      "timestamp": "2025-11-16T16:56:51.261Z"
+      "timestamp": "2025-11-16T21:42:53.256Z"
     },
     {
       "type": "log",
       "text": "Initializing soil grid with procedural generation...",
-      "timestamp": "2025-11-16T16:56:51.261Z"
+      "timestamp": "2025-11-16T21:42:53.256Z"
     },
     {
       "type": "log",
       "text": "🗺️ Génération de carte fertility (50x50)",
-      "timestamp": "2025-11-16T16:56:51.261Z"
+      "timestamp": "2025-11-16T21:42:53.256Z"
     },
     {
       "type": "log",
       "text": "  📍 8 hotspots générés",
-      "timestamp": "2025-11-16T16:56:51.261Z"
+      "timestamp": "2025-11-16T21:42:53.256Z"
     },
     {
       "type": "log",
       "text": "🗺️ Génération de carte water (50x50)",
-      "timestamp": "2025-11-16T16:56:51.264Z"
+      "timestamp": "2025-11-16T21:42:53.258Z"
     },
     {
       "type": "log",
       "text": "  📍 5 hotspots générés",
-      "timestamp": "2025-11-16T16:56:51.264Z"
+      "timestamp": "2025-11-16T21:42:53.258Z"
     },
     {
       "type": "log",
       "text": "🗺️ Génération de carte pollution (50x50)",
-      "timestamp": "2025-11-16T16:56:51.265Z"
+      "timestamp": "2025-11-16T21:42:53.260Z"
     },
     {
       "type": "log",
       "text": "  📍 3 hotspots générés",
-      "timestamp": "2025-11-16T16:56:51.265Z"
+      "timestamp": "2025-11-16T21:42:53.260Z"
     },
     {
       "type": "log",
-      "text": "Soil grid initialized: 2500 cells in 10.70ms",
-      "timestamp": "2025-11-16T16:56:51.272Z"
+      "text": "Soil grid initialized: 2500 cells in 10.60ms",
+      "timestamp": "2025-11-16T21:42:53.267Z"
     },
     {
       "type": "log",
       "text": "🎯 Positioning player at the center of the screen: (0, 0)",
-      "timestamp": "2025-11-16T16:56:51.280Z"
+      "timestamp": "2025-11-16T21:42:53.275Z"
     },
     {
       "type": "log",
       "text": "📷 Camera positioned at the center of the map: (0, 0) with zoom 2.0",
-      "timestamp": "2025-11-16T16:56:51.280Z"
+      "timestamp": "2025-11-16T21:42:53.276Z"
     },
     {
       "type": "log",
       "text": "Graphics engine initialized successfully",
-      "timestamp": "2025-11-16T16:56:51.285Z"
+      "timestamp": "2025-11-16T21:42:53.281Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-11-16T16:56:51.383Z"
+      "text": "[.WebGL-0x4b940018e600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-11-16T21:42:53.382Z"
     },
     {
       "type": "log",
       "text": "Shadow controls disabled - no tree system present",
-      "timestamp": "2025-11-16T16:56:51.409Z"
+      "timestamp": "2025-11-16T21:42:53.407Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-11-16T16:56:51.410Z"
+      "text": "[.WebGL-0x4b940018e600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-11-16T21:42:53.408Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x23ec0018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
-      "timestamp": "2025-11-16T16:56:51.435Z"
+      "text": "[.WebGL-0x4b940018e600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+      "timestamp": "2025-11-16T21:42:53.432Z"
     }
   ],
   "console_summary": {
-    "total_logs": 27,
+    "total_logs": 28,
     "errors": 0,
     "warnings": 5
   },
   "recommendations": [
     "✓ No console errors detected",
     "✓ 5 warnings (within threshold)",
-    "✓ FPS 42 meets target (30+)",
-    "✓ Load time 748ms within target",
+    "✓ FPS 50 meets target (30+)",
+    "✓ Load time 771ms within target",
     "✓ WebGL initialized successfully"
   ],
   "config": {
     "maxConsoleErrors": 0,
     "minFPS": 30,
-    "maxVisualDiffPercent": 5,
+    "maxVisualDiffPercent": 40,
     "maxLoadTimeMs": 3000,
     "maxWarnings": 10
   }

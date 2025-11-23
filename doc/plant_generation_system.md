@@ -309,3 +309,92 @@ The system is optimized for larger plant populations:
 4. Test visual output and performance
 
 This documentation provides a comprehensive overview of the current plant generation system and guidelines for future development and expansion.
+
+---
+
+## Plant Positioning System (Updated November 16, 2025)
+
+### Positioning Architecture
+
+Plants use a grid-based positioning system with two distinct placement methods:
+
+#### 1. Manual Placement (User Click)
+
+**Method**: `PlantManager.addPlantAtPosition(gridX, gridY, exactWorldX, exactWorldY)`
+
+**Behavior**:
+- Plant spawns at **exact click coordinates**
+- Precise visual position matching cursor
+- Used for intentional, user-controlled placement
+
+#### 2. Automatic Placement (Reproduction)
+
+**Method**: `PlantManager.addPlant(gridX, gridY, speciesId, currentDay)`
+
+**Behavior**:
+- Plant spawns at **random position within cell**
+- 2-pixel margin from cell edges
+- Creates natural variation in colonies
+- Prevents monotonous grid alignment
+
+### Randomization Implementation
+
+```javascript
+// Calculate cell boundaries
+const cellLeft = gridX * this.soilManager.cellSize;
+const cellTop = gridY * this.soilManager.cellSize;
+
+// Add random offset within cell (2px margin)
+const margin = 2;
+const randomOffsetX = margin + Math.random() * (cellSize - 2 * margin);
+const randomOffsetY = margin + Math.random() * (cellSize - 2 * margin);
+
+// Final world position
+const worldX = cellLeft + randomOffsetX;
+const worldY = cellTop + randomOffsetY;
+```
+
+### Visual Comparison
+
+**Without Randomization** (before):
+```
+┌───┬───┬───┐
+│ • │ • │ • │  Monotonous grid pattern
+├───┼───┼───┤
+│ • │ • │ • │  All plants at cell centers
+├───┼───┼───┤
+│ • │ • │ • │  Unnatural appearance
+└───┴───┴───┘
+```
+
+**With Randomization** (after):
+```
+┌───┬───┬───┐
+│•  │ •│  •│  Natural variation
+├───┼───┼───┤
+│ • │• │ • │  Organic appearance
+├───┼───┼───┤
+│  •│ •│•  │  Colony-like clusters
+└───┴───┴───┘
+```
+
+### Benefits
+
+- **Visual Variety**: Each reproduced plant appears unique
+- **Natural Appearance**: Mimics real-world colony growth
+- **Organic Spread**: Reduces obvious grid patterns
+- **Consistent Experience**: Same randomization for all automatic spawning
+
+### Edge Margin Purpose
+
+**2-pixel margin prevents**:
+- Plants touching cell borders
+- Visual clipping with grid lines
+- Overlap with adjacent cells
+- Rendering artifacts
+
+**Calculation**:
+- Cell size: 20px
+- Margin: 2px each side
+- Usable area: 16px
+- 8% margin on each side

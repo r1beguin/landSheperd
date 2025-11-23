@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reproduction Test - Land Shepherd</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        #instructions {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            max-width: 800px;
+        }
+        h1 { color: #00ff00; margin: 0 0 10px 0; }
+        ul { margin: 10px 0; padding-left: 20px; }
+        li { margin: 5px 0; }
+        .warning { color: #ffaa00; }
+        .success { color: #00ff00; }
+        #console-output {
+            background: #000;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 800px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .log { color: #00ff00; }
+        .error { color: #ff0000; }
+        .warn { color: #ffaa00; }
+        .info { color: #00aaff; }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <h1>🌱 Plant Reproduction System Test</h1>
+        <p class="success">This page will test the plant reproduction system with detailed logging.</p>
+        <ul>
+            <li><strong>Step 1:</strong> Place 5-10 nettles on the map (right-click on soil)</li>
+            <li><strong>Step 2:</strong> Press <kbd>3</kbd> to set time to 20x speed</li>
+            <li><strong>Step 3:</strong> Watch the console output below for reproduction attempts</li>
+            <li><strong>Step 4:</strong> After plants reach Vegetative/Flowering stage, you should see:</li>
+            <ul>
+                <li class="info">🎲 Reproduction attempt messages every 2 game days</li>
+                <li class="success">✨ Successful reproduction rolls</li>
+                <li class="success">🌱 New nettles spawning in neighboring cells</li>
+            </ul>
+            <li class="warning"><strong>Note:</strong> With 30% success rate, expect ~1 success per 3 attempts per plant</li>
+        </ul>
+    </div>
+
+    <div id="console-output"></div>
+
+    <script>
+        // Intercept console.log to display in page
+        const consoleOutput = document.getElementById('console-output');
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+
+        function addToConsole(text, type = 'log') {
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToConsole(args.join(' '), 'warn');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+
+        console.log('🚀 Reproduction test page loaded - opening main application...');
+        
+        // Redirect to main page after showing instructions
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 3000);
+    </script>
+</body>
+</html>

@@ -31,7 +31,7 @@ class ShaderManager {
         this.gl.compileShader(shader);
 
         if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            console.error('Erreur de compilation du shader:', this.gl.getShaderInfoLog(shader));
+            console.error('[SHADER] Shader compilation error:', this.gl.getShaderInfoLog(shader));
             this.gl.deleteShader(shader);
             return null;
         }
@@ -58,7 +58,7 @@ class ShaderManager {
         this.gl.linkProgram(program);
 
         if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
-            console.error('Erreur de liaison du programme:', this.gl.getProgramInfoLog(program));
+            console.error('[SHADER] Program linking error:', this.gl.getProgramInfoLog(program));
             this.gl.deleteProgram(program);
             return null;
         }

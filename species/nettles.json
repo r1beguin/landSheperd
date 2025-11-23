@@ -3,7 +3,6 @@
   "commonName": "Stinging Nettle",
   "category": "wild_herb",
   "layer": "middle",
-
   "appearance": {
     "colorPalette": {
       "leaf": ["#4a7c59", "#3d6b4a", "#2f5a3b"],
@@ -13,30 +12,65 @@
       "witheredStem": ["#8B7355", "#7A6245", "#6B5235"]
     }
   },
-
   "growthStages": [
     {
       "name": "Seedling",
+      "daysToGrow": 3,
       "generator": "seedlingGeneration",
-      "visibleOrgans": ["stem", "leaf"]
+      "visibleOrgans": ["stem", "leaf"],
+      "nutrientConsumption": {
+        "nitrogen": 5,
+        "phosphorus": 3,
+        "potassium": 2,
+        "organicMatter": 1
+      }
     },
     {
       "name": "Vegetative",
+      "daysToGrow": 7,
       "generator": "vegetativeGeneration",
-      "visibleOrgans": ["stem", "leaf"]
+      "visibleOrgans": ["stem", "leaf"],
+      "nutrientConsumption": {
+        "nitrogen": 15,
+        "phosphorus": 10,
+        "potassium": 8,
+        "organicMatter": 5
+      }
     },
     {
       "name": "Flowering",
+      "daysToGrow": 10,
       "generator": "floweringGeneration",
-      "visibleOrgans": ["stem", "leaf", "flower"]
+      "visibleOrgans": ["stem", "leaf", "flower"],
+      "nutrientConsumption": {
+        "nitrogen": 20,
+        "phosphorus": 15,
+        "potassium": 12,
+        "organicMatter": 8
+      }
     },
     {
       "name": "Withered",
+      "daysToGrow": 5,
       "generator": "witheredGeneration",
-      "visibleOrgans": ["stem", "leaf"]
+      "visibleOrgans": ["stem", "leaf"],
+      "nutrientReturn": {
+        "nitrogen": 8,
+        "phosphorus": 5,
+        "potassium": 4,
+        "organicMatter": 12
+      }
     }
   ],
-
+  "reproduction": {
+    "rhizomeCloning": {
+      "enabled": true,
+      "activeStages": ["Vegetative", "Flowering"],
+      "checkIntervalDays": 2,
+      "successChance": 0.3,
+      "maxDistance": 1
+    }
+  },
   "proceduralModules": {
     "stem": {
       "segments": 3,

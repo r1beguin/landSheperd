@@ -10,11 +10,30 @@
         "vsync": true,
         "backgroundColor": [0.5, 0.5, 0.5, 1.0]
     },
+    "time": {
+        "initialTimeScale": 1.0,
+        "realSecondsPerGameDay": 10,
+        "timeScalePresets": {
+            "pause": 0,
+            "slow": 0.5,
+            "normal": 1.0,
+            "fast": 5.0,
+            "veryFast": 20.0
+        }
+    },
     "world": {
         "map": {
             "gridWidth": 50,
             "gridHeight": 50,
             "cellSize": 20
+        },
+        "plants": {
+            "reproduction": {
+                "enableLogging": true
+            },
+            "decomposition": {
+                "enableLogging": true
+            }
         },
         "soil": {
             "fertility": {

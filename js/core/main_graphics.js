@@ -21,6 +21,7 @@ class GraphicsEngine {
         this.shaderManager = null;
         this.geometryManager = null;
         this.debugManager = null;
+        this.timeManager = null;
         this.inputManager = null;
         this.cameraManager = null;
         this.renderSystem = null;
@@ -51,9 +52,9 @@ class GraphicsEngine {
             
             // Start render loop
             this.render(0);
-            console.log('Graphics engine initialized successfully');
+            console.log('[INIT] Graphics engine initialized successfully');
         } catch (error) {
-            console.error('Error during engine initialization:', error);
+            console.error('[ERROR] Error during engine initialization:', error);
             throw error;
         }
     }
@@ -66,7 +67,7 @@ class GraphicsEngine {
             throw new Error('WebGL is not supported on this browser');
         }
         
-        console.log('WebGL initialized successfully');
+        console.log('[INIT] WebGL initialized successfully');
     }
     
     async initManagers() {
@@ -78,7 +79,10 @@ class GraphicsEngine {
         // Wait for debug manager initialization to get config
         const debugEnabled = await this.debugManager.initialize();
         this.config = this.debugManager.getConfig();
-        console.log('Debug manager initialized. Debug mode:', debugEnabled ? 'enabled' : 'disabled');
+        console.log('[INIT] Debug manager initialized. Debug mode:', debugEnabled ? 'enabled' : 'disabled');
+        
+        // Time manager with configuration (provide default if config.time is undefined)
+        this.timeManager = new TimeManager(this.config.time || {});
         
         // Texture manager with configuration
         this.textureGenerator = new TextureGenerator(this.gl, this.config);
@@ -246,10 +250,12 @@ class GraphicsEngine {
                     
                     if (!existingPlant) {
                         // First right click: spawn seedling at exact click position
-                        this.plantManager.addPlantAtPosition(gridX, gridY, worldCoords.x, worldCoords.y);
+                        const currentDay = this.timeManager.getCurrentDayPrecise();
+                        this.plantManager.addPlantAtPosition(gridX, gridY, worldCoords.x, worldCoords.y, 'urtica_dioica', currentDay);
                     } else {
                         // Second right click: try to advance growth stage
-                        const advanced = existingPlant.advanceGrowthStage();
+                        const currentDay = this.timeManager.getCurrentDayPrecise();
+                        const advanced = existingPlant.advanceGrowthStage(currentDay);
                         if (!advanced) {
                             // Third right click: delete the plant (already at final stage)
                             this.plantManager.removePlant(gridX, gridY);
@@ -272,6 +278,51 @@ class GraphicsEngine {
                 this.cameraManager.zoomOut(event.x, event.y);
             } else {
                 this.cameraManager.zoomIn(event.x, event.y);
+            }
+        });
+        
+        // Handle keyboard controls for time speed
+        this.inputManager.on('keydown', (event) => {
+            switch(event.key) {
+                case ' ': // Spacebar - Toggle pause
+                    this.timeManager.togglePause();
+                    break;
+                case '+':
+                case '=': // Increase time speed
+                    this.timeManager.increaseTimeScale();
+                    break;
+                case '-':
+                case '_': // Decrease time speed
+                    this.timeManager.decreaseTimeScale();
+                    break;
+                case '1': // Normal speed
+                    this.timeManager.setTimeScalePreset('normal');
+                    break;
+                case '2': // Fast speed
+                    this.timeManager.setTimeScalePreset('fast');
+                    break;
+                case '3': // Very fast speed
+                    this.timeManager.setTimeScalePreset('veryFast');
+                    break;
+                case '0': // Pause
+                    this.timeManager.setTimeScalePreset('pause');
+                    break;
+                case 'f':
+                case 'F': // Toggle fertility overlay
+                    if (this.debugManager) {
+                        const state = this.debugManager.toggleFertilityOverlay();
+                        // Force soil refresh to show/hide overlay immediately
+                        // Setting needsRefresh triggers updateVisibleCells on next render
+                        // which recalculates visible cells and picks up the new overlay state
+                        if (this.soilManager) {
+                            this.soilManager.needsRefresh = true;
+                            // Also update visible cells immediately to force visual refresh
+                            if (this.cameraManager) {
+                                this.soilManager.updateVisibleCells(this.cameraManager);
+                            }
+                        }
+                    }
+                    break;
             }
         });
     }
@@ -303,7 +354,9 @@ class GraphicsEngine {
         const screenCenterX = 0; // Screen center in world coordinates
         const screenCenterY = 0; // Screen center in world coordinates
         
-        console.log(`🎯 Positioning player at the center of the screen: (${screenCenterX}, ${screenCenterY})`);
+        if (this.config?.debug?.enabled) {
+            console.log(`[INIT] Positioning player at the center of the screen: (${screenCenterX}, ${screenCenterY})`);
+        }
         
         // More visible color: bright red instead of green
         this.player = new Character(screenCenterX, screenCenterY, 8, [1.0, 0.2, 0.2, 1.0]); // Bright red and larger
@@ -316,7 +369,9 @@ class GraphicsEngine {
         this.cameraManager.setPosition(mapCenterX, mapCenterY);
         this.cameraManager.setZoom(2.0); // Zoom to better see the tree
         
-        console.log(`📷 Camera positioned at the center of the map: (${mapCenterX}, ${mapCenterY}) with zoom 2.0`);
+        if (this.config?.debug?.enabled) {
+            console.log(`[CAMERA] Camera positioned at the center of the map: (${mapCenterX}, ${mapCenterY}) with zoom 2.0`);
+        }
         
         // Add player to the list of entities
         this.entities.push(this.player);
@@ -356,14 +411,18 @@ class GraphicsEngine {
     }
     
     update(deltaTime) {
+        // Update time manager and get game days elapsed
+        const gameDaysElapsed = this.timeManager.update(deltaTime);
+        const currentDay = this.timeManager.getCurrentDayPrecise();
+        
         // Update camera
         this.cameraManager.update();
         
         // Update soil system
         this.soilManager.update(deltaTime);
         
-        // Update plant manager
-        this.plantManager.update(deltaTime);
+        // Update plant manager with game time
+        this.plantManager.update(gameDaysElapsed, currentDay);
         
         // Update all entities
         this.entities.forEach(entity => {
@@ -389,6 +448,9 @@ class GraphicsEngine {
     }
     
     updateDebugMetrics(currentTime) {
+        // Update time UI (always visible)
+        this.updateTimeUI();
+        
         if (!this.debugManager || !this.debugManager.isDebugEnabled()) return;
         
         // Update FPS
@@ -431,6 +493,20 @@ class GraphicsEngine {
                 this.debugManager.updateWaterLevel(soilInfo.waterRetention, this.textureGenerator);
                 this.debugManager.updatePollutionLevel(soilInfo.pollution, this.textureGenerator);
             }
+        }
+    }
+    
+    updateTimeUI() {
+        // Update time UI display
+        const currentDayElement = document.getElementById('current-day');
+        const timeSpeedElement = document.getElementById('time-speed');
+        
+        if (currentDayElement && this.timeManager) {
+            currentDayElement.textContent = this.timeManager.getCurrentDay();
+        }
+        
+        if (timeSpeedElement && this.timeManager) {
+            timeSpeedElement.textContent = this.timeManager.getTimeScaleDisplayString();
         }
     }
     
@@ -477,14 +553,14 @@ class GraphicsEngine {
 // Initialize graphics engine when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const graphics = new GraphicsEngine('gameCanvas');
+        window.graphicsEngine = new GraphicsEngine('gameCanvas');
         
-        // Expose globally for debug
-        window.graphics = graphics;
+        // Also expose as 'graphics' for backward compatibility
+        window.graphics = window.graphicsEngine;
         
-        console.log('Land Shepherd - Graphics engine started');
+        console.log('[INIT] Land Shepherd - Graphics engine started');
     } catch (error) {
-        console.error('Error during initialization:', error);
+        console.error('[ERROR] Error during initialization:', error);
         document.body.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error.message}</div>`;
     }
 });
