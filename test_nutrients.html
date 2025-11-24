@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nutrient System Test - Land Shepherd</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        #testContainer {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00ff00;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: #0a0a0a;
+            border: 2px solid #00ff00;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffff00;
+            margin-bottom: 10px;
+        }
+        .test-status {
+            padding: 5px 10px;
+            margin-left: 10px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .status-running {
+            background: #ff8800;
+            color: #000;
+        }
+        .status-pass {
+            background: #00ff00;
+            color: #000;
+        }
+        .status-fail {
+            background: #ff0000;
+            color: #fff;
+        }
+        .test-details {
+            margin-top: 10px;
+            padding-left: 20px;
+            line-height: 1.6;
+        }
+        .test-result {
+            margin: 5px 0;
+        }
+        .pass {
+            color: #00ff00;
+        }
+        .fail {
+            color: #ff0000;
+        }
+        .info {
+            color: #00aaff;
+        }
+        #summary {
+            background: #0a0a0a;
+            border: 3px solid #ffff00;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: center;
+            font-size: 20px;
+        }
+        .summary-pass {
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+        .summary-fail {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <div id="testContainer">
+        <h1>NUTRIENT-SPECIFIC SYSTEM TEST</h1>
+        <div id="testResults"></div>
+        <div id="summary"></div>
+    </div>
+
+    <script>
+        // Test framework
+        class NutrientTestSuite {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.speciesConfig = null;
+            }
+
+            async loadSpeciesConfig() {
+                try {
+                    const response = await fetch('./species/nettles.json');
+                    this.speciesConfig = await response.json();
+                    return true;
+                } catch (error) {
+                    console.error('Failed to load species config:', error);
+                    return false;
+                }
+            }
+
+            addTest(name, description, testFn) {
+                this.tests.push({ name, description, testFn });
+            }
+
+            async runTests() {
+                const resultsDiv = document.getElementById('testResults');
+                let passCount = 0;
+                let failCount = 0;
+
+                for (const test of this.tests) {
+                    const testSection = document.createElement('div');
+                    testSection.className = 'test-section';
+                    testSection.innerHTML = `
+                        <div class="test-title">
+                            ${test.name}
+                            <span class="test-status status-running">RUNNING</span>
+                        </div>
+                        <div class="test-details">
+                            <div class="info">${test.description}</div>
+                            <div class="test-result-container"></div>
+                        </div>
+                    `;
+                    resultsDiv.appendChild(testSection);
+
+                    try {
+                        const result = await test.testFn(this.speciesConfig);
+                        const statusSpan = testSection.querySelector('.test-status');
+                        const resultContainer = testSection.querySelector('.test-result-container');
+
+                        if (result.pass) {
+                            statusSpan.className = 'test-status status-pass';
+                            statusSpan.textContent = 'PASS';
+                            passCount++;
+                        } else {
+                            statusSpan.className = 'test-status status-fail';
+                            statusSpan.textContent = 'FAIL';
+                            failCount++;
+                        }
+
+                        result.messages.forEach(msg => {
+                            const msgDiv = document.createElement('div');
+                            msgDiv.className = `test-result ${msg.type}`;
+                            msgDiv.textContent = msg.text;
+                            resultContainer.appendChild(msgDiv);
+                        });
+
+                        this.results.push({ name: test.name, ...result });
+                    } catch (error) {
+                        const statusSpan = testSection.querySelector('.test-status');
+                        statusSpan.className = 'test-status status-fail';
+                        statusSpan.textContent = 'ERROR';
+                        failCount++;
+
+                        const resultContainer = testSection.querySelector('.test-result-container');
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'test-result fail';
+                        errorDiv.textContent = `ERROR: ${error.message}`;
+                        resultContainer.appendChild(errorDiv);
+                    }
+                }
+
+                this.displaySummary(passCount, failCount);
+            }
+
+            displaySummary(passCount, failCount) {
+                const summaryDiv = document.getElementById('summary');
+                const total = passCount + failCount;
+                const allPassed = failCount === 0;
+
+                summaryDiv.className = allPassed ? 'summary-pass' : 'summary-fail';
+                summaryDiv.innerHTML = `
+                    <div>TEST SUMMARY</div>
+                    <div style="margin-top: 10px;">
+                        Total: ${total} | 
+                        <span class="pass">Passed: ${passCount}</span> | 
+                        <span class="fail">Failed: ${failCount}</span>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 24px;">
+                        ${allPassed ? '✓ ALL TESTS PASSED' : '✗ SOME TESTS FAILED'}
+                    </div>
+                `;
+            }
+        }
+
+        // Mock classes for isolated testing
+        class MockSoil {
+            constructor(nitrogen, phosphorus, potassium, organicMatter) {
+                this.nitrogen = nitrogen;
+                this.phosphorus = phosphorus;
+                this.potassium = potassium;
+                this.organicMatter = organicMatter;
+                this.fertility = (nitrogen + phosphorus + potassium + organicMatter) / 4;
+                this.isPlantable = true;
+            }
+        }
+
+        // Test suite setup
+        const suite = new NutrientTestSuite();
+
+        // Test 1: Config Structure Validation
+        suite.addTest(
+            'Test 1: Species Config Structure',
+            'Verify nettles.json has nutrientRequirements with correct structure',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                // Check environment exists
+                if (!config.environment) {
+                    messages.push({ type: 'fail', text: '✗ Missing environment section' });
+                    pass = false;
+                    return { pass, messages };
+                }
+
+                // Check nutrientRequirements exists
+                if (!config.environment.nutrientRequirements) {
+                    messages.push({ type: 'fail', text: '✗ Missing nutrientRequirements section' });
+                    pass = false;
+                    return { pass, messages };
+                }
+
+                const reqs = config.environment.nutrientRequirements;
+
+                // Check each nutrient
+                const nutrients = ['nitrogen', 'phosphorus', 'potassium', 'organicMatter'];
+                for (const nutrient of nutrients) {
+                    if (!reqs[nutrient]) {
+                        messages.push({ type: 'fail', text: `✗ Missing ${nutrient} requirements` });
+                        pass = false;
+                    } else {
+                        if (typeof reqs[nutrient].minimum !== 'number') {
+                            messages.push({ type: 'fail', text: `✗ ${nutrient}.minimum is not a number` });
+                            pass = false;
+                        } else {
+                            messages.push({ type: 'pass', text: `✓ ${nutrient}.minimum = ${reqs[nutrient].minimum}` });
+                        }
+
+                        if (typeof reqs[nutrient].optimal !== 'number') {
+                            messages.push({ type: 'fail', text: `✗ ${nutrient}.optimal is not a number` });
+                            pass = false;
+                        } else {
+                            messages.push({ type: 'pass', text: `✓ ${nutrient}.optimal = ${reqs[nutrient].optimal}` });
+                        }
+                    }
+                }
+
+                return { pass, messages };
+            }
+        );
+
+        // Test 2: Nutrient Minimum Values
+        suite.addTest(
+            'Test 2: Nutrient Minimum Thresholds',
+            'Verify minimum values are balanced relative to consumption rates',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                const reqs = config.environment.nutrientRequirements;
+                
+                // Calculate total consumption across lifecycle
+                const totalConsumption = {
+                    nitrogen: 0,
+                    phosphorus: 0,
+                    potassium: 0,
+                    organicMatter: 0
+                };
+
+                config.growthStages.forEach(stage => {
+                    if (stage.nutrientConsumption) {
+                        totalConsumption.nitrogen += stage.nutrientConsumption.nitrogen || 0;
+                        totalConsumption.phosphorus += stage.nutrientConsumption.phosphorus || 0;
+                        totalConsumption.potassium += stage.nutrientConsumption.potassium || 0;
+                        totalConsumption.organicMatter += stage.nutrientConsumption.organicMatter || 0;
+                    }
+                });
+
+                messages.push({ type: 'info', text: `Total N consumption: ${totalConsumption.nitrogen}` });
+                messages.push({ type: 'info', text: `Total P consumption: ${totalConsumption.phosphorus}` });
+                messages.push({ type: 'info', text: `Total K consumption: ${totalConsumption.potassium}` });
+                messages.push({ type: 'info', text: `Total OM consumption: ${totalConsumption.organicMatter}` });
+
+                // Check if minimums allow at least one growth stage
+                const nutrients = ['nitrogen', 'phosphorus', 'potassium', 'organicMatter'];
+                nutrients.forEach(nutrient => {
+                    const min = reqs[nutrient].minimum;
+                    const consumption = totalConsumption[nutrient];
+                    const ratio = consumption / min;
+
+                    messages.push({ type: 'info', text: `${nutrient}: min=${min}, consumption=${consumption}, ratio=${ratio.toFixed(2)}x` });
+
+                    if (min < consumption * 0.3) {
+                        messages.push({ type: 'fail', text: `✗ ${nutrient} minimum too low (less than 30% of total consumption)` });
+                        pass = false;
+                    } else if (min > consumption * 0.8) {
+                        messages.push({ type: 'fail', text: `✗ ${nutrient} minimum too high (more than 80% of total consumption)` });
+                        pass = false;
+                    } else {
+                        messages.push({ type: 'pass', text: `✓ ${nutrient} minimum is balanced` });
+                    }
+                });
+
+                return { pass, messages };
+            }
+        );
+
+        // Test 3: Sufficient Nutrients Allow Growth
+        suite.addTest(
+            'Test 3: Sufficient Nutrients Pass All Checks',
+            'Soil with nutrients above minimums should allow growth and reproduction',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                const reqs = config.environment.nutrientRequirements;
+                
+                // Create soil with all nutrients at minimum + 5
+                const soil = new MockSoil(
+                    reqs.nitrogen.minimum + 5,
+                    reqs.phosphorus.minimum + 5,
+                    reqs.potassium.minimum + 5,
+                    reqs.organicMatter.minimum + 5
+                );
+
+                messages.push({ type: 'info', text: `Test soil: N=${soil.nitrogen}, P=${soil.phosphorus}, K=${soil.potassium}, OM=${soil.organicMatter}` });
+                messages.push({ type: 'info', text: `Fertility: ${soil.fertility.toFixed(1)}` });
+
+                // Simulate nutrient checks
+                const insufficientNutrients = [];
+                if (soil.nitrogen < reqs.nitrogen.minimum) insufficientNutrients.push('N');
+                if (soil.phosphorus < reqs.phosphorus.minimum) insufficientNutrients.push('P');
+                if (soil.potassium < reqs.potassium.minimum) insufficientNutrients.push('K');
+                if (soil.organicMatter < reqs.organicMatter.minimum) insufficientNutrients.push('OM');
+
+                if (insufficientNutrients.length > 0) {
+                    messages.push({ type: 'fail', text: `✗ Insufficient nutrients detected: ${insufficientNutrients.join(', ')}` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ All nutrients sufficient for growth' });
+                }
+
+                // Check reproduction logic
+                const reproductionAllowed = 
+                    soil.nitrogen >= reqs.nitrogen.minimum &&
+                    soil.phosphorus >= reqs.phosphorus.minimum &&
+                    soil.potassium >= reqs.potassium.minimum &&
+                    soil.organicMatter >= reqs.organicMatter.minimum;
+
+                if (!reproductionAllowed) {
+                    messages.push({ type: 'fail', text: '✗ Reproduction check failed' });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ Reproduction allowed' });
+                }
+
+                return { pass, messages };
+            }
+        );
+
+        // Test 4: Nitrogen Deficiency Blocks Growth
+        suite.addTest(
+            'Test 4: Nitrogen Deficiency Detection',
+            'Low nitrogen should block growth even with high other nutrients',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                const reqs = config.environment.nutrientRequirements;
+                
+                // Create soil with ONLY nitrogen deficient, others optimal
+                const soil = new MockSoil(
+                    reqs.nitrogen.minimum - 3,  // Below minimum
+                    reqs.phosphorus.optimal,     // Optimal
+                    reqs.potassium.optimal,      // Optimal
+                    reqs.organicMatter.optimal   // Optimal
+                );
+
+                messages.push({ type: 'info', text: `Test soil: N=${soil.nitrogen}, P=${soil.phosphorus}, K=${soil.potassium}, OM=${soil.organicMatter}` });
+                messages.push({ type: 'info', text: `Fertility: ${soil.fertility.toFixed(1)} (should be HIGH despite N deficiency)` });
+
+                // Simulate nutrient checks
+                const insufficientNutrients = [];
+                if (soil.nitrogen < reqs.nitrogen.minimum) insufficientNutrients.push('N');
+                if (soil.phosphorus < reqs.phosphorus.minimum) insufficientNutrients.push('P');
+                if (soil.potassium < reqs.potassium.minimum) insufficientNutrients.push('K');
+                if (soil.organicMatter < reqs.organicMatter.minimum) insufficientNutrients.push('OM');
+
+                if (insufficientNutrients.length === 0) {
+                    messages.push({ type: 'fail', text: '✗ Nitrogen deficiency not detected!' });
+                    pass = false;
+                } else if (insufficientNutrients.includes('N') && insufficientNutrients.length === 1) {
+                    messages.push({ type: 'pass', text: '✓ Nitrogen deficiency correctly detected' });
+                    messages.push({ type: 'pass', text: `✓ Only N flagged (not P, K, or OM)` });
+                } else {
+                    messages.push({ type: 'fail', text: `✗ Wrong nutrients flagged: ${insufficientNutrients.join(', ')}` });
+                    pass = false;
+                }
+
+                return { pass, messages };
+            }
+        );
+
+        // Test 5: Multiple Deficiencies Detected
+        suite.addTest(
+            'Test 5: Multiple Nutrient Deficiencies',
+            'System should detect multiple simultaneous deficiencies',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                const reqs = config.environment.nutrientRequirements;
+                
+                // Create soil with N and P deficient, K and OM sufficient
+                const soil = new MockSoil(
+                    reqs.nitrogen.minimum - 2,      // Below minimum
+                    reqs.phosphorus.minimum - 1,    // Below minimum
+                    reqs.potassium.minimum + 5,     // Above minimum
+                    reqs.organicMatter.minimum + 5  // Above minimum
+                );
+
+                messages.push({ type: 'info', text: `Test soil: N=${soil.nitrogen}, P=${soil.phosphorus}, K=${soil.potassium}, OM=${soil.organicMatter}` });
+
+                // Simulate nutrient checks
+                const insufficientNutrients = [];
+                if (soil.nitrogen < reqs.nitrogen.minimum) insufficientNutrients.push('N');
+                if (soil.phosphorus < reqs.phosphorus.minimum) insufficientNutrients.push('P');
+                if (soil.potassium < reqs.potassium.minimum) insufficientNutrients.push('K');
+                if (soil.organicMatter < reqs.organicMatter.minimum) insufficientNutrients.push('OM');
+
+                messages.push({ type: 'info', text: `Detected deficiencies: ${insufficientNutrients.join(', ') || 'none'}` });
+
+                if (insufficientNutrients.length !== 2) {
+                    messages.push({ type: 'fail', text: `✗ Expected 2 deficiencies, got ${insufficientNutrients.length}` });
+                    pass = false;
+                } else if (!insufficientNutrients.includes('N') || !insufficientNutrients.includes('P')) {
+                    messages.push({ type: 'fail', text: '✗ Wrong nutrients flagged' });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ Both N and P deficiencies detected' });
+                }
+
+                return { pass, messages };
+            }
+        );
+
+        // Test 6: Edge Case - Exactly at Minimum
+        suite.addTest(
+            'Test 6: Boundary Condition (Exactly at Minimum)',
+            'Nutrients exactly at minimum should allow growth',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                const reqs = config.environment.nutrientRequirements;
+                
+                // Create soil with all nutrients exactly at minimum
+                const soil = new MockSoil(
+                    reqs.nitrogen.minimum,
+                    reqs.phosphorus.minimum,
+                    reqs.potassium.minimum,
+                    reqs.organicMatter.minimum
+                );
+
+                messages.push({ type: 'info', text: `Test soil: N=${soil.nitrogen}, P=${soil.phosphorus}, K=${soil.potassium}, OM=${soil.organicMatter}` });
+
+                // Simulate nutrient checks
+                const insufficientNutrients = [];
+                if (soil.nitrogen < reqs.nitrogen.minimum) insufficientNutrients.push('N');
+                if (soil.phosphorus < reqs.phosphorus.minimum) insufficientNutrients.push('P');
+                if (soil.potassium < reqs.potassium.minimum) insufficientNutrients.push('K');
+                if (soil.organicMatter < reqs.organicMatter.minimum) insufficientNutrients.push('OM');
+
+                if (insufficientNutrients.length > 0) {
+                    messages.push({ type: 'fail', text: `✗ Nutrients at minimum incorrectly flagged as insufficient: ${insufficientNutrients.join(', ')}` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ All nutrients at minimum correctly pass checks' });
+                }
+
+                return { pass, messages };
+            }
+        );
+
+        // Test 7: Nitrogen-Loving Characteristic
+        suite.addTest(
+            'Test 7: Nitrogen-Loving Species Trait',
+            'Verify nitrogen requirement reflects higher consumption rate',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                const reqs = config.environment.nutrientRequirements;
+                
+                // Calculate consumption rates
+                const totalConsumption = { nitrogen: 0, phosphorus: 0, potassium: 0, organicMatter: 0 };
+                config.growthStages.forEach(stage => {
+                    if (stage.nutrientConsumption) {
+                        totalConsumption.nitrogen += stage.nutrientConsumption.nitrogen || 0;
+                        totalConsumption.phosphorus += stage.nutrientConsumption.phosphorus || 0;
+                        totalConsumption.potassium += stage.nutrientConsumption.potassium || 0;
+                        totalConsumption.organicMatter += stage.nutrientConsumption.organicMatter || 0;
+                    }
+                });
+
+                // Check if N consumption is highest
+                const maxConsumption = Math.max(
+                    totalConsumption.nitrogen,
+                    totalConsumption.phosphorus,
+                    totalConsumption.potassium,
+                    totalConsumption.organicMatter
+                );
+
+                if (totalConsumption.nitrogen !== maxConsumption) {
+                    messages.push({ type: 'fail', text: '✗ Nitrogen is not the most consumed nutrient' });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ Nitrogen is the most consumed nutrient (nitrogen-loving trait)' });
+                }
+
+                // Check if N minimum reflects this (should be higher than P and K)
+                if (reqs.nitrogen.minimum <= reqs.phosphorus.minimum || reqs.nitrogen.minimum <= reqs.potassium.minimum) {
+                    messages.push({ type: 'fail', text: '✗ Nitrogen minimum should be higher than P and K' });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ Nitrogen minimum (${reqs.nitrogen.minimum}) > P (${reqs.phosphorus.minimum}) and K (${reqs.potassium.minimum})' });
+                }
+
+                return { pass, messages };
+            }
+        );
+
+        // Run all tests
+        (async () => {
+            const loaded = await suite.loadSpeciesConfig();
+            if (!loaded) {
+                document.getElementById('testResults').innerHTML = '<div class="test-section"><div class="test-title"><span class="test-status status-fail">ERROR</span></div><div class="test-details"><div class="fail">Failed to load species/nettles.json</div></div></div>';
+                return;
+            }
+
+            await suite.runTests();
+        })();
+    </script>
+</body>
+</html>

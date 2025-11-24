@@ -254,12 +254,20 @@ class Plant {
         if (currentIndex < stages.length - 1) {
             const newStage = stages[currentIndex + 1];
             
-            // Check if soil fertility is sufficient for growth
+            // Check if soil nutrients are sufficient for growth
             const soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
-            if (soil) {
-                const minFertility = this.species?.environment?.minimumFertility || 0;
-                if (soil.fertility < minFertility) {
-                    // Mark plant as stunted - silently prevent growth (no console spam with many plants)
+            if (soil && this.species?.environment?.nutrientRequirements) {
+                const reqs = this.species.environment.nutrientRequirements;
+                
+                // Check each nutrient individually
+                const insufficientNutrients = [];
+                if (soil.nitrogen < reqs.nitrogen.minimum) insufficientNutrients.push('N');
+                if (soil.phosphorus < reqs.phosphorus.minimum) insufficientNutrients.push('P');
+                if (soil.potassium < reqs.potassium.minimum) insufficientNutrients.push('K');
+                if (soil.organicMatter < reqs.organicMatter.minimum) insufficientNutrients.push('OM');
+                
+                if (insufficientNutrients.length > 0) {
+                    // Mark plant as stunted - prevent growth due to specific nutrient deficiencies
                     this.isStunted = true;
                     return false; // Prevent stage advancement
                 } else {

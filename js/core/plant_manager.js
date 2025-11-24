@@ -36,15 +36,7 @@ class PlantManager {
             return null;
         }
         
-        // Check if soil meets minimum fertility requirement
-        const soil = this.soilManager.getSoilAt(gridX, gridY);
-        if (soil) {
-            const minFertility = speciesConfig?.environment?.minimumFertility || 0;
-            if (soil.fertility < minFertility) {
-                console.warn(`[PLANT] Warning: Soil fertility (${soil.fertility.toFixed(1)}) below minimum for ${speciesConfig.commonName} (${minFertility}). Plant may struggle to grow.`);
-                // Still allow manual placement - just warn the user
-            }
-        }
+        // Manual placement always allowed - plant will be stunted if nutrients insufficient
         
         // FIXED: Calculate world position to ensure it stays within the cell bounds
         // Grid cell starts at gridX * cellSize, gridY * cellSize
@@ -94,15 +86,7 @@ class PlantManager {
             return null;
         }
         
-        // Check if soil meets minimum fertility requirement
-        const soil = this.soilManager.getSoilAt(gridX, gridY);
-        if (soil) {
-            const minFertility = speciesConfig?.environment?.minimumFertility || 0;
-            if (soil.fertility < minFertility) {
-                console.warn(`[PLANT] Warning: Soil fertility (${soil.fertility.toFixed(1)}) below minimum for ${speciesConfig.commonName} (${minFertility}). Plant may struggle to grow.`);
-                // Still allow manual placement - just warn the user
-            }
-        }
+        // Manual placement always allowed - plant will be stunted if nutrients insufficient
         
         // FIXED: Verify that the exact click position maps back to the intended grid cell
         // This prevents plants from being created at positions that don't resolve correctly
@@ -195,18 +179,25 @@ class PlantManager {
         // Get neighboring cells within maxDistance
         const neighbors = this.getNeighborCells(parentGrid.x, parentGrid.y, event.maxDistance);
         
-        // Get species config for minimum fertility check
+        // Get species config for nutrient requirements check
         const speciesConfig = this.speciesConfigs.get(event.species);
-        const minFertility = speciesConfig?.environment?.minimumFertility || 0;
         
-        // Filter to only empty, plantable cells with sufficient fertility
+        // Filter to only empty, plantable cells with sufficient nutrients
         const validNeighbors = neighbors.filter(cell => {
             const soil = this.soilManager.getSoilAt(cell.x, cell.y);
             if (!soil || !soil.isPlantable) return false;
             if (this.getPlantAt(cell.x, cell.y)) return false;
             
-            // Check minimum fertility requirement for reproduction
-            if (soil.fertility < minFertility) return false;
+            // Check nutrient-specific requirements for reproduction
+            if (speciesConfig?.environment?.nutrientRequirements) {
+                const reqs = speciesConfig.environment.nutrientRequirements;
+                
+                // ALL nutrients must meet minimum for reproduction
+                if (soil.nitrogen < reqs.nitrogen.minimum) return false;
+                if (soil.phosphorus < reqs.phosphorus.minimum) return false;
+                if (soil.potassium < reqs.potassium.minimum) return false;
+                if (soil.organicMatter < reqs.organicMatter.minimum) return false;
+            }
             
             return true;
         });
