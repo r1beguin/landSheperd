@@ -54,13 +54,10 @@ class DebugManager {
             this.config = await response.json();
             this.isEnabled = this.config.debug.enabled;
             
-            console.log('[CONFIG] Configuration loaded:', this.config);
-            
             if (this.isEnabled) {
                 this.createDebugPanel();
-                console.log('[DEBUG] Debug mode enabled - UI created');
             } else {
-                console.log('[DEBUG] Debug mode disabled via configuration');
+                // Debug mode disabled
             }
         } catch (error) {
             console.warn('[CONFIG] Failed to load config.json, debug disabled:', error);
@@ -203,7 +200,6 @@ class DebugManager {
         // Émettre un événement pour notifier les autres systèmes
         if (window.graphicsEngine && window.graphicsEngine.textureGenerator) {
             window.graphicsEngine.textureGenerator.setLayerVisibility(layerType, isEnabled);
-            console.log(`[DEBUG] Layer ${layerType} ${isEnabled ? 'enabled' : 'disabled'}`);
         }
     }
     
@@ -214,7 +210,6 @@ class DebugManager {
             window.graphicsEngine.textureGenerator.setLayerVisibility('water', this.layerStates.water);
             window.graphicsEngine.textureGenerator.setLayerVisibility('pollution', this.layerStates.pollution);
             // Fertility is handled by SoilManager, not TextureGenerator
-            console.log('[DEBUG] Initial layer state synchronized with TextureGenerator');
             return true;
         }
         return false;
@@ -226,7 +221,6 @@ class DebugManager {
             textureGenerator.setLayerVisibility('water', this.layerStates.water);
             textureGenerator.setLayerVisibility('pollution', this.layerStates.pollution);
             // Fertility is handled by SoilManager, not TextureGenerator
-            console.log('[DEBUG] Forced layer synchronization');
         }
     }
 
@@ -600,7 +594,6 @@ class DebugManager {
     // NEW: Toggle fertility overlay
     toggleFertilityOverlay() {
         this.layerStates.fertility = !this.layerStates.fertility;
-        console.log(`[DEBUG] Fertility overlay ${this.layerStates.fertility ? 'enabled' : 'disabled'}`);
         return this.layerStates.fertility;
     }
 
@@ -624,7 +617,6 @@ class DebugManager {
     
     initializeShadowControls() {
         // Shadow controls removed - no longer needed without trees
-        console.log('[DEBUG] Shadow controls disabled - no tree system present');
     }
     
     onShadowParamChange() {

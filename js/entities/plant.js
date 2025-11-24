@@ -20,6 +20,10 @@ class Plant {
         this.lastReproductionDay = currentDay;
         this.shouldDespawn = false; // Flag for removal by manager
         
+        // Starvation tracking - plants die if fertility stays low too long
+        this.daysStunted = 0;
+        this.isStunted = false;
+        
         // Generate initial sprite
         this.generateSprite();
     }
@@ -39,6 +43,20 @@ class Plant {
     update(gameDaysElapsed, currentDay) {
         // Update age based on game days elapsed
         this.age += gameDaysElapsed;
+        
+        // Track how long plant has been stunted (unable to grow due to low fertility)
+        if (this.isStunted) {
+            this.daysStunted += gameDaysElapsed;
+            
+            // Get grace period from config or use default
+            const config = window.config?.world?.plants || {};
+            const gracePeriod = config.stuntGracePeriod || 7;
+            
+            // After grace period, force plant to wither from nutrient starvation
+            if (this.daysStunted >= gracePeriod && this.stage !== 'Withered') {
+                this.forceWither(currentDay);
+            }
+        }
         
         // Check if we should advance to next growth stage
         this.checkGrowthAdvancement(currentDay);
@@ -158,9 +176,7 @@ class Plant {
                     const gridCoords = window.graphicsEngine.soilManager.worldToGrid(this.x, this.y);
                     soil = window.graphicsEngine.soilManager.getSoilAt(gridCoords.x, gridCoords.y);
                     
-                    if (soil) {
-                        console.log(`[DECOMP] Found soil using direct grid lookup at (${gridCoords.x}, ${gridCoords.y}) for plant at world (${Math.round(this.x)}, ${Math.round(this.y)})`);
-                    } else {
+                    if (!soil) {
                         // Last resort: check immediate neighbors
                         const neighbors = [
                             [gridCoords.x - 1, gridCoords.y],
@@ -172,7 +188,6 @@ class Plant {
                         for (const [nx, ny] of neighbors) {
                             soil = window.graphicsEngine.soilManager.getSoilAt(nx, ny);
                             if (soil) {
-                                console.log(`[DECOMP] Found soil at neighbor (${nx}, ${ny}) for plant at world (${Math.round(this.x)}, ${Math.round(this.y)})`);
                                 break;
                             }
                         }
@@ -182,26 +197,31 @@ class Plant {
                 if (soil) {
                     const returns = witheredStage.nutrientReturn;
                     
+                    // Get config for starvation multiplier
+                    const config = window.config?.world?.plants || {};
+                    const starvationMultiplier = config.starvationReturnMultiplier || 0.5;
+                    
+                    // If plant died from starvation, return less nutrients
+                    const wasStarved = this.daysStunted > 0;
+                    const returnMultiplier = wasStarved ? starvationMultiplier : 1.0;
+                    
                     // Calculate new nutrient levels after decomposition
-                    const newNitrogen = soil.nitrogen + returns.nitrogen;
-                    const newPhosphorus = soil.phosphorus + returns.phosphorus;
-                    const newPotassium = soil.potassium + returns.potassium;
-                    const newOrganicMatter = soil.organicMatter + returns.organicMatter;
+                    const newNitrogen = soil.nitrogen + returns.nitrogen * returnMultiplier;
+                    const newPhosphorus = soil.phosphorus + returns.phosphorus * returnMultiplier;
+                    const newPotassium = soil.potassium + returns.potassium * returnMultiplier;
+                    const newOrganicMatter = soil.organicMatter + returns.organicMatter * returnMultiplier;
                     
                     // Update soil nutrients
                     soil.updateNutrients(newNitrogen, newPhosphorus, newPotassium, newOrganicMatter);
                     
                     // Invalidate texture cache to reflect visual changes
                     window.graphicsEngine.soilManager.needsRefresh = true;
-                    
-                    console.log(`[DECOMP] ${this.species.commonName} at (${Math.round(this.x)}, ${Math.round(this.y)}) decomposed, returning nutrients: N:${returns.nitrogen}, P:${returns.phosphorus}, K:${returns.potassium}, OM:${returns.organicMatter}`);
                 } else {
                     console.warn(`WARNING: ${this.species.commonName} at (${Math.round(this.x)}, ${Math.round(this.y)}) couldn't find soil for nutrient return (searched grid and neighbors)`);
                 }
             }
             
             this.shouldDespawn = true;
-            console.log(`[DECOMP] ${this.species.commonName} has fully decomposed and will despawn`);
         }
     }
 
@@ -234,6 +254,21 @@ class Plant {
         if (currentIndex < stages.length - 1) {
             const newStage = stages[currentIndex + 1];
             
+            // Check if soil fertility is sufficient for growth
+            const soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
+            if (soil) {
+                const minFertility = this.species?.environment?.minimumFertility || 0;
+                if (soil.fertility < minFertility) {
+                    // Mark plant as stunted - silently prevent growth (no console spam with many plants)
+                    this.isStunted = true;
+                    return false; // Prevent stage advancement
+                } else {
+                    // Soil recovered - reset stunted counter
+                    this.isStunted = false;
+                    this.daysStunted = 0;
+                }
+            }
+            
             // Enhancement #1: Consume nutrients when advancing growth stage
             if (newStage.nutrientConsumption) {
                 let soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
@@ -244,9 +279,7 @@ class Plant {
                     const gridCoords = window.graphicsEngine.soilManager.worldToGrid(this.x, this.y);
                     soil = window.graphicsEngine.soilManager.getSoilAt(gridCoords.x, gridCoords.y);
                     
-                    if (soil) {
-                        console.log(`[NUTRIENT] Found soil using direct grid lookup at (${gridCoords.x}, ${gridCoords.y}) for plant at world (${Math.round(this.x)}, ${Math.round(this.y)})`);
-                    } else {
+                    if (!soil) {
                         // Last resort: check immediate neighbors
                         const neighbors = [
                             [gridCoords.x - 1, gridCoords.y],
@@ -258,7 +291,6 @@ class Plant {
                         for (const [nx, ny] of neighbors) {
                             soil = window.graphicsEngine.soilManager.getSoilAt(nx, ny);
                             if (soil) {
-                                console.log(`[NUTRIENT] Found soil at neighbor (${nx}, ${ny}) for plant at world (${Math.round(this.x)}, ${Math.round(this.y)})`);
                                 break;
                             }
                         }
@@ -279,8 +311,6 @@ class Plant {
                     
                     // Invalidate texture cache to reflect visual changes
                     window.graphicsEngine.soilManager.needsRefresh = true;
-                    
-                    console.log(`[NUTRIENT] ${this.species.commonName} at (${Math.round(this.x)}, ${Math.round(this.y)}) consumed nutrients: N:${consumption.nitrogen}, P:${consumption.phosphorus}, K:${consumption.potassium}, OM:${consumption.organicMatter}`);
                 } else {
                     console.warn(`WARNING: ${this.species.commonName} at (${Math.round(this.x)}, ${Math.round(this.y)}) couldn't find soil for nutrient consumption (searched grid and neighbors)`);
                 }
@@ -295,15 +325,32 @@ class Plant {
             
             this.generateSprite(); // Regenerate sprite for new stage
             
-            const daysToNext = newStage.daysToGrow;
-            if (daysToNext !== null) {
-                console.log(`[GROWTH] ${this.species.commonName} grew to ${this.stage}! Next stage in ${daysToNext} game days (${daysToNext * 10}s at 1x speed)`);
-            } else {
-                console.log(`[GROWTH] ${this.species.commonName} reached final stage: ${this.stage}`);
-            }
             return true;
         }
         
         return false; // Already at final stage
+    }
+    
+    /**
+     * Force plant to wither due to environmental stress (low fertility, etc.)
+     * @param {number} currentDay - Current game day
+     */
+    forceWither(currentDay) {
+        // Find the Withered stage
+        const witheredStage = this.species.growthStages.find(stage => stage.name === 'Withered');
+        
+        if (!witheredStage) {
+            console.warn(`[DEATH] ${this.species.commonName} has no Withered stage, removing immediately`);
+            this.shouldDespawn = true;
+            return;
+        }
+        
+        // Set to Withered stage
+        this.stage = 'Withered';
+        this.stageStartDay = currentDay;
+        this.isStunted = false; // No longer stunted, now withering
+        
+        // Regenerate sprite for withered appearance
+        this.generateSprite();
     }
 }

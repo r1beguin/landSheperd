@@ -38,16 +38,12 @@ class SoilManager {
         this.totalCells = 0;
         this.visibleCellsCount = 0;
         
-        console.log(`[INIT] SoilManager initialized: ${this.gridWidth}x${this.gridHeight} cells of ${this.cellSize}px`);
-        
         this.initializeSoilGrid();
         this.createSoilGeometry();
     }
     
     // Initialize soil grid with procedural generation
     initializeSoilGrid() {
-        console.log('[INIT] Initializing soil grid with procedural generation...');
-        
         const startTime = performance.now();
         
         // Generate property maps with procedural generator
@@ -80,7 +76,6 @@ class SoilManager {
         }
         
         const endTime = performance.now();
-        console.log(`[INIT] Soil grid initialized: ${this.totalCells} cells in ${(endTime - startTime).toFixed(2)}ms`);
     }
 
     // Check if this location should allow plant placement (more restrictive than soil existence)
@@ -363,11 +358,9 @@ class SoilManager {
             
             // Debug logging (only log first few cells to avoid spam)
             if (!this._fertilityOverlayLogged) {
-                console.log(`[DEBUG] Rendering fertility overlay: fertility=${fertility.toFixed(2)}, r=${r.toFixed(2)}, g=${g.toFixed(2)}, b=${b.toFixed(2)}`);
                 this._fertilityOverlayLogCount = (this._fertilityOverlayLogCount || 0) + 1;
                 if (this._fertilityOverlayLogCount >= 5) {
                     this._fertilityOverlayLogged = true;
-                    console.log('[DEBUG] Further fertility overlay logs suppressed to avoid spam');
                 }
             }
             
@@ -385,7 +378,6 @@ class SoilManager {
             if (this._fertilityOverlayLogged) {
                 this._fertilityOverlayLogged = false;
                 this._fertilityOverlayLogCount = 0;
-                console.log('[DEBUG] Fertility overlay disabled');
             }
             
             // Normal rendering with procedural texture

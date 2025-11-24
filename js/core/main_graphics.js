@@ -52,7 +52,6 @@ class GraphicsEngine {
             
             // Start render loop
             this.render(0);
-            console.log('[INIT] Graphics engine initialized successfully');
         } catch (error) {
             console.error('[ERROR] Error during engine initialization:', error);
             throw error;
@@ -66,8 +65,6 @@ class GraphicsEngine {
         if (!this.gl) {
             throw new Error('WebGL is not supported on this browser');
         }
-        
-        console.log('[INIT] WebGL initialized successfully');
     }
     
     async initManagers() {
@@ -79,7 +76,6 @@ class GraphicsEngine {
         // Wait for debug manager initialization to get config
         const debugEnabled = await this.debugManager.initialize();
         this.config = this.debugManager.getConfig();
-        console.log('[INIT] Debug manager initialized. Debug mode:', debugEnabled ? 'enabled' : 'disabled');
         
         // Time manager with configuration (provide default if config.time is undefined)
         this.timeManager = new TimeManager(this.config.time || {});
@@ -354,10 +350,6 @@ class GraphicsEngine {
         const screenCenterX = 0; // Screen center in world coordinates
         const screenCenterY = 0; // Screen center in world coordinates
         
-        if (this.config?.debug?.enabled) {
-            console.log(`[INIT] Positioning player at the center of the screen: (${screenCenterX}, ${screenCenterY})`);
-        }
-        
         // More visible color: bright red instead of green
         this.player = new Character(screenCenterX, screenCenterY, 8, [1.0, 0.2, 0.2, 1.0]); // Bright red and larger
         
@@ -368,10 +360,6 @@ class GraphicsEngine {
         
         this.cameraManager.setPosition(mapCenterX, mapCenterY);
         this.cameraManager.setZoom(2.0); // Zoom to better see the tree
-        
-        if (this.config?.debug?.enabled) {
-            console.log(`[CAMERA] Camera positioned at the center of the map: (${mapCenterX}, ${mapCenterY}) with zoom 2.0`);
-        }
         
         // Add player to the list of entities
         this.entities.push(this.player);
@@ -557,8 +545,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Also expose as 'graphics' for backward compatibility
         window.graphics = window.graphicsEngine;
-        
-        console.log('[INIT] Land Shepherd - Graphics engine started');
     } catch (error) {
         console.error('[ERROR] Error during initialization:', error);
         document.body.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error.message}</div>`;

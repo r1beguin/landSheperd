@@ -28,6 +28,8 @@
             "cellSize": 20
         },
         "plants": {
+            "stuntGracePeriod": 7,
+            "starvationReturnMultiplier": 0.5,
             "reproduction": {
                 "enableLogging": true
             },

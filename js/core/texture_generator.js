@@ -39,13 +39,6 @@ class TextureGenerator {
         this.needsTextureUpdate = false;
         this.textureUpdateDebounce = null;
         
-        console.log('[INIT] TextureGenerator initialized with configuration:', {
-            textureSize: this.textureSize,
-            variations: this.variations,
-            waterLevels: this.waterLevels.length,
-            pollutionLevels: this.pollutionLevels.length
-        });
-        
         this.preGenerateTextures();
     }
     
@@ -53,8 +46,6 @@ class TextureGenerator {
     async preGenerateTextures() {
         const startTime = performance.now();
         let texturesGenerated = 0;
-        
-        console.log('[TEXTURE] Generating soil textures...');
         
         // Générer des textures pour différents niveaux de fertilité
         for (let fertility = 0; fertility <= 100; fertility += 25) {
@@ -70,7 +61,6 @@ class TextureGenerator {
         }
         
         const endTime = performance.now();
-        console.log(`[TEXTURE] ${texturesGenerated} textures generated in ${(endTime - startTime).toFixed(2)}ms`);
     }
     
     // Génère une clé unique pour une texture basée sur les propriétés
@@ -301,8 +291,6 @@ class TextureGenerator {
                 this.debouncedTextureUpdate();
                 this.textureUpdateDebounce = null;
             }, 50);
-            
-            console.log(`[TEXTURE] Layer ${layerType} ${isVisible ? 'enabled' : 'disabled'} - scheduled for update`);
         }
     }
 
@@ -318,7 +306,6 @@ class TextureGenerator {
         this.canvasCache.clear();
         
         const endTime = performance.now();
-        console.log(`[TEXTURE] Texture cache cleared in ${(endTime - startTime).toFixed(2)}ms - new textures will be generated on demand`);
     }
 
     // Nettoie juste le cache sans régénérer tout de suite
@@ -356,7 +343,6 @@ class TextureGenerator {
         }
 
         const endTime = performance.now();
-        console.log(`[TEXTURE] ${texturesRegenerated} textures regenerated in ${(endTime - startTime).toFixed(2)}ms`);
     }
 
     // Méthode pour obtenir l'état actuel des calques

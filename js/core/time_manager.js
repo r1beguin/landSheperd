@@ -31,8 +31,6 @@ class TimeManager {
         // State
         this.isPaused = false;
         this.previousTimeScale = this.timeScale;
-        
-        console.log(`[INIT] TimeManager initialized: ${this.realSecondsPerGameDay}s = 1 game day, time scale: ${this.timeScale}x`);
     }
     
     /**
@@ -90,8 +88,6 @@ class TimeManager {
         
         this.timeScale = scale;
         this.isPaused = (scale === 0);
-        
-        console.log(`[TIME] Time scale set to ${this.timeScale}x`);
     }
     
     /**
@@ -115,8 +111,6 @@ class TimeManager {
         
         if (currentIndex < presets.length - 1) {
             this.setTimeScale(presets[currentIndex + 1]);
-        } else {
-            console.log('[TIME] Already at maximum time scale');
         }
     }
     
@@ -129,8 +123,6 @@ class TimeManager {
         
         if (currentIndex > 0) {
             this.setTimeScale(presets[currentIndex - 1]);
-        } else {
-            console.log('[TIME] Already at minimum time scale');
         }
     }
     
@@ -153,7 +145,6 @@ class TimeManager {
             this.previousTimeScale = this.timeScale;
             this.isPaused = true;
             this.timeScale = 0;
-            console.log('[TIME] Time paused');
         }
     }
     
@@ -164,7 +155,6 @@ class TimeManager {
         if (this.isPaused) {
             this.isPaused = false;
             this.timeScale = this.previousTimeScale || this.config.initialTimeScale || 1.0;
-            console.log(`[TIME] Time resumed at ${this.timeScale}x`);
         }
     }
     
@@ -197,6 +187,5 @@ class TimeManager {
         this.currentDay = 0;
         this.timeScale = this.config.initialTimeScale || 1.0;
         this.isPaused = false;
-        console.log('[TIME] Time reset to day 0');
     }
 }

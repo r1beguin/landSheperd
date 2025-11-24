@@ -71,6 +71,10 @@
       "maxDistance": 1
     }
   },
+  "environment": {
+    "minimumFertility": 20,
+    "description": "Nettles are hardy pioneers but require minimal soil nutrients to complete their lifecycle"
+  },
   "proceduralModules": {
     "stem": {
       "segments": 3,
