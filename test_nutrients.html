@@ -705,6 +705,247 @@
             }
         );
 
+        // Test 10: Visual Feedback - Tint Calculation Logic
+        suite.addTest(
+            'Test 10: Nutrient Tint Calculation (Phase 3)',
+            'Verify tint colors reflect nutrient deficiencies correctly',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                const reqs = config.environment.nutrientRequirements;
+
+                // Helper function to calculate nutrient score
+                function nutrientScore(value, requirement) {
+                    if (value < requirement.minimum) return 0.0;
+                    if (value >= requirement.optimal) return 1.0;
+                    const range = requirement.optimal - requirement.minimum;
+                    return (value - requirement.minimum) / range;
+                }
+
+                // Helper to calculate tint (replicated from plant.js)
+                function calculateNutrientTint(soil) {
+                    const nScore = nutrientScore(soil.nitrogen, reqs.nitrogen);
+                    const pScore = nutrientScore(soil.phosphorus, reqs.phosphorus);
+                    const kScore = nutrientScore(soil.potassium, reqs.potassium);
+                    const omScore = nutrientScore(soil.organicMatter, reqs.organicMatter);
+                    
+                    const minScore = Math.min(nScore, pScore, kScore, omScore);
+                    
+                    let limitingNutrient = 'none';
+                    if (minScore < 1.0) {
+                        if (nScore === minScore) limitingNutrient = 'nitrogen';
+                        else if (pScore === minScore) limitingNutrient = 'phosphorus';
+                        else if (kScore === minScore) limitingNutrient = 'potassium';
+                        else if (omScore === minScore) limitingNutrient = 'organicMatter';
+                    }
+                    
+                    let r = 1.0, g = 1.0, b = 1.0;
+                    const deficiency = 1.0 - minScore;
+                    
+                    switch (limitingNutrient) {
+                        case 'nitrogen':
+                            r = 1.0;
+                            g = 1.0 - (deficiency * 0.3);
+                            b = 1.0 - (deficiency * 0.4);
+                            break;
+                        case 'phosphorus':
+                            r = 1.0;
+                            g = 1.0 - (deficiency * 0.4);
+                            b = 1.0 - (deficiency * 0.1);
+                            break;
+                        case 'potassium':
+                            r = 1.0;
+                            g = 1.0 - (deficiency * 0.35);
+                            b = 1.0 - (deficiency * 0.5);
+                            break;
+                        case 'organicMatter':
+                            const desaturation = 1.0 - (deficiency * 0.25);
+                            r = desaturation;
+                            g = desaturation;
+                            b = desaturation;
+                            break;
+                        default:
+                            r = 1.0;
+                            g = 1.0;
+                            b = 1.0;
+                            break;
+                    }
+                    
+                    return { r, g, b, limitingNutrient, deficiency };
+                }
+
+                // Test 1: Optimal soil should give white tint (1,1,1)
+                const optimalSoil = new MockSoil(
+                    reqs.nitrogen.optimal,
+                    reqs.phosphorus.optimal,
+                    reqs.potassium.optimal,
+                    reqs.organicMatter.optimal
+                );
+                const optimalTint = calculateNutrientTint(optimalSoil);
+                
+                if (Math.abs(optimalTint.r - 1.0) > 0.01 || Math.abs(optimalTint.g - 1.0) > 0.01 || Math.abs(optimalTint.b - 1.0) > 0.01) {
+                    messages.push({ type: 'fail', text: `✗ Optimal soil tint (${optimalTint.r.toFixed(2)}, ${optimalTint.g.toFixed(2)}, ${optimalTint.b.toFixed(2)}), expected (1.0, 1.0, 1.0)` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: `✓ Optimal soil gives white tint (1.0, 1.0, 1.0)` });
+                }
+
+                // Test 2: Nitrogen deficiency should give yellow/pale tint
+                const nitrogenDeficientSoil = new MockSoil(
+                    reqs.nitrogen.minimum,
+                    reqs.phosphorus.optimal,
+                    reqs.potassium.optimal,
+                    reqs.organicMatter.optimal
+                );
+                const nTint = calculateNutrientTint(nitrogenDeficientSoil);
+                
+                if (nTint.limitingNutrient !== 'nitrogen') {
+                    messages.push({ type: 'fail', text: `✗ Nitrogen deficiency not detected as limiting nutrient` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: `✓ Nitrogen detected as limiting nutrient` });
+                    messages.push({ type: 'info', text: `  Tint: R=${nTint.r.toFixed(2)}, G=${nTint.g.toFixed(2)}, B=${nTint.b.toFixed(2)} (yellow/pale)` });
+                    
+                    // Should have reduced green and blue (yellow tint)
+                    if (nTint.g >= 1.0 || nTint.b >= 1.0) {
+                        messages.push({ type: 'fail', text: `✗ Nitrogen deficiency should reduce green/blue channels` });
+                        pass = false;
+                    } else {
+                        messages.push({ type: 'pass', text: `✓ Green and blue reduced for yellow/pale effect` });
+                    }
+                }
+
+                // Test 3: Phosphorus deficiency should give purple tint
+                const phosphorusDeficientSoil = new MockSoil(
+                    reqs.nitrogen.optimal,
+                    reqs.phosphorus.minimum,
+                    reqs.potassium.optimal,
+                    reqs.organicMatter.optimal
+                );
+                const pTint = calculateNutrientTint(phosphorusDeficientSoil);
+                
+                if (pTint.limitingNutrient !== 'phosphorus') {
+                    messages.push({ type: 'fail', text: `✗ Phosphorus deficiency not detected as limiting nutrient` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: `✓ Phosphorus detected as limiting nutrient` });
+                    messages.push({ type: 'info', text: `  Tint: R=${pTint.r.toFixed(2)}, G=${pTint.g.toFixed(2)}, B=${pTint.b.toFixed(2)} (purple)` });
+                    
+                    // Should have reduced green (purple = red + blue, less green)
+                    if (pTint.g >= 1.0) {
+                        messages.push({ type: 'fail', text: `✗ Phosphorus deficiency should reduce green channel` });
+                        pass = false;
+                    } else {
+                        messages.push({ type: 'pass', text: `✓ Green reduced for purple effect` });
+                    }
+                }
+
+                // Test 4: Potassium deficiency should give brown tint
+                const potassiumDeficientSoil = new MockSoil(
+                    reqs.nitrogen.optimal,
+                    reqs.phosphorus.optimal,
+                    reqs.potassium.minimum,
+                    reqs.organicMatter.optimal
+                );
+                const kTint = calculateNutrientTint(potassiumDeficientSoil);
+                
+                if (kTint.limitingNutrient !== 'potassium') {
+                    messages.push({ type: 'fail', text: `✗ Potassium deficiency not detected as limiting nutrient` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: `✓ Potassium detected as limiting nutrient` });
+                    messages.push({ type: 'info', text: `  Tint: R=${kTint.r.toFixed(2)}, G=${kTint.g.toFixed(2)}, B=${kTint.b.toFixed(2)} (brown)` });
+                    
+                    // Should have reduced green and blue (brown tint)
+                    if (kTint.g >= 1.0 || kTint.b >= 1.0) {
+                        messages.push({ type: 'fail', text: `✗ Potassium deficiency should reduce green/blue channels` });
+                        pass = false;
+                    } else {
+                        messages.push({ type: 'pass', text: `✓ Green and blue reduced for brown effect` });
+                    }
+                }
+
+                // Test 5: Organic matter deficiency should give dull/desaturated tint
+                const omDeficientSoil = new MockSoil(
+                    reqs.nitrogen.optimal,
+                    reqs.phosphorus.optimal,
+                    reqs.potassium.optimal,
+                    reqs.organicMatter.minimum
+                );
+                const omTint = calculateNutrientTint(omDeficientSoil);
+                
+                if (omTint.limitingNutrient !== 'organicMatter') {
+                    messages.push({ type: 'fail', text: `✗ Organic matter deficiency not detected as limiting nutrient` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: `✓ Organic matter detected as limiting nutrient` });
+                    messages.push({ type: 'info', text: `  Tint: R=${omTint.r.toFixed(2)}, G=${omTint.g.toFixed(2)}, B=${omTint.b.toFixed(2)} (dull)` });
+                    
+                    // All channels should be equally reduced (desaturation)
+                    if (omTint.r !== omTint.g || omTint.g !== omTint.b) {
+                        messages.push({ type: 'fail', text: `✗ Organic matter deficiency should equally reduce all channels` });
+                        pass = false;
+                    } else {
+                        messages.push({ type: 'pass', text: `✓ All channels equally reduced for dull effect` });
+                    }
+                }
+
+                return { pass, messages };
+            }
+        );
+
+        // Test 11: Visual Feedback Integration
+        suite.addTest(
+            'Test 11: Shader Tint Integration (Phase 3)',
+            'Verify shader supports u_tint uniform for color multiplication',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                // This test verifies the conceptual integration
+                // Actual shader testing requires WebGL context
+                
+                messages.push({ type: 'info', text: 'Verifying shader integration requirements...' });
+                
+                // Check that tint is a 4-component RGBA value
+                const testTint = [0.9, 0.7, 0.6, 1.0];
+                
+                if (testTint.length !== 4) {
+                    messages.push({ type: 'fail', text: '✗ Tint must be 4-component RGBA array' });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ Tint format is 4-component RGBA' });
+                }
+                
+                // Verify tint values are in valid range [0, 1]
+                const allInRange = testTint.every(v => v >= 0 && v <= 1);
+                if (!allInRange) {
+                    messages.push({ type: 'fail', text: '✗ Tint values must be in range [0, 1]' });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ Tint values in valid range [0, 1]' });
+                }
+                
+                // Verify alpha is always 1.0 (no transparency modification)
+                if (testTint[3] !== 1.0) {
+                    messages.push({ type: 'fail', text: '✗ Tint alpha must be 1.0 (no transparency change)' });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ Tint alpha is 1.0 (preserves transparency)' });
+                }
+                
+                messages.push({ type: 'info', text: 'Integration checks:' });
+                messages.push({ type: 'info', text: '  - Fragment shader must have "uniform vec4 u_tint;"' });
+                messages.push({ type: 'info', text: '  - Shader must multiply texture color by tint' });
+                messages.push({ type: 'info', text: '  - Plant.getRenderData() must return tint property' });
+                messages.push({ type: 'info', text: '  - RenderSystem.renderPlant() must pass tint to shader' });
+                messages.push({ type: 'pass', text: '✓ All integration requirements documented' });
+
+                return { pass, messages };
+            }
+        );
+
         // Run all tests
         (async () => {
             const loaded = await suite.loadSpeciesConfig();

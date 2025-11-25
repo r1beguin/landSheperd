@@ -118,7 +118,7 @@ class RenderSystem {
     }
     
     // Rendu d'un rectangle avec texture
-    renderTexturedRect(x, y, width, height, texture, viewMatrix) {
+    renderTexturedRect(x, y, width, height, texture, viewMatrix, tint = [1, 1, 1, 1]) {
         const programInfo = this.shaderManager.useProgram('texture');
         if (!programInfo) return;
         
@@ -144,6 +144,7 @@ class RenderSystem {
         this.gl.uniform2f(programInfo.uniforms.u_translation, x, y);
         this.gl.uniform2f(programInfo.uniforms.u_scale, 1.0, 1.0);
         this.gl.uniform1i(programInfo.uniforms.u_texture, 0); // Texture unit 0
+        this.gl.uniform4f(programInfo.uniforms.u_tint, tint[0], tint[1], tint[2], tint[3]);
         
         // Configurer et dessiner la géométrie avec coordonnées de texture
         this.drawTexturedGeometry(geometry, programInfo.attributes.a_position, programInfo.attributes.a_texCoord);
@@ -174,7 +175,8 @@ class RenderSystem {
                 renderData.width, 
                 renderData.height, 
                 webglTexture, 
-                viewMatrix
+                viewMatrix,
+                renderData.tint || [1, 1, 1, 1]
             );
         }
     }

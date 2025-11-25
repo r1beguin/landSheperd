@@ -277,6 +277,89 @@ class Plant {
         return progress;
     }
 
+    /**
+     * Calculate visual tint color based on nutrient status
+     * Returns RGB tint multiplier based on most limiting nutrient
+     * @returns {Array} [r, g, b, a] color multiplier (0.0-1.0 each)
+     */
+    calculateNutrientTint() {
+        // Get current soil nutrients
+        const soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
+        if (!soil) return [1, 1, 1, 1]; // Default - no tint
+        
+        // Get nutrient requirements
+        const reqs = this.species?.environment?.nutrientRequirements;
+        if (!reqs) return [1, 1, 1, 1]; // No requirements - no tint
+        
+        // Calculate individual nutrient scores
+        const nScore = this.nutrientScore(soil.nitrogen, reqs.nitrogen);
+        const pScore = this.nutrientScore(soil.phosphorus, reqs.phosphorus);
+        const kScore = this.nutrientScore(soil.potassium, reqs.potassium);
+        const omScore = this.nutrientScore(soil.organicMatter, reqs.organicMatter);
+        
+        // Find most limiting nutrient (Liebig's Law - visual edition)
+        const minScore = Math.min(nScore, pScore, kScore, omScore);
+        
+        // Determine which nutrient is most limiting
+        let limitingNutrient = 'none';
+        if (minScore < 1.0) {
+            if (nScore === minScore) limitingNutrient = 'nitrogen';
+            else if (pScore === minScore) limitingNutrient = 'phosphorus';
+            else if (kScore === minScore) limitingNutrient = 'potassium';
+            else if (omScore === minScore) limitingNutrient = 'organicMatter';
+        }
+        
+        // Calculate base tint based on limiting nutrient
+        let r = 1.0, g = 1.0, b = 1.0;
+        
+        // Deficiency intensity (0.0 = optimal, 1.0 = at minimum)
+        const deficiency = 1.0 - minScore;
+        
+        switch (limitingNutrient) {
+            case 'nitrogen':
+                // Nitrogen deficiency: pale/yellow leaves
+                // Reduce green slightly, increase red/yellow tint
+                r = 1.0;
+                g = 1.0 - (deficiency * 0.3); // Reduce green by up to 30%
+                b = 1.0 - (deficiency * 0.4); // Reduce blue by up to 40%
+                break;
+                
+            case 'phosphorus':
+                // Phosphorus deficiency: purple/reddish tint
+                // Increase red and blue, reduce green
+                r = 1.0;
+                g = 1.0 - (deficiency * 0.4); // Reduce green by up to 40%
+                b = 1.0 - (deficiency * 0.1); // Slight blue reduction for purple
+                break;
+                
+            case 'potassium':
+                // Potassium deficiency: brown/yellow edges
+                // Add red, reduce green and blue
+                r = 1.0;
+                g = 1.0 - (deficiency * 0.35); // Reduce green by up to 35%
+                b = 1.0 - (deficiency * 0.5); // Reduce blue by up to 50%
+                break;
+                
+            case 'organicMatter':
+                // Organic matter deficiency: dull, desaturated
+                // Reduce overall saturation/brightness
+                const desaturation = 1.0 - (deficiency * 0.25); // Up to 25% darker
+                r = desaturation;
+                g = desaturation;
+                b = desaturation;
+                break;
+                
+            default:
+                // Optimal - full vibrant color
+                r = 1.0;
+                g = 1.0;
+                b = 1.0;
+                break;
+        }
+        
+        return [r, g, b, 1.0];
+    }
+
     getRenderData() {
         return {
             x: this.x - this.width / 2,  // Center the plant sprite on its position
@@ -284,7 +367,7 @@ class Plant {
             width: this.width,
             height: this.height,
             texture: this.texture,
-            color: [1, 1, 1, 1]
+            tint: this.calculateNutrientTint()
         };
     }
 

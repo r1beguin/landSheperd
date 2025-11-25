@@ -185,10 +185,12 @@ class GraphicsEngine {
         const textureFragmentShaderSource = `
             precision mediump float;
             uniform sampler2D u_texture;
+            uniform vec4 u_tint;
             varying vec2 v_texCoord;
             
             void main() {
-                gl_FragColor = texture2D(u_texture, v_texCoord);
+                vec4 texColor = texture2D(u_texture, v_texCoord);
+                gl_FragColor = texColor * u_tint;
             }
         `;
         
