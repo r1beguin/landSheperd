@@ -10,6 +10,7 @@ class Plant {
         this.stage = stage;
         this.age = 0; // Age in game days
         this.stageStartDay = currentDay; // Game day when this stage started
+        this.accumulatedGrowthDays = 0; // Tracks growth progress with rate modifiers
         this.health = 1.0;
         this.texture = null;
         this.webglTexture = null; // Cache for WebGL texture
@@ -56,6 +57,10 @@ class Plant {
             if (this.daysStunted >= gracePeriod && this.stage !== 'Withered') {
                 this.forceWither(currentDay);
             }
+        } else {
+            // Apply growth rate modifier if plant is not stunted
+            const growthRate = this.calculateGrowthRate();
+            this.accumulatedGrowthDays += gameDaysElapsed * growthRate;
         }
         
         // Check if we should advance to next growth stage
@@ -85,12 +90,10 @@ class Plant {
         
         // Check if there's a next stage
         if (currentStageIndex < stages.length - 1) {
-            const daysInCurrentStage = currentDay - this.stageStartDay;
-            
-            // If daysToGrow is defined and enough days have passed, advance
+            // Use accumulated growth days (modified by nutrient quality)
             if (currentStageConfig.daysToGrow !== null && 
                 currentStageConfig.daysToGrow !== undefined &&
-                daysInCurrentStage >= currentStageConfig.daysToGrow) {
+                this.accumulatedGrowthDays >= currentStageConfig.daysToGrow) {
                 
                 // Advance to next growth stage
                 this.advanceGrowthStage(currentDay);
@@ -225,6 +228,55 @@ class Plant {
         }
     }
 
+    /**
+     * Calculate growth rate based on current nutrient availability
+     * @returns {number} Growth rate multiplier (0.0 to 1.0)
+     */
+    calculateGrowthRate() {
+        // Get current soil nutrients
+        const soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
+        if (!soil) return 1.0; // Default rate if soil not found
+        
+        // Get current stage config
+        const stages = this.species.growthStages;
+        const currentStageIndex = stages.findIndex(stage => stage.name === this.stage);
+        if (currentStageIndex === -1) return 1.0;
+        
+        const currentStageConfig = stages[currentStageIndex];
+        const modifiers = currentStageConfig.growthModifiers;
+        
+        // If no modifiers, use full speed
+        if (!modifiers) return 1.0;
+        
+        const reqs = this.species.environment.nutrientRequirements;
+        if (!reqs) return 1.0;
+        
+        // Calculate weighted growth rate
+        let totalScore = 0;
+        totalScore += this.nutrientScore(soil.nitrogen, reqs.nitrogen) * modifiers.nitrogen.weight;
+        totalScore += this.nutrientScore(soil.phosphorus, reqs.phosphorus) * modifiers.phosphorus.weight;
+        totalScore += this.nutrientScore(soil.potassium, reqs.potassium) * modifiers.potassium.weight;
+        totalScore += this.nutrientScore(soil.organicMatter, reqs.organicMatter) * modifiers.organicMatter.weight;
+        
+        return totalScore;
+    }
+    
+    /**
+     * Calculate individual nutrient score (0.0 to 1.0)
+     * @param {number} currentValue - Current nutrient level in soil
+     * @param {Object} requirement - Requirement object with minimum and optimal
+     * @returns {number} Score from 0.0 (below minimum) to 1.0 (optimal or above)
+     */
+    nutrientScore(currentValue, requirement) {
+        if (currentValue < requirement.minimum) return 0.0; // Below minimum
+        if (currentValue >= requirement.optimal) return 1.0; // At or above optimal
+        
+        // Linear interpolation between minimum and optimal
+        const range = requirement.optimal - requirement.minimum;
+        const progress = (currentValue - requirement.minimum) / range;
+        return progress;
+    }
+
     getRenderData() {
         return {
             x: this.x - this.width / 2,  // Center the plant sprite on its position
@@ -330,6 +382,9 @@ class Plant {
             if (currentDay !== null) {
                 this.stageStartDay = currentDay;
             }
+            
+            // Reset accumulated growth days for new stage
+            this.accumulatedGrowthDays = 0;
             
             this.generateSprite(); // Regenerate sprite for new stage
             

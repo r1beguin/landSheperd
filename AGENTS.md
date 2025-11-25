@@ -2,8 +2,9 @@
 
 ## Running the Project
 - **No build step required** - Pure vanilla JS with direct script loading
-- **Local server**: `python -m http.server 8080` or `npx http-server -p 8080` or use VS Code Live Server
-- **Browser**: Open `http://localhost:8080` (requires WebGL support)
+- **Local server**: `python -m http.server 8081` or `npx http-server -p 8081` or use VS Code Live Server (port 8081)
+- **Browser**: Open `http://localhost:8081` (requires WebGL support)
+- **Note**: Port 8081 is used to avoid conflicts with other local services (e.g., Traefik on port 8080)
 - **Automated testing**: Use `npm run verify` to validate changes with screenshot and console capture
 
 ## Code Style & Conventions
@@ -31,8 +32,17 @@ After making changes, **agents MUST verify their work** before considering a tas
 npm run verify
 ```
 
+### Interactive Testing
+For advanced testing with screenshots and log analysis:
+```bash
+npm run verify:interactive          # Full interactive mode
+npm run verify:screenshot-only      # Screenshots only
+npm run verify:log-only             # Log analysis only
+```
+See [doc/interactive_testing.md](doc/interactive_testing.md) for detailed usage and API reference.
+
 This automated test will:
-1. Start local server on port 8080
+1. Start local server on port 8081
 2. Launch headless browser with WebGL support
 3. Capture screenshot and console output
 4. Measure FPS and load time
@@ -87,7 +97,7 @@ npm run verify:baseline
 This installs dependencies and creates initial baseline.
 
 ### Troubleshooting
-- **Port 8080 busy**: Kill existing process or change port in `playwright.config.js`
+- **Port 8081 busy**: Kill existing process or change port in `playwright.config.js`
 - **WebGL errors in headless**: Expected - Chrome uses software rendering (SwiftShader)
 - **No baseline found**: First verification run will skip visual comparison
 - **Tests timeout**: Increase timeout in `playwright.config.js` if needed

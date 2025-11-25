@@ -7,6 +7,13 @@ const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './tests',
   
+  // Use different test files based on mode
+  testMatch: process.env.TEST_INTERACTIVE === 'true' || 
+             process.env.TEST_SCREENSHOT_ONLY === 'true' || 
+             process.env.TEST_LOG_ONLY === 'true'
+    ? '**/interactive.spec.js'
+    : '**/verify.spec.js',
+  
   // Test timeout
   timeout: 30000,
   
@@ -36,7 +43,7 @@ module.exports = defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL for page.goto()
-    baseURL: 'http://localhost:8080',
+    baseURL: 'http://localhost:8081',
     
     // Collect trace on first retry of failed test
     trace: 'retain-on-failure',
@@ -78,8 +85,8 @@ module.exports = defineConfig({
 
   // Run local dev server before starting tests
   webServer: {
-    command: 'npx http-server -p 8080',
-    port: 8080,
+    command: 'npx http-server -p 8081',
+    port: 8081,
     timeout: 120000,
     reuseExistingServer: !process.env.CI,
   },

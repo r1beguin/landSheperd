@@ -35,6 +35,24 @@
         "phosphorus": 10,
         "potassium": 8,
         "organicMatter": 5
+      },
+      "growthModifiers": {
+        "nitrogen": {
+          "weight": 0.4,
+          "description": "Primary driver of vegetative growth"
+        },
+        "phosphorus": {
+          "weight": 0.25,
+          "description": "Root establishment and cell division"
+        },
+        "potassium": {
+          "weight": 0.2,
+          "description": "Plant vigor and stress resistance"
+        },
+        "organicMatter": {
+          "weight": 0.15,
+          "description": "Soil health and nutrient availability"
+        }
       }
     },
     {
@@ -47,6 +65,24 @@
         "phosphorus": 15,
         "potassium": 12,
         "organicMatter": 8
+      },
+      "growthModifiers": {
+        "nitrogen": {
+          "weight": 0.35,
+          "description": "Supports flower and seed production"
+        },
+        "phosphorus": {
+          "weight": 0.3,
+          "description": "Critical for flowering and reproduction"
+        },
+        "potassium": {
+          "weight": 0.25,
+          "description": "Flower quality and seed viability"
+        },
+        "organicMatter": {
+          "weight": 0.1,
+          "description": "Overall plant health"
+        }
       }
     },
     {

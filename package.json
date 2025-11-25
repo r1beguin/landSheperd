@@ -6,7 +6,11 @@
     "verify": "node scripts/verify-changes.js",
     "verify:baseline": "node scripts/verify-changes.js --baseline",
     "verify:verbose": "node scripts/verify-changes.js --verbose",
+    "verify:interactive": "node scripts/verify-changes.js --interactive",
+    "verify:screenshot-only": "node scripts/verify-changes.js --screenshot-only",
+    "verify:log-only": "node scripts/verify-changes.js --log-only",
     "test": "playwright test",
+    "test:interactive": "playwright test tests/interactive.spec.js",
     "dev": "npx http-server -p 8080",
     "postinstall": "playwright install chromium"
   },

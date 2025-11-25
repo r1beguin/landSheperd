@@ -545,6 +545,166 @@
             }
         );
 
+        // Test 8: Growth Modifiers Configuration
+        suite.addTest(
+            'Test 8: Growth Modifiers Configuration (Phase 2)',
+            'Verify Vegetative and Flowering stages have growth modifiers',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                const vegetative = config.growthStages.find(s => s.name === 'Vegetative');
+                const flowering = config.growthStages.find(s => s.name === 'Flowering');
+
+                if (!vegetative || !vegetative.growthModifiers) {
+                    messages.push({ type: 'fail', text: '✗ Vegetative stage missing growthModifiers' });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ Vegetative stage has growthModifiers' });
+                    
+                    // Check weights sum to 1.0
+                    const weights = vegetative.growthModifiers;
+                    const sum = weights.nitrogen.weight + weights.phosphorus.weight + 
+                                weights.potassium.weight + weights.organicMatter.weight;
+                    
+                    if (Math.abs(sum - 1.0) > 0.01) {
+                        messages.push({ type: 'fail', text: `✗ Vegetative weights sum to ${sum.toFixed(2)}, should be 1.0` });
+                        pass = false;
+                    } else {
+                        messages.push({ type: 'pass', text: `✓ Vegetative weights sum to ${sum.toFixed(2)}` });
+                    }
+                    
+                    messages.push({ type: 'info', text: `  N=${weights.nitrogen.weight}, P=${weights.phosphorus.weight}, K=${weights.potassium.weight}, OM=${weights.organicMatter.weight}` });
+                }
+
+                if (!flowering || !flowering.growthModifiers) {
+                    messages.push({ type: 'fail', text: '✗ Flowering stage missing growthModifiers' });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: '✓ Flowering stage has growthModifiers' });
+                    
+                    const weights = flowering.growthModifiers;
+                    const sum = weights.nitrogen.weight + weights.phosphorus.weight + 
+                                weights.potassium.weight + weights.organicMatter.weight;
+                    
+                    if (Math.abs(sum - 1.0) > 0.01) {
+                        messages.push({ type: 'fail', text: `✗ Flowering weights sum to ${sum.toFixed(2)}, should be 1.0` });
+                        pass = false;
+                    } else {
+                        messages.push({ type: 'pass', text: `✓ Flowering weights sum to ${sum.toFixed(2)}` });
+                    }
+                    
+                    messages.push({ type: 'info', text: `  N=${weights.nitrogen.weight}, P=${weights.phosphorus.weight}, K=${weights.potassium.weight}, OM=${weights.organicMatter.weight}` });
+                }
+
+                return { pass, messages };
+            }
+        );
+
+        // Test 9: Growth Rate Calculation Logic
+        suite.addTest(
+            'Test 9: Growth Rate Calculation (Phase 2)',
+            'Verify growth rate varies with nutrient quality',
+            async (config) => {
+                const messages = [];
+                let pass = true;
+
+                const reqs = config.environment.nutrientRequirements;
+                const vegetative = config.growthStages.find(s => s.name === 'Vegetative');
+                
+                if (!vegetative || !vegetative.growthModifiers) {
+                    messages.push({ type: 'fail', text: '✗ Cannot test without growth modifiers' });
+                    return { pass: false, messages };
+                }
+
+                // Helper function to calculate nutrient score
+                function nutrientScore(value, requirement) {
+                    if (value < requirement.minimum) return 0.0;
+                    if (value >= requirement.optimal) return 1.0;
+                    const range = requirement.optimal - requirement.minimum;
+                    return (value - requirement.minimum) / range;
+                }
+
+                // Helper to calculate growth rate
+                function calculateGrowthRate(soil, modifiers) {
+                    let totalScore = 0;
+                    totalScore += nutrientScore(soil.nitrogen, reqs.nitrogen) * modifiers.nitrogen.weight;
+                    totalScore += nutrientScore(soil.phosphorus, reqs.phosphorus) * modifiers.phosphorus.weight;
+                    totalScore += nutrientScore(soil.potassium, reqs.potassium) * modifiers.potassium.weight;
+                    totalScore += nutrientScore(soil.organicMatter, reqs.organicMatter) * modifiers.organicMatter.weight;
+                    return totalScore;
+                }
+
+                // Test 1: Optimal soil should give 1.0x growth rate
+                const optimalSoil = new MockSoil(
+                    reqs.nitrogen.optimal,
+                    reqs.phosphorus.optimal,
+                    reqs.potassium.optimal,
+                    reqs.organicMatter.optimal
+                );
+                const optimalRate = calculateGrowthRate(optimalSoil, vegetative.growthModifiers);
+                
+                if (Math.abs(optimalRate - 1.0) > 0.01) {
+                    messages.push({ type: 'fail', text: `✗ Optimal soil rate ${optimalRate.toFixed(2)}, expected 1.0` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: `✓ Optimal soil gives 1.0x growth rate` });
+                }
+
+                // Test 2: Minimum soil should give ~0.0x growth rate
+                const minimumSoil = new MockSoil(
+                    reqs.nitrogen.minimum,
+                    reqs.phosphorus.minimum,
+                    reqs.potassium.minimum,
+                    reqs.organicMatter.minimum
+                );
+                const minimumRate = calculateGrowthRate(minimumSoil, vegetative.growthModifiers);
+                
+                if (minimumRate > 0.1) {
+                    messages.push({ type: 'fail', text: `✗ Minimum soil rate ${minimumRate.toFixed(2)}, expected ~0.0` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: `✓ Minimum soil gives ${minimumRate.toFixed(2)}x growth rate` });
+                }
+
+                // Test 3: Marginal soil (halfway) should give ~0.5x growth rate
+                const marginalSoil = new MockSoil(
+                    (reqs.nitrogen.minimum + reqs.nitrogen.optimal) / 2,
+                    (reqs.phosphorus.minimum + reqs.phosphorus.optimal) / 2,
+                    (reqs.potassium.minimum + reqs.potassium.optimal) / 2,
+                    (reqs.organicMatter.minimum + reqs.organicMatter.optimal) / 2
+                );
+                const marginalRate = calculateGrowthRate(marginalSoil, vegetative.growthModifiers);
+                
+                if (Math.abs(marginalRate - 0.5) > 0.1) {
+                    messages.push({ type: 'fail', text: `✗ Marginal soil rate ${marginalRate.toFixed(2)}, expected ~0.5` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: `✓ Marginal soil gives ${marginalRate.toFixed(2)}x growth rate` });
+                }
+
+                // Test 4: Nitrogen bottleneck (N low, others high)
+                const nitrogenBottleneck = new MockSoil(
+                    reqs.nitrogen.minimum + 3,  // Just above minimum
+                    reqs.phosphorus.optimal,
+                    reqs.potassium.optimal,
+                    reqs.organicMatter.optimal
+                );
+                const bottleneckRate = calculateGrowthRate(nitrogenBottleneck, vegetative.growthModifiers);
+                
+                messages.push({ type: 'info', text: `Nitrogen bottleneck scenario: ${bottleneckRate.toFixed(2)}x growth rate` });
+                
+                if (bottleneckRate > 0.5) {
+                    messages.push({ type: 'fail', text: `✗ Bottleneck rate too high (${bottleneckRate.toFixed(2)}), N should limit growth` });
+                    pass = false;
+                } else {
+                    messages.push({ type: 'pass', text: `✓ Nitrogen bottleneck correctly limits growth to ${bottleneckRate.toFixed(2)}x` });
+                }
+
+                return { pass, messages };
+            }
+        );
+
         // Run all tests
         (async () => {
             const loaded = await suite.loadSpeciesConfig();

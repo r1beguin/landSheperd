@@ -240,6 +240,34 @@ Use time controls to speed up or slow down the simulation!
    http://localhost:8080
    ```
 
+## Testing
+
+```bash
+npm install                  # First time: install dependencies
+npm run verify               # Run full verification suite
+npm run verify:baseline      # Create new baseline for comparison
+npm run verify:verbose       # Run with detailed output
+npm run verify:interactive   # Interactive testing with screenshots & logs
+npm run verify:screenshot-only # Capture screenshots only
+npm run verify:log-only      # Analyze logs only
+```
+
+### Interactive Testing Framework
+
+The project includes a comprehensive interactive testing framework with:
+- **Automated screenshot capture** at key points during execution
+- **Console log reading and analysis** with structured data parsing
+- **Real-time performance metrics** (FPS, load time, manager status)
+- **Visual diff generation** for regression testing
+- **Modular test modes** for focused testing scenarios
+
+See [Interactive Testing Guide](doc/interactive_testing.md) for detailed usage and API reference.
+
+Test results are saved in `test-results/`:
+- `baseline/` - Reference screenshots and reports
+- `latest/` - Most recent test run
+- `interactive/` - Interactive mode results with timestamped screenshots and logs
+
 ## Configuration
 
 ### `config.json` - Complete Configuration
