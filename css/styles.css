@@ -181,3 +181,70 @@ canvas {
 #time-ui .controls-hint div {
     margin-bottom: 3px;
 }
+
+/* Nutrient Overlay UI */
+#overlay-ui {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.85);
+    padding: 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    z-index: 1000;
+    min-width: 250px;
+    color: white;
+    font-family: 'Courier New', monospace;
+}
+
+#overlay-ui .overlay-mode {
+    margin-bottom: 8px;
+}
+
+#overlay-ui .overlay-label {
+    display: inline-block;
+    width: 50px;
+    color: #aaa;
+}
+
+#overlay-ui .overlay-value {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+#overlay-ui .overlay-hint {
+    font-size: 11px;
+    color: #888;
+    margin-top: 5px;
+}
+
+#overlay-ui .overlay-legend {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #444;
+}
+
+#overlay-ui .legend-title {
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 8px;
+}
+
+#overlay-ui .legend-gradient {
+    display: flex;
+    height: 20px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+#overlay-ui .legend-color {
+    flex: 1;
+}
+
+#overlay-ui .legend-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #888;
+}

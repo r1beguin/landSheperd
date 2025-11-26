@@ -93,6 +93,7 @@ class GraphicsEngine {
         this.inputManager = new InputManager(this.canvas);
         this.cameraManager = new CameraManager(this.canvas.width, this.canvas.height);
         this.renderSystem = new RenderSystem(this.gl, this.shaderManager, this.geometryManager);
+        this.overlayManager = new OverlayManager();
     }
     
     setupShaders() {
@@ -306,15 +307,15 @@ class GraphicsEngine {
                     this.timeManager.setTimeScalePreset('pause');
                     break;
                 case 'f':
-                case 'F': // Toggle fertility overlay
-                    if (this.debugManager) {
-                        const state = this.debugManager.toggleFertilityOverlay();
-                        // Force soil refresh to show/hide overlay immediately
-                        // Setting needsRefresh triggers updateVisibleCells on next render
-                        // which recalculates visible cells and picks up the new overlay state
+                case 'F': // Cycle nutrient overlay modes
+                    if (this.overlayManager) {
+                        const newMode = this.overlayManager.cycleMode();
+                        console.log(`[Overlay] Switched to: ${newMode.name}`);
+                        
+                        // Force soil refresh to show new overlay mode
                         if (this.soilManager) {
                             this.soilManager.needsRefresh = true;
-                            // Also update visible cells immediately to force visual refresh
+                            // Update visible cells immediately to force visual refresh
                             if (this.cameraManager) {
                                 this.soilManager.updateVisibleCells(this.cameraManager);
                             }
@@ -497,6 +498,31 @@ class GraphicsEngine {
         
         if (timeSpeedElement && this.timeManager) {
             timeSpeedElement.textContent = this.timeManager.getTimeScaleDisplayString();
+        }
+        
+        // Update overlay UI display
+        this.updateOverlayUI();
+    }
+    
+    updateOverlayUI() {
+        if (!this.overlayManager) return;
+        
+        const mode = this.overlayManager.getCurrentMode();
+        const overlayModeElement = document.getElementById('overlay-mode');
+        const overlayHintElement = document.getElementById('overlay-hint');
+        const overlayLegendElement = document.getElementById('overlay-legend');
+        
+        if (overlayModeElement) {
+            overlayModeElement.textContent = mode.name;
+        }
+        
+        if (overlayHintElement) {
+            overlayHintElement.textContent = this.overlayManager.getHintText();
+        }
+        
+        if (overlayLegendElement) {
+            // Show legend only when overlay is active
+            overlayLegendElement.style.display = this.overlayManager.isOverlayActive() ? 'block' : 'none';
         }
     }
     

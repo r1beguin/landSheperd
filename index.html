@@ -31,6 +31,28 @@
         </div>
     </div>
     
+    <!-- Nutrient Overlay UI -->
+    <div id="overlay-ui">
+        <div class="overlay-mode">
+            <span class="overlay-label">View:</span>
+            <span class="overlay-value" id="overlay-mode">Normal</span>
+        </div>
+        <div class="overlay-hint" id="overlay-hint">Press F to show nutrient overlays</div>
+        <div class="overlay-legend" id="overlay-legend" style="display: none;">
+            <div class="legend-title">Nutrient Scale</div>
+            <div class="legend-gradient">
+                <div class="legend-color" style="background: rgb(255,50,50);"></div>
+                <div class="legend-color" style="background: rgb(255,255,50);"></div>
+                <div class="legend-color" style="background: rgb(50,255,50);"></div>
+            </div>
+            <div class="legend-labels">
+                <span>Low (0)</span>
+                <span>Mid (50)</span>
+                <span>High (100)</span>
+            </div>
+        </div>
+    </div>
+    
     <!-- Charger les modules dans l'ordre correct -->
     <!-- Core systems -->
     <script src="js/core/debug_manager.js"></script>
@@ -49,6 +71,7 @@
     <script src="js/systems/input_manager.js"></script>
     <script src="js/systems/camera_manager.js"></script>
     <script src="js/systems/render_system.js"></script>
+    <script src="js/systems/overlay_manager.js"></script>
     <!-- Testing systems (loaded dynamically in tests) -->
     <!-- <script src="js/systems/screenshot_manager.js"></script> -->
     <!-- <script src="js/systems/log_reader.js"></script> -->

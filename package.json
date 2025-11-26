@@ -11,6 +11,7 @@
     "verify:log-only": "node scripts/verify-changes.js --log-only",
     "test": "playwright test",
     "test:interactive": "playwright test tests/interactive.spec.js",
+    "test:overlay": "cross-env TEST_OVERLAY=true playwright test",
     "dev": "npx http-server -p 8080",
     "postinstall": "playwright install chromium"
   },

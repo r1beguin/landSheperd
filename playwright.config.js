@@ -8,9 +8,11 @@ module.exports = defineConfig({
   testDir: './tests',
   
   // Use different test files based on mode
-  testMatch: process.env.TEST_INTERACTIVE === 'true' || 
-             process.env.TEST_SCREENSHOT_ONLY === 'true' || 
-             process.env.TEST_LOG_ONLY === 'true'
+  testMatch: process.env.TEST_OVERLAY === 'true'
+    ? '**/overlay-cycling.spec.js'
+    : process.env.TEST_INTERACTIVE === 'true' || 
+      process.env.TEST_SCREENSHOT_ONLY === 'true' || 
+      process.env.TEST_LOG_ONLY === 'true'
     ? '**/interactive.spec.js'
     : '**/verify.spec.js',
   
