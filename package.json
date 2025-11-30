@@ -12,14 +12,21 @@
     "test": "playwright test",
     "test:interactive": "playwright test tests/interactive.spec.js",
     "test:overlay": "cross-env TEST_OVERLAY=true playwright test",
+    "test:context-menu": "cross-env TEST_FUNCTIONAL=true playwright test --headed",
     "dev": "npx http-server -p 8080",
     "postinstall": "playwright install chromium"
   },
-  "keywords": ["webgl", "procedural-generation", "game", "simulation"],
+  "keywords": [
+    "webgl",
+    "procedural-generation",
+    "game",
+    "simulation"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.40.0",
+    "cross-env": "^10.1.0",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0"
   }

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Menu Test - Land Shepherd</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .test-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #4CAF50;
+            padding: 20px;
+            max-width: 400px;
+            z-index: 10000;
+        }
+        
+        .test-panel h2 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        
+        .test-instruction {
+            background: rgba(76, 175, 80, 0.1);
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .test-status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .status-pending {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 3px solid #FFC107;
+        }
+        
+        .status-pass {
+            background: rgba(76, 175, 80, 0.2);
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .status-fail {
+            background: rgba(244, 67, 54, 0.2);
+            border-left: 3px solid #f44336;
+        }
+        
+        #test-log {
+            background: #000;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+            border: 1px solid #333;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+        }
+        
+        .log-info { color: #2196F3; }
+        .log-success { color: #4CAF50; }
+        .log-error { color: #f44336; }
+        .log-warn { color: #FFC107; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div class="test-panel">
+        <h2>Context Menu Test Suite</h2>
+        
+        <div class="test-instruction">
+            <strong>Instructions:</strong>
+            <ol>
+                <li>Right-click on the canvas</li>
+                <li>Context menu should appear</li>
+                <li>Menu should show soil nutrients</li>
+                <li>Click "Close" to dismiss</li>
+                <li>Right-click different locations</li>
+            </ol>
+        </div>
+        
+        <div id="test-status-container">
+            <!-- Test status will be inserted here -->
+        </div>
+        
+        <div id="test-log">
+            <div class="log-entry log-info">Test log will appear here...</div>
+        </div>
+        
+        <button onclick="runAutomatedTests()" style="width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; margin-top: 10px;">
+            Run Automated Tests
+        </button>
+    </div>
+
+    <!-- Load all scripts in correct order -->
+    <script src="js/core/time_manager.js"></script>
+    <script src="js/core/shader_manager.js"></script>
+    <script src="js/core/geometry_manager.js"></script>
+    <script src="js/core/texture_generator.js"></script>
+    <script src="js/core/soil_manager.js"></script>
+    <script src="js/core/plant_manager.js"></script>
+    <script src="js/core/debug_manager.js"></script>
+    <script src="js/procedural/plant_generator.js"></script>
+    <script src="js/systems/camera_manager.js"></script>
+    <script src="js/systems/input_manager.js"></script>
+    <script src="js/systems/overlay_manager.js"></script>
+    <script src="js/systems/screenshot_manager.js"></script>
+    <script src="js/systems/context_menu_manager.js"></script>
+    <script src="js/systems/render_system.js"></script>
+    <script src="js/entities/plant.js"></script>
+    <script src="js/entities/soil.js"></script>
+    <script src="js/entities/character.js"></script>
+    <script src="js/core/main_graphics.js"></script>
+
+    <script>
+        // Test logging utilities
+        const testLog = document.getElementById('test-log');
+        const statusContainer = document.getElementById('test-status-container');
+        
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            testLog.appendChild(entry);
+            testLog.scrollTop = testLog.scrollHeight;
+        }
+        
+        function updateTestStatus(testName, status, message) {
+            const existing = document.getElementById(`test-${testName}`);
+            if (existing) {
+                existing.remove();
+            }
+            
+            const statusDiv = document.createElement('div');
+            statusDiv.id = `test-${testName}`;
+            statusDiv.className = `test-status status-${status}`;
+            statusDiv.innerHTML = `<strong>${testName}:</strong> ${message}`;
+            statusContainer.appendChild(statusDiv);
+        }
+        
+        // Monitor context menu manager
+        log('Waiting for GraphicsEngine initialization...', 'info');
+        
+        let checkInterval = setInterval(() => {
+            if (window.graphicsEngine) {
+                log('GraphicsEngine loaded!', 'success');
+                
+                if (window.graphicsEngine.contextMenuManager) {
+                    log('ContextMenuManager found!', 'success');
+                    updateTestStatus('manager-init', 'pass', 'ContextMenuManager initialized');
+                } else {
+                    log('ContextMenuManager NOT FOUND!', 'error');
+                    updateTestStatus('manager-init', 'fail', 'ContextMenuManager not initialized');
+                }
+                
+                clearInterval(checkInterval);
+                
+                // Test menu creation
+                setTimeout(testMenuCreation, 1000);
+            }
+        }, 100);
+        
+        function testMenuCreation() {
+            log('Testing context menu DOM creation...', 'info');
+            
+            const menuElement = document.getElementById('context-menu');
+            if (menuElement) {
+                log('Context menu element exists in DOM', 'success');
+                updateTestStatus('menu-dom', 'pass', 'Menu element found');
+                
+                // Test visibility
+                const isHidden = menuElement.classList.contains('hidden');
+                if (isHidden) {
+                    log('Menu is initially hidden (correct)', 'success');
+                    updateTestStatus('menu-visibility', 'pass', 'Initially hidden');
+                } else {
+                    log('Menu is visible initially (should be hidden)', 'warn');
+                    updateTestStatus('menu-visibility', 'fail', 'Should be hidden initially');
+                }
+            } else {
+                log('Context menu element NOT FOUND in DOM!', 'error');
+                updateTestStatus('menu-dom', 'fail', 'Menu element missing');
+            }
+        }
+        
+        function runAutomatedTests() {
+            log('Starting automated tests...', 'info');
+            
+            const canvas = document.getElementById('gameCanvas');
+            const menuManager = window.graphicsEngine?.contextMenuManager;
+            
+            if (!menuManager) {
+                log('Cannot run tests - ContextMenuManager not found', 'error');
+                return;
+            }
+            
+            // Test 1: Show menu
+            setTimeout(() => {
+                log('Test 1: Showing menu programmatically', 'info');
+                const testX = 200;
+                const testY = 200;
+                
+                try {
+                    menuManager.showMenu(testX, testY);
+                    
+                    const menuElement = document.getElementById('context-menu');
+                    const isVisible = !menuElement.classList.contains('hidden');
+                    
+                    if (isVisible) {
+                        log('Menu shown successfully', 'success');
+                        updateTestStatus('show-menu', 'pass', 'Menu displays programmatically');
+                    } else {
+                        log('Menu failed to show', 'error');
+                        updateTestStatus('show-menu', 'fail', 'Menu not visible');
+                    }
+                } catch (e) {
+                    log(`Error showing menu: ${e.message}`, 'error');
+                    updateTestStatus('show-menu', 'fail', e.message);
+                }
+            }, 500);
+            
+            // Test 2: Check menu content
+            setTimeout(() => {
+                log('Test 2: Checking menu content', 'info');
+                
+                const menuElement = document.getElementById('context-menu');
+                const soilInfo = menuElement.querySelector('.soil-info');
+                const actions = menuElement.querySelector('.actions');
+                
+                if (soilInfo) {
+                    log('Soil info section found', 'success');
+                    updateTestStatus('menu-content', 'pass', 'Has soil info section');
+                } else {
+                    log('Soil info section missing', 'error');
+                    updateTestStatus('menu-content', 'fail', 'Missing soil info');
+                }
+                
+                if (actions) {
+                    log('Actions section found', 'success');
+                } else {
+                    log('Actions section missing', 'error');
+                }
+            }, 1500);
+            
+            // Test 3: Hide menu
+            setTimeout(() => {
+                log('Test 3: Hiding menu', 'info');
+                
+                try {
+                    menuManager.hideMenu();
+                    
+                    const menuElement = document.getElementById('context-menu');
+                    const isHidden = menuElement.classList.contains('hidden');
+                    
+                    if (isHidden) {
+                        log('Menu hidden successfully', 'success');
+                        updateTestStatus('hide-menu', 'pass', 'Menu hides correctly');
+                    } else {
+                        log('Menu failed to hide', 'error');
+                        updateTestStatus('hide-menu', 'fail', 'Menu still visible');
+                    }
+                } catch (e) {
+                    log(`Error hiding menu: ${e.message}`, 'error');
+                    updateTestStatus('hide-menu', 'fail', e.message);
+                }
+            }, 2500);
+            
+            log('Automated tests scheduled', 'info');
+        }
+        
+        // Monitor right-clicks
+        document.getElementById('gameCanvas').addEventListener('contextmenu', (e) => {
+            log(`Right-click detected at (${e.clientX}, ${e.clientY})`, 'info');
+        });
+    </script>
+</body>
+</html>

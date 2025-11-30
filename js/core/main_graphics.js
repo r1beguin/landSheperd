@@ -94,6 +94,14 @@ class GraphicsEngine {
         this.cameraManager = new CameraManager(this.canvas.width, this.canvas.height);
         this.renderSystem = new RenderSystem(this.gl, this.shaderManager, this.geometryManager);
         this.overlayManager = new OverlayManager();
+        
+        // Context menu manager (initialized after other managers are ready)
+        this.contextMenuManager = new ContextMenuManager(
+            this.canvas, 
+            this.soilManager, 
+            this.plantManager, 
+            this.timeManager
+        );
     }
     
     setupShaders() {
@@ -229,39 +237,47 @@ class GraphicsEngine {
             }
         });
         
-        // Handle right-click cycle: spawn seedling → advance growth → delete plant
+        // Handle right-click to show context menu
         this.inputManager.on('mousedown', (event) => {
-            if (event.button === 2) { // Right click for plant cycle
-                const worldCoords = this.cameraManager.screenToWorld(event.x, event.y);
-                
-                // Use soil manager's worldToGrid method for proper coordinate conversion
-                const gridCoords = this.soilManager.worldToGrid(worldCoords.x, worldCoords.y);
-                const gridX = gridCoords.x;
-                const gridY = gridCoords.y;
-                
-                // Check if there's actually soil at this location AND if it's currently being rendered
-                const soil = this.soilManager.getSoilAt(gridX, gridY);
-                const isCurrentlyVisible = this.soilManager.isSoilCurrentlyVisible(gridX, gridY);
-                
-                if (soil && isCurrentlyVisible) {
-                    // Check if there's already a plant at this location
-                    const existingPlant = this.plantManager.getPlantAt(gridX, gridY);
-                    
-                    if (!existingPlant) {
-                        // First right click: spawn seedling at exact click position
-                        const currentDay = this.timeManager.getCurrentDayPrecise();
-                        this.plantManager.addPlantAtPosition(gridX, gridY, worldCoords.x, worldCoords.y, 'urtica_dioica', currentDay);
-                    } else {
-                        // Second right click: try to advance growth stage
-                        const currentDay = this.timeManager.getCurrentDayPrecise();
-                        const advanced = existingPlant.advanceGrowthStage(currentDay);
-                        if (!advanced) {
-                            // Third right click: delete the plant (already at final stage)
-                            this.plantManager.removePlant(gridX, gridY);
-                        }
+            if (event.button === 2) { // Right click for context menu
+                try {
+                    // Prevent default context menu (use originalEvent)
+                    if (event.originalEvent) {
+                        event.originalEvent.preventDefault();
                     }
+                    
+                    const worldCoords = this.cameraManager.screenToWorld(event.x, event.y);
+                    
+                    // Use soil manager's worldToGrid method for proper coordinate conversion
+                    const gridCoords = this.soilManager.worldToGrid(worldCoords.x, worldCoords.y);
+                    const gridX = gridCoords.x;
+                    const gridY = gridCoords.y;
+                    
+                    // Check if there's actually soil at this location AND if it's currently being rendered
+                    const soil = this.soilManager.getSoilAt(gridX, gridY);
+                    const isCurrentlyVisible = this.soilManager.isSoilCurrentlyVisible(gridX, gridY);
+                    
+                    if (soil && isCurrentlyVisible) {
+                        // Show context menu at cursor position
+                        this.contextMenuManager.show(
+                            event.x, 
+                            event.y, 
+                            worldCoords.x, 
+                            worldCoords.y, 
+                            gridX, 
+                            gridY
+                        );
+                    }
+                } catch (error) {
+                    console.error('[ERROR] Right-click handler failed:', error);
                 }
             }
+        });
+        
+        // Prevent browser context menu on canvas
+        this.canvas.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            return false;
         });
         
         // Handle resize

@@ -8,7 +8,11 @@ module.exports = defineConfig({
   testDir: './tests',
   
   // Use different test files based on mode
-  testMatch: process.env.TEST_OVERLAY === 'true'
+  testMatch: process.env.TEST_CONTEXT_MENU === 'true'
+    ? '**/context-menu-debug.spec.js'
+    : process.env.TEST_FUNCTIONAL === 'true'
+    ? '**/context-menu-functional.spec.js'
+    : process.env.TEST_OVERLAY === 'true'
     ? '**/overlay-cycling.spec.js'
     : process.env.TEST_INTERACTIVE === 'true' || 
       process.env.TEST_SCREENSHOT_ONLY === 'true' || 

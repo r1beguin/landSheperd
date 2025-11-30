@@ -178,9 +178,198 @@ canvas {
     color: #888;
 }
 
-#time-ui .controls-hint div {
-    margin-bottom: 3px;
+/* Context Menu */
+#context-menu {
+    position: fixed;
+    background-color: rgba(20, 20, 20, 0.98);
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    padding: 0;
+    z-index: 10000;
+    min-width: 320px;
+    max-width: 400px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+    font-family: 'Courier New', monospace;
+    color: white;
+    backdrop-filter: blur(10px);
 }
+
+.context-menu-header {
+    background: linear-gradient(135deg, #2c5f2d 0%, #1a3a1b 100%);
+    padding: 12px 15px;
+    border-radius: 6px 6px 0 0;
+    border-bottom: 1px solid #4CAF50;
+}
+
+.context-menu-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #4CAF50;
+    text-align: center;
+}
+
+.context-menu-section {
+    padding: 12px 15px;
+    border-bottom: 1px solid #333;
+}
+
+.context-menu-section:last-child {
+    border-bottom: none;
+}
+
+.context-menu-subtitle {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.context-menu-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.context-menu-row {
+    display: grid;
+    grid-template-columns: 60px 50px 1fr 70px;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.context-menu-label {
+    color: #aaa;
+    font-weight: bold;
+}
+
+.context-menu-value {
+    color: white;
+    text-align: right;
+    font-weight: bold;
+}
+
+.context-menu-bar-container {
+    background-color: #2a2a2a;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #444;
+}
+
+.context-menu-bar {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.context-menu-bar.status-good {
+    background: linear-gradient(90deg, #4CAF50 0%, #66BB6A 100%);
+}
+
+.context-menu-bar.status-low {
+    background: linear-gradient(90deg, #FFA726 0%, #FFB74D 100%);
+}
+
+.context-menu-bar.status-critical {
+    background: linear-gradient(90deg, #EF5350 0%, #E57373 100%);
+}
+
+.context-menu-status {
+    font-size: 11px;
+    font-weight: bold;
+    text-align: right;
+}
+
+.context-menu-status.status-good {
+    color: #4CAF50;
+}
+
+.context-menu-status.status-low {
+    color: #FFA726;
+}
+
+.context-menu-status.status-critical {
+    color: #EF5350;
+}
+
+.context-menu-warning {
+    grid-column: 1 / -1;
+    background-color: rgba(255, 152, 0, 0.2);
+    border: 1px solid #FF9800;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #FFB74D;
+    text-align: center;
+}
+
+.context-menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.context-menu-btn {
+    padding: 10px 15px;
+    border: 2px solid #555;
+    border-radius: 5px;
+    background-color: #2a2a2a;
+    color: white;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.context-menu-btn:hover {
+    background-color: #3a3a3a;
+    border-color: #777;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.context-menu-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.context-menu-btn-primary {
+    background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+    border-color: #4CAF50;
+    color: white;
+}
+
+.context-menu-btn-primary:hover {
+    background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
+    border-color: #66BB6A;
+}
+
+.context-menu-btn-danger {
+    background: linear-gradient(135deg, #EF5350 0%, #C62828 100%);
+    border-color: #EF5350;
+    color: white;
+}
+
+.context-menu-btn-danger:hover {
+    background: linear-gradient(135deg, #E57373 0%, #EF5350 100%);
+    border-color: #E57373;
+}
+
+.context-menu-btn-secondary {
+    background-color: #424242;
+    border-color: #666;
+}
+
+.context-menu-btn-secondary:hover {
+    background-color: #525252;
+    border-color: #888;
+}
+
 
 /* Nutrient Overlay UI */
 #overlay-ui {
