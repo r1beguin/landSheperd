@@ -53,6 +53,20 @@ class GraphicsEngine {
             // Initialize weather manager with current game day
             if (this.weatherManager) {
                 this.weatherManager.initialize(this.timeManager.getCurrentDay());
+                
+                // Listen to weather changes to log lighting impact
+                this.weatherManager.addEventListener((event) => {
+                    console.log(`[WEATHER→LIGHTING] Weather changed: ${event.oldState} → ${event.newState}`);
+                    console.log(`[WEATHER→LIGHTING] Rain intensity: ${(event.rainIntensity * 100).toFixed(0)}%`);
+                    
+                    // Log new lighting state
+                    if (this.lightingManager) {
+                        const brightness = (this.lightingManager.getAmbientBrightness() * 100).toFixed(0);
+                        const color = this.lightingManager.getAmbientColor();
+                        console.log(`[WEATHER→LIGHTING] New brightness: ${brightness}% | ` +
+                                   `Color: [${color[0].toFixed(2)}, ${color[1].toFixed(2)}, ${color[2].toFixed(2)}]`);
+                    }
+                });
             }
             
             // Start render loop
@@ -87,6 +101,13 @@ class GraphicsEngine {
         
         // Weather manager with configuration (after TimeManager)
         this.weatherManager = new WeatherManager(this.config.world?.weather || {});
+        
+        // Lighting manager with configuration (after TimeManager and WeatherManager)
+        this.lightingManager = new LightingManager(
+            this.config.world?.lighting || {},
+            this.timeManager,
+            this.weatherManager
+        );
         
         // Texture manager with configuration
         this.textureGenerator = new TextureGenerator(this.gl, this.config);
@@ -153,10 +174,13 @@ class GraphicsEngine {
         
         const fragmentShaderSource = `
             precision mediump float;
+            uniform vec3 u_ambientLight;
             varying vec4 v_color;
             
             void main() {
-                gl_FragColor = v_color;
+                // Apply ambient lighting (multiply RGB, preserve alpha)
+                vec3 litColor = v_color.rgb * u_ambientLight;
+                gl_FragColor = vec4(litColor, v_color.a);
             }
         `;
 
@@ -203,11 +227,16 @@ class GraphicsEngine {
             precision mediump float;
             uniform sampler2D u_texture;
             uniform vec4 u_tint;
+            uniform vec3 u_ambientLight;
             varying vec2 v_texCoord;
             
             void main() {
                 vec4 texColor = texture2D(u_texture, v_texCoord);
-                gl_FragColor = texColor * u_tint;
+                vec4 tintedColor = texColor * u_tint;
+                
+                // Apply ambient lighting (multiply RGB, preserve alpha)
+                vec3 litColor = tintedColor.rgb * u_ambientLight;
+                gl_FragColor = vec4(litColor, tintedColor.a);
             }
         `;
         
@@ -249,6 +278,7 @@ class GraphicsEngine {
             precision mediump float;
             
             uniform vec4 u_color;          // Rain particle color (configurable)
+            uniform vec3 u_ambientLight;   // Ambient lighting
             varying float v_alpha;         // Alpha from vertex shader
             
             void main() {
@@ -258,8 +288,11 @@ class GraphicsEngine {
                     discard;  // Discard pixels outside circle
                 }
                 
+                // Apply ambient lighting to particle color
+                vec3 litColor = u_color.rgb * u_ambientLight;
+                
                 // Apply color with per-particle alpha
-                gl_FragColor = vec4(u_color.rgb, u_color.a * v_alpha);
+                gl_FragColor = vec4(litColor, u_color.a * v_alpha);
             }
         `;
         
@@ -513,6 +546,11 @@ class GraphicsEngine {
             this.weatherManager.update(currentDay);
         }
         
+        // Update lighting (after time and weather updates)
+        if (this.lightingManager) {
+            this.lightingManager.update(deltaTime);
+        }
+        
         // Update weather particles (uses real-time deltaTime in seconds)
         if (this.weatherManager) {
             this.weatherManager.updateParticles(deltaTime / 1000, this.cameraManager);
@@ -537,27 +575,37 @@ class GraphicsEngine {
     
     renderEntities(viewMatrix) {
         // 1. Render soil first (background)
-        this.soilManager.renderSoil(this.renderSystem, viewMatrix, this.cameraManager);
+        this.soilManager.renderSoil(this.renderSystem, viewMatrix, this.cameraManager, this.lightingManager);
         
         // 2. Render plants (middle layer)
         const visibleBounds = this.cameraManager.getVisibleBounds();
         const visiblePlants = this.plantManager.getVisiblePlants(visibleBounds);
         if (visiblePlants.length > 0) {
-            this.renderSystem.renderBatch(visiblePlants, viewMatrix);
+            this.renderSystem.renderBatch(visiblePlants, viewMatrix, this.lightingManager);
         }
         
         // 3. Render rain particles (above plants, below UI)
         if (this.weatherManager) {
-            this.renderSystem.renderParticles(this.weatherManager, this.cameraManager);
+            this.renderSystem.renderParticles(this.weatherManager, this.cameraManager, this.lightingManager);
         }
         
         // 4. Render other entities on top (character, etc.)
-        this.renderSystem.renderBatch(this.entities, viewMatrix);
+        this.renderSystem.renderBatch(this.entities, viewMatrix, this.lightingManager);
     }
     
     updateDebugMetrics(currentTime) {
         // Update time UI (always visible)
         this.updateTimeUI();
+        
+        // Log time of day info periodically (every 5 seconds)
+        if (!this._lastTimeLog || currentTime - this._lastTimeLog > 5000) {
+            this._lastTimeLog = currentTime;
+            if (this.timeManager && this.lightingManager && this.lightingManager.isEnabled()) {
+                const hour = this.timeManager.getHourOfDay();
+                const timeString = this.timeManager.getTimeOfDayString();
+                console.log(`[TIME] Time of day: ${hour.toFixed(2)} hours (${timeString}) | ${this.lightingManager.getDebugString()}`);
+            }
+        }
         
         if (!this.debugManager || !this.debugManager.isDebugEnabled()) return;
         
@@ -611,9 +659,22 @@ class GraphicsEngine {
         // Update time UI display
         const currentDayElement = document.getElementById('current-day');
         const timeSpeedElement = document.getElementById('time-speed');
+        const timeOfDayElement = document.getElementById('time-of-day');
+        const lightingPhaseElement = document.getElementById('lighting-phase');
         
         if (currentDayElement && this.timeManager) {
             currentDayElement.textContent = this.timeManager.getCurrentDay();
+        }
+        
+        if (timeOfDayElement && this.timeManager) {
+            timeOfDayElement.textContent = this.timeManager.getTimeOfDayString();
+        }
+        
+        if (lightingPhaseElement && this.lightingManager) {
+            const phase = this.lightingManager.getCurrentPhase();
+            // Capitalize first letter and make it readable
+            const phaseDisplay = phase.charAt(0).toUpperCase() + phase.slice(1).replace(/([A-Z])/g, ' $1').trim();
+            lightingPhaseElement.textContent = phaseDisplay;
         }
         
         if (timeSpeedElement && this.timeManager) {

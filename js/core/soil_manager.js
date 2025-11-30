@@ -308,7 +308,7 @@ class SoilManager {
     }
     
     // Optimized rendering of visible cells
-    renderSoil(renderSystem, viewMatrix, cameraManager) {
+    renderSoil(renderSystem, viewMatrix, cameraManager, lightingManager) {
         // Update visible cells if necessary
         if (this.needsRefresh) {
             this.updateVisibleCells(cameraManager);
@@ -328,12 +328,12 @@ class SoilManager {
         
         // Render cells with appropriate level of detail
         this.visibleCells.forEach(soil => {
-            this.renderSoilCellWithLOD(soil, renderSystem, viewMatrix, renderDetailLevel);
+            this.renderSoilCellWithLOD(soil, renderSystem, viewMatrix, lightingManager, renderDetailLevel);
         });
     }
     
     // Render a cell with levels of detail
-    renderSoilCellWithLOD(soil, renderSystem, viewMatrix, detailLevel) {
+    renderSoilCellWithLOD(soil, renderSystem, viewMatrix, lightingManager, detailLevel) {
         const data = soil.getRenderData();
         
         // Check if overlay is active via OverlayManager
@@ -348,7 +348,8 @@ class SoilManager {
                 data.size,
                 data.size,
                 overlayColor,
-                viewMatrix
+                viewMatrix,
+                lightingManager
             );
         } else {
             // Normal rendering with procedural texture
@@ -360,7 +361,8 @@ class SoilManager {
                 data.size, 
                 data.size, 
                 texture,
-                viewMatrix
+                viewMatrix,
+                lightingManager
             );
         }
     }

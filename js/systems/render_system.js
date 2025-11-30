@@ -41,7 +41,7 @@ class RenderSystem {
     }
     
     // Rendu d'un personnage/entité
-    renderCharacter(character, viewMatrix) {
+    renderCharacter(character, viewMatrix, lightingManager) {
         const programInfo = this.shaderManager.useProgram('basic');
         if (!programInfo) return;
         
@@ -51,7 +51,7 @@ class RenderSystem {
         const geometry = this.geometryManager.getGeometry('quad_5_5_false');
         
         // Configurer les uniformes
-        this.setBasicUniforms(programInfo, viewMatrix);
+        this.setBasicUniforms(programInfo, viewMatrix, lightingManager);
         this.gl.uniform2f(programInfo.uniforms.u_translation, characterData.position.x, characterData.position.y);
         this.gl.uniform2f(programInfo.uniforms.u_scale, characterData.scale, characterData.scale);
         this.gl.uniform4f(programInfo.uniforms.u_color, ...characterData.color);
@@ -63,7 +63,7 @@ class RenderSystem {
     }
     
     // Rendu d'un rectangle simple
-    renderRect(x, y, width, height, color, viewMatrix) {
+    renderRect(x, y, width, height, color, viewMatrix, lightingManager) {
         const programInfo = this.shaderManager.useProgram('basic');
         if (!programInfo) return;
         
@@ -77,7 +77,7 @@ class RenderSystem {
         }
         
         // Configurer les uniformes
-        this.setBasicUniforms(programInfo, viewMatrix);
+        this.setBasicUniforms(programInfo, viewMatrix, lightingManager);
         this.gl.uniform2f(programInfo.uniforms.u_translation, x, y);
         this.gl.uniform2f(programInfo.uniforms.u_scale, 1.0, 1.0);
         this.gl.uniform4f(programInfo.uniforms.u_color, ...color);
@@ -89,7 +89,7 @@ class RenderSystem {
     }
     
     // Rendu d'un cercle
-    renderCircle(x, y, radius, color, viewMatrix, segments = 16) {
+    renderCircle(x, y, radius, color, viewMatrix, lightingManager, segments = 16) {
         const programInfo = this.shaderManager.useProgram('basic');
         if (!programInfo) return;
         
@@ -103,7 +103,7 @@ class RenderSystem {
         }
         
         // Configurer les uniformes
-        this.setBasicUniforms(programInfo, viewMatrix);
+        this.setBasicUniforms(programInfo, viewMatrix, lightingManager);
         this.gl.uniform2f(programInfo.uniforms.u_translation, x, y);
         this.gl.uniform2f(programInfo.uniforms.u_scale, 1.0, 1.0);
         this.gl.uniform4f(programInfo.uniforms.u_color, ...color);
@@ -118,7 +118,7 @@ class RenderSystem {
     }
     
     // Rendu d'un rectangle avec texture
-    renderTexturedRect(x, y, width, height, texture, viewMatrix, tint = [1, 1, 1, 1]) {
+    renderTexturedRect(x, y, width, height, texture, viewMatrix, lightingManager, tint = [1, 1, 1, 1]) {
         const programInfo = this.shaderManager.useProgram('texture');
         if (!programInfo) return;
         
@@ -140,7 +140,7 @@ class RenderSystem {
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
         
         // Configurer les uniformes
-        this.setTextureUniforms(programInfo, viewMatrix);
+        this.setTextureUniforms(programInfo, viewMatrix, lightingManager);
         this.gl.uniform2f(programInfo.uniforms.u_translation, x, y);
         this.gl.uniform2f(programInfo.uniforms.u_scale, 1.0, 1.0);
         this.gl.uniform1i(programInfo.uniforms.u_texture, 0); // Texture unit 0
@@ -156,7 +156,7 @@ class RenderSystem {
     }
 
     // Rendu des plantes avec texture canvas
-    renderPlant(plant, viewMatrix) {
+    renderPlant(plant, viewMatrix, lightingManager) {
         if (!plant.hasTexture()) return;
         
         const renderData = plant.getRenderData();
@@ -176,6 +176,7 @@ class RenderSystem {
                 renderData.height, 
                 webglTexture, 
                 viewMatrix,
+                lightingManager,
                 renderData.tint || [1, 1, 1, 1]
             );
         }
@@ -199,17 +200,39 @@ class RenderSystem {
     }
     
     // Configuration des uniformes de base (caméra, résolution)
-    setBasicUniforms(programInfo, viewMatrix) {
+    setBasicUniforms(programInfo, viewMatrix, lightingManager) {
         this.gl.uniform2f(programInfo.uniforms.u_resolution, viewMatrix.resolution.width, viewMatrix.resolution.height);
         this.gl.uniform1f(programInfo.uniforms.u_zoom, viewMatrix.zoom);
         this.gl.uniform2f(programInfo.uniforms.u_camera, viewMatrix.position.x, viewMatrix.position.y);
+        
+        // Apply lighting if available
+        if (programInfo.uniforms.u_ambientLight) {
+            if (lightingManager && lightingManager.isEnabled()) {
+                const ambientColor = lightingManager.getAmbientColor();
+                this.gl.uniform3f(programInfo.uniforms.u_ambientLight, ambientColor[0], ambientColor[1], ambientColor[2]);
+            } else {
+                // Default: full brightness (no lighting)
+                this.gl.uniform3f(programInfo.uniforms.u_ambientLight, 1.0, 1.0, 1.0);
+            }
+        }
     }
     
     // Configuration des uniformes pour les textures
-    setTextureUniforms(programInfo, viewMatrix) {
+    setTextureUniforms(programInfo, viewMatrix, lightingManager) {
         this.gl.uniform2f(programInfo.uniforms.u_resolution, viewMatrix.resolution.width, viewMatrix.resolution.height);
         this.gl.uniform1f(programInfo.uniforms.u_zoom, viewMatrix.zoom);
         this.gl.uniform2f(programInfo.uniforms.u_camera, viewMatrix.position.x, viewMatrix.position.y);
+        
+        // Apply lighting if available
+        if (programInfo.uniforms.u_ambientLight) {
+            if (lightingManager && lightingManager.isEnabled()) {
+                const ambientColor = lightingManager.getAmbientColor();
+                this.gl.uniform3f(programInfo.uniforms.u_ambientLight, ambientColor[0], ambientColor[1], ambientColor[2]);
+            } else {
+                // Default: full brightness (no lighting)
+                this.gl.uniform3f(programInfo.uniforms.u_ambientLight, 1.0, 1.0, 1.0);
+            }
+        }
     }
     
     // Méthode utilitaire pour dessiner une géométrie
@@ -227,7 +250,7 @@ class RenderSystem {
     }
     
     // Rendu en batch pour optimiser les performances
-    renderBatch(entities, viewMatrix) {
+    renderBatch(entities, viewMatrix, lightingManager) {
         if (entities.length === 0) return;
         
         // Grouper par type de rendu
@@ -235,7 +258,7 @@ class RenderSystem {
         
         // Rendre chaque batch
         for (const [renderType, entitiesBatch] of batches) {
-            this.renderEntityBatch(renderType, entitiesBatch, viewMatrix);
+            this.renderEntityBatch(renderType, entitiesBatch, viewMatrix, lightingManager);
         }
     }
     
@@ -253,30 +276,30 @@ class RenderSystem {
         return batches;
     }
     
-    renderEntityBatch(renderType, entities, viewMatrix) {
+    renderEntityBatch(renderType, entities, viewMatrix, lightingManager) {
         switch (renderType) {
             case 'character':
-                entities.forEach(entity => this.renderCharacter(entity, viewMatrix));
+                entities.forEach(entity => this.renderCharacter(entity, viewMatrix, lightingManager));
                 break;
             case 'plant':
-                entities.forEach(entity => this.renderPlant(entity, viewMatrix));
+                entities.forEach(entity => this.renderPlant(entity, viewMatrix, lightingManager));
                 break;
             case 'rect':
                 entities.forEach(entity => {
                     const data = entity.getRenderData();
-                    this.renderRect(data.x, data.y, data.width, data.height, data.color, viewMatrix);
+                    this.renderRect(data.x, data.y, data.width, data.height, data.color, viewMatrix, lightingManager);
                 });
                 break;
             case 'click-marker':
                 entities.forEach(entity => {
                     const data = entity.getRenderData();
-                    this.renderRect(data.x, data.y, data.width, data.height, data.color, viewMatrix);
+                    this.renderRect(data.x, data.y, data.width, data.height, data.color, viewMatrix, lightingManager);
                 });
                 break;
             case 'circle':
                 entities.forEach(entity => {
                     const data = entity.getRenderData();
-                    this.renderCircle(data.x, data.y, data.radius, data.color, viewMatrix, data.segments);
+                    this.renderCircle(data.x, data.y, data.radius, data.color, viewMatrix, lightingManager, data.segments);
                 });
                 break;
             case 'soil':
@@ -311,26 +334,28 @@ class RenderSystem {
      * Render rain particles
      * @param {Object} weatherManager - Weather manager with particle data
      * @param {Object} cameraManager - Camera manager for view matrix
+     * @param {Object} lightingManager - Lighting manager for ambient light
      */
-    renderParticles(weatherManager, cameraManager) {
+    renderParticles(weatherManager, cameraManager, lightingManager) {
         if (!weatherManager || !weatherManager.isEnabled()) {
             return;
         }
         
         // Render rain particles first (blue-ish, small)
-        this.renderParticleType(weatherManager, cameraManager, 'rain');
+        this.renderParticleType(weatherManager, cameraManager, lightingManager, 'rain');
         
         // Then render splash particles (white, brighter)
-        this.renderParticleType(weatherManager, cameraManager, 'splash');
+        this.renderParticleType(weatherManager, cameraManager, lightingManager, 'splash');
     }
     
     /**
      * Render particles of a specific type
      * @param {Object} weatherManager - Weather manager with particle data
      * @param {Object} cameraManager - Camera manager for view matrix
+     * @param {Object} lightingManager - Lighting manager for ambient light
      * @param {string} type - Particle type ('rain' or 'splash')
      */
-    renderParticleType(weatherManager, cameraManager, type) {
+    renderParticleType(weatherManager, cameraManager, lightingManager, type) {
         const particles = weatherManager.getActiveParticles(type);
         if (particles.length === 0) {
             return;
@@ -395,6 +420,17 @@ class RenderSystem {
             particleColor[2] / 255, 
             particleColor[3] / 255
         );
+        
+        // Apply lighting uniform
+        if (shader.uniforms['u_ambientLight']) {
+            if (lightingManager && lightingManager.isEnabled()) {
+                const ambientColor = lightingManager.getAmbientColor();
+                this.gl.uniform3f(shader.uniforms['u_ambientLight'], ambientColor[0], ambientColor[1], ambientColor[2]);
+            } else {
+                // Default: full brightness (no lighting)
+                this.gl.uniform3f(shader.uniforms['u_ambientLight'], 1.0, 1.0, 1.0);
+            }
+        }
         
         // Enable blending for transparency
         this.gl.enable(this.gl.BLEND);

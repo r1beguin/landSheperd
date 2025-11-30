@@ -47,6 +47,8 @@ Feature-specific documentation with implementation details.
 - [nutrient-system.md](features/nutrient-system.md) - Multi-nutrient system (N, P, K, OM)
 - [context-menu-system.md](features/context-menu-system.md) - Context menu implementation
 - [visual-feedback-system.md](features/visual-feedback-system.md) - Visual feedback mechanics
+- [weather-system.md](features/weather-system.md) - Weather state management and effects
+- [lighting-system.md](features/lighting-system.md) - Day/night cycle with weather integration
 
 ### Testing
 Testing strategy, verification workflows, and test framework documentation.

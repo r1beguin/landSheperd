@@ -11,14 +11,15 @@
         "backgroundColor": [0.5, 0.5, 0.5, 1.0]
     },
     "time": {
-        "initialTimeScale": 1.0,
+        "initialTimeScale": 0.1,
         "realSecondsPerGameDay": 10,
         "timeScalePresets": {
             "pause": 0,
-            "slow": 0.5,
-            "normal": 1.0,
-            "fast": 5.0,
-            "veryFast": 20.0
+            "verySlow": 0.05,
+            "slow": 0.1,
+            "normal": 0.5,
+            "fast": 1.0,
+            "veryFast": 5.0
         }
     },
     "world": {
@@ -142,6 +143,70 @@
                 "sunEvaporationPerDay": 5,
                 "cloudyEvaporationPerDay": 2,
                 "rainNitrogenRestorePerDay": 0.8
+            }
+        },
+        
+        "lighting": {
+            "enabled": true,
+            "transitionSpeed": 1.0,
+            
+            "timeOfDay": {
+                "night": {
+                    "hours": [0, 6],
+                    "color": [0.15, 0.18, 0.35],
+                    "brightness": 0.25
+                },
+                "earlyMorning": {
+                    "hours": [6, 8],
+                    "color": [0.95, 0.75, 0.55],
+                    "brightness": 0.65
+                },
+                "morning": {
+                    "hours": [8, 12],
+                    "color": [1.0, 0.98, 0.92],
+                    "brightness": 0.95
+                },
+                "midday": {
+                    "hours": [12, 14],
+                    "color": [1.0, 1.0, 1.0],
+                    "brightness": 1.0
+                },
+                "afternoon": {
+                    "hours": [14, 18],
+                    "color": [1.0, 0.95, 0.85],
+                    "brightness": 0.95
+                },
+                "evening": {
+                    "hours": [18, 20],
+                    "color": [0.98, 0.85, 0.70],
+                    "brightness": 0.75
+                },
+                "sunset": {
+                    "hours": [20, 21],
+                    "color": [1.0, 0.60, 0.35],
+                    "brightness": 0.50
+                },
+                "dusk": {
+                    "hours": [21, 23],
+                    "color": [0.45, 0.40, 0.60],
+                    "brightness": 0.35
+                }
+            },
+            
+            "weatherModifiers": {
+                "sunny": {
+                    "brightnessMultiplier": 1.0,
+                    "colorTint": [1.0, 1.0, 1.0]
+                },
+                "cloudy": {
+                    "brightnessMultiplier": 0.85,
+                    "colorTint": [0.95, 0.95, 1.0]
+                },
+                "rainy": {
+                    "brightnessMultiplier": 0.70,
+                    "brightnessIntensityScale": 0.15,
+                    "colorTint": [0.85, 0.90, 1.10]
+                }
             }
         }
     }

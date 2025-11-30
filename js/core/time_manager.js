@@ -188,4 +188,25 @@ class TimeManager {
         this.timeScale = this.config.initialTimeScale || 1.0;
         this.isPaused = false;
     }
+    
+    /**
+     * Get hour of day (0-24)
+     * Converts fractional game day to hour within 24-hour cycle
+     * @returns {number} Hour of day (0-24, fractional)
+     */
+    getHourOfDay() {
+        // 1 game day = 24 hours
+        const fractionalDay = this.currentDay - Math.floor(this.currentDay);
+        return fractionalDay * 24; // 0-24 hours
+    }
+    
+    /**
+     * Get time of day as formatted string (HH:MM)
+     * @returns {string} Time string in 24-hour format
+     */
+    getTimeOfDayString() {
+        const hour = Math.floor(this.getHourOfDay());
+        const minute = Math.floor((this.getHourOfDay() % 1) * 60);
+        return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    }
 }

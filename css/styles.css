@@ -170,6 +170,12 @@ canvas {
     font-weight: bold;
 }
 
+/* Special styling for lighting phase */
+#lighting-phase {
+    color: #FFD700; /* Golden color for phase */
+    font-variant: small-caps;
+}
+
 #time-ui .controls-hint {
     margin-top: 10px;
     padding-top: 10px;
