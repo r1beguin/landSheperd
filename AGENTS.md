@@ -1,5 +1,15 @@
 # Agent Guidelines for Land Shepherd
 
+## Starting a New Session
+
+When beginning work on Land Shepherd, follow this workflow:
+
+1. **First read**: [doc/dev-guidelines.md](doc/dev-guidelines.md) - Quick reference with code conventions, architecture rules, and routing
+2. **For navigation**: [doc/INDEX.md](doc/INDEX.md) - Complete documentation map organized by category
+3. **Then find**: Specific documentation using the categories below based on your task
+
+This ensures you have the context needed before making changes.
+
 ## Documentation Structure
 
 **This project uses organized, modular documentation. For comprehensive information, see:**
