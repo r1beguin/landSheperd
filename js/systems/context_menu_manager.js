@@ -16,6 +16,10 @@ class ContextMenuManager {
         this.currentWorldX = null;
         this.currentWorldY = null;
         
+        // Real-time update system
+        this.updateIntervalId = null;
+        this.updateFrequencyMs = 100; // Update every 100ms for smooth real-time feedback
+        
         this.createMenuElement();
         this.setupEventListeners();
     }
@@ -70,6 +74,198 @@ class ContextMenuManager {
         // Show menu
         this.menuElement.style.display = 'block';
         this.isVisible = true;
+        
+        // Start real-time update loop
+        this.startUpdateLoop();
+    }
+    
+    /**
+     * Refresh menu content without repositioning
+     * Updates plant/soil information in real-time using DOM updates (not innerHTML)
+     */
+    refresh() {
+        if (!this.isVisible) {
+            return;
+        }
+        
+        // Get current soil and plant data
+        const soil = this.soilManager.getSoilAt(this.currentGridX, this.currentGridY);
+        const plant = this.plantManager.getPlantAt(this.currentGridX, this.currentGridY);
+        
+        if (!soil) {
+            this.hide(); // Soil disappeared, close menu
+            return;
+        }
+        
+        // Update only the dynamic values using DOM queries
+        // This preserves button handlers and prevents click blocking
+        this.updateSoilValues(soil);
+        
+        if (plant) {
+            this.updatePlantValues(plant, soil);
+        }
+    }
+    
+    /**
+     * Update soil nutrient values in the DOM
+     */
+    updateSoilValues(soil) {
+        const reqs = this.getNetterRequirements();
+        
+        // Update each nutrient row
+        this.updateNutrientValue('N', soil.nitrogen, reqs.nitrogen);
+        this.updateNutrientValue('P', soil.phosphorus, reqs.phosphorus);
+        this.updateNutrientValue('K', soil.potassium, reqs.potassium);
+        this.updateNutrientValue('OM', soil.organicMatter, reqs.organicMatter);
+        
+        // Update fertility
+        const fertilityElements = this.menuElement.querySelectorAll('.context-menu-row');
+        fertilityElements.forEach(row => {
+            const label = row.querySelector('.context-menu-label');
+            if (label && label.textContent === 'Fertility:') {
+                const value = row.querySelector('.context-menu-value');
+                if (value) {
+                    value.textContent = `${soil.fertility.toFixed(1)}%`;
+                }
+            }
+        });
+    }
+    
+    /**
+     * Update a single nutrient row
+     */
+    updateNutrientValue(symbol, value, requirements) {
+        const rows = this.menuElement.querySelectorAll('.context-menu-row');
+        
+        rows.forEach(row => {
+            const label = row.querySelector('.context-menu-label');
+            if (label && label.textContent === `${symbol}:`) {
+                // Update value
+                const valueElement = row.querySelector('.context-menu-value');
+                if (valueElement) {
+                    valueElement.textContent = value.toFixed(1);
+                }
+                
+                // Update bar width and status
+                const bar = row.querySelector('.context-menu-bar');
+                const status = row.querySelector('.context-menu-status');
+                
+                if (bar && status) {
+                    const min = requirements.minimum;
+                    const opt = requirements.optimal;
+                    
+                    let statusText = '';
+                    let statusClass = '';
+                    if (value < min) {
+                        statusText = 'Critical';
+                        statusClass = 'status-critical';
+                    } else if (value < opt) {
+                        statusText = 'Low';
+                        statusClass = 'status-low';
+                    } else {
+                        statusText = 'Good';
+                        statusClass = 'status-good';
+                    }
+                    
+                    bar.style.width = `${Math.min(100, value)}%`;
+                    bar.className = `context-menu-bar ${statusClass}`;
+                    status.textContent = statusText;
+                    status.className = `context-menu-status ${statusClass}`;
+                }
+            }
+        });
+    }
+    
+    /**
+     * Update plant values in the DOM
+     */
+    updatePlantValues(plant, soil) {
+        const rows = this.menuElement.querySelectorAll('.context-menu-row');
+        
+        rows.forEach(row => {
+            const label = row.querySelector('.context-menu-label');
+            if (!label) return;
+            
+            const labelText = label.textContent;
+            const valueElement = row.querySelector('.context-menu-value');
+            
+            if (labelText === 'Stage:' && valueElement) {
+                valueElement.textContent = plant.stage;
+            }
+            else if (labelText === 'Age:' && valueElement) {
+                valueElement.textContent = `${plant.age.toFixed(1)} days`;
+            }
+            else if (labelText === 'Progress:' && valueElement) {
+                const currentStageIndex = plant.species.growthStages.findIndex(s => s.name === plant.stage);
+                if (currentStageIndex !== -1) {
+                    const stageConfig = plant.species.growthStages[currentStageIndex];
+                    const daysToGrow = stageConfig.daysToGrow;
+                    
+                    if (daysToGrow && daysToGrow > 0) {
+                        const progress = Math.min(100, (plant.accumulatedGrowthDays / daysToGrow) * 100);
+                        valueElement.textContent = `${progress.toFixed(0)}%`;
+                        
+                        const bar = row.querySelector('.context-menu-bar');
+                        if (bar) {
+                            bar.style.width = `${progress}%`;
+                        }
+                    }
+                }
+            }
+            else if (labelText === 'Growth Rate:' && valueElement) {
+                const growthRate = plant.calculateGrowthRate();
+                const ratePercent = (growthRate * 100).toFixed(0);
+                valueElement.textContent = `${ratePercent}%`;
+                
+                const status = row.querySelector('.context-menu-status');
+                if (status) {
+                    let rateStatus = '';
+                    let rateClass = '';
+                    if (growthRate >= 0.8) {
+                        rateStatus = 'Optimal';
+                        rateClass = 'status-good';
+                    } else if (growthRate >= 0.5) {
+                        rateStatus = 'Good';
+                        rateClass = 'status-good';
+                    } else if (growthRate >= 0.2) {
+                        rateStatus = 'Slow';
+                        rateClass = 'status-low';
+                    } else {
+                        rateStatus = 'Stunted';
+                        rateClass = 'status-critical';
+                    }
+                    
+                    status.textContent = rateStatus;
+                    status.className = `context-menu-status ${rateClass}`;
+                }
+            }
+            else if (labelText === 'Days Stunted:' && valueElement) {
+                valueElement.textContent = plant.daysStunted.toFixed(1);
+            }
+        });
+    }
+    
+    /**
+     * Start the update loop for real-time data refresh
+     */
+    startUpdateLoop() {
+        // Clear any existing interval
+        this.stopUpdateLoop();
+        
+        // Start new interval
+        this.updateIntervalId = setInterval(() => {
+            this.refresh();
+        }, this.updateFrequencyMs);
+    }
+    
+    /**
+     * Stop the update loop
+     */
+    stopUpdateLoop() {
+        if (this.updateIntervalId !== null) {
+            clearInterval(this.updateIntervalId);
+            this.updateIntervalId = null;
+        }
     }
     
     buildMenuHTML(soil, plant) {
@@ -370,6 +566,9 @@ class ContextMenuManager {
     }
     
     hide() {
+        // Stop real-time updates
+        this.stopUpdateLoop();
+        
         this.menuElement.style.display = 'none';
         this.isVisible = false;
         this.currentGridX = null;
