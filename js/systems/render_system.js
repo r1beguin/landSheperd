@@ -306,4 +306,107 @@ class RenderSystem {
     setViewport(width, height) {
         this.gl.viewport(0, 0, width, height);
     }
+    
+    /**
+     * Render rain particles
+     * @param {Object} weatherManager - Weather manager with particle data
+     * @param {Object} cameraManager - Camera manager for view matrix
+     */
+    renderParticles(weatherManager, cameraManager) {
+        if (!weatherManager || !weatherManager.isEnabled()) {
+            return;
+        }
+        
+        // Render rain particles first (blue-ish, small)
+        this.renderParticleType(weatherManager, cameraManager, 'rain');
+        
+        // Then render splash particles (white, brighter)
+        this.renderParticleType(weatherManager, cameraManager, 'splash');
+    }
+    
+    /**
+     * Render particles of a specific type
+     * @param {Object} weatherManager - Weather manager with particle data
+     * @param {Object} cameraManager - Camera manager for view matrix
+     * @param {string} type - Particle type ('rain' or 'splash')
+     */
+    renderParticleType(weatherManager, cameraManager, type) {
+        const particles = weatherManager.getActiveParticles(type);
+        if (particles.length === 0) {
+            return;
+        }
+        
+        // Get particle shader
+        const shader = this.shaderManager.getProgram('particleShader');
+        if (!shader) {
+            console.error('Particle shader not found');
+            return;
+        }
+        
+        this.gl.useProgram(shader.program);
+        this.currentProgram = shader;
+        
+        // Build particle data (interleaved: x, y, size, alpha)
+        const vertexData = new Float32Array(particles.length * 4);
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            const offset = i * 4;
+            vertexData[offset + 0] = p.x;
+            vertexData[offset + 1] = p.y;
+            vertexData[offset + 2] = p.size;
+            vertexData[offset + 3] = p.alpha;
+        }
+        
+        // Create or update buffer
+        if (!this.particleBuffer) {
+            this.particleBuffer = this.gl.createBuffer();
+        }
+        
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.particleBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, vertexData, this.gl.DYNAMIC_DRAW);
+        
+        // Set attributes (interleaved data)
+        const positionLoc = shader.attributes['a_position'];
+        const sizeLoc = shader.attributes['a_size'];
+        const alphaLoc = shader.attributes['a_alpha'];
+        
+        const stride = 4 * 4; // 4 floats * 4 bytes per float
+        
+        this.gl.enableVertexAttribArray(positionLoc);
+        this.gl.vertexAttribPointer(positionLoc, 2, this.gl.FLOAT, false, stride, 0);
+        
+        this.gl.enableVertexAttribArray(sizeLoc);
+        this.gl.vertexAttribPointer(sizeLoc, 1, this.gl.FLOAT, false, stride, 8);
+        
+        this.gl.enableVertexAttribArray(alphaLoc);
+        this.gl.vertexAttribPointer(alphaLoc, 1, this.gl.FLOAT, false, stride, 12);
+        
+        // Set uniforms
+        const viewMatrix = cameraManager.getViewMatrix();
+        this.gl.uniform2f(shader.uniforms['u_resolution'], viewMatrix.resolution.width, viewMatrix.resolution.height);
+        this.gl.uniform1f(shader.uniforms['u_zoom'], viewMatrix.zoom);
+        this.gl.uniform2f(shader.uniforms['u_camera'], viewMatrix.position.x, viewMatrix.position.y);
+        
+        // Get particle color from weather manager config (type-specific)
+        const particleColor = weatherManager.getParticleColor(type);
+        this.gl.uniform4f(shader.uniforms['u_color'], 
+            particleColor[0] / 255, 
+            particleColor[1] / 255, 
+            particleColor[2] / 255, 
+            particleColor[3] / 255
+        );
+        
+        // Enable blending for transparency
+        this.gl.enable(this.gl.BLEND);
+        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+        
+        // Draw particles as points
+        this.gl.drawArrays(this.gl.POINTS, 0, particles.length);
+        
+        // Disable blending
+        this.gl.disable(this.gl.BLEND);
+        
+        this.renderCallsThisFrame++;
+        this.entitiesRendered += particles.length;
+    }
 }

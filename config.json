@@ -89,6 +89,60 @@
                 { "threshold": 35, "coverage": 0.08, "color": [50, 255, 80] },
                 { "threshold": 60, "coverage": 0.15, "color": [20, 255, 60] }
             ]
+        },
+        "weather": {
+            "enabled": true,
+            "initialState": "sunny",
+            "transitionLogging": false,
+            
+            "states": {
+                "sunny": {
+                    "minDuration": 2,
+                    "maxDuration": 5,
+                    "nextStates": ["cloudy", "rainy", "sunny"]
+                },
+                "cloudy": {
+                    "minDuration": 1,
+                    "maxDuration": 2,
+                    "nextStates": ["rainy", "sunny"]
+                },
+                "rainy": {
+                    "minDuration": 1,
+                    "maxDuration": 3,
+                    "rainIntensityMin": 0.4,
+                    "rainIntensityMax": 1.0,
+                    "nextStates": ["cloudy", "sunny", "rainy"]
+                }
+            },
+            
+            "particles": {
+                "maxParticles": 1000,
+                "particleSizeMin": 1,
+                "particleSizeMax": 3,
+                "fallSpeedMin": 200,
+                "fallSpeedMax": 400,
+                "color": [100, 180, 255, 200],
+                "spawnHeightOffset": 50
+            },
+            
+            "splashes": {
+                "enabled": true,
+                "spawnProbability": 0.15,
+                "particleCountMin": 2,
+                "particleCountMax": 4,
+                "lifetimeMin": 0.1,
+                "lifetimeMax": 0.3,
+                "speedMin": 20,
+                "speedMax": 60,
+                "color": [255, 255, 255, 200]
+            },
+            
+            "soilEffects": {
+                "rainWaterIncreasePerDay": 15,
+                "sunEvaporationPerDay": 5,
+                "cloudyEvaporationPerDay": 2,
+                "rainNitrogenRestorePerDay": 0.8
+            }
         }
     }
 }

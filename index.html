@@ -53,10 +53,32 @@
         </div>
     </div>
     
+    <!-- Weather Widget UI -->
+    <div id="weather-widget">
+        <div class="weather-header">
+            <span class="weather-icon" id="weather-icon">☀️</span>
+            <span class="weather-state" id="weather-state">Sunny</span>
+        </div>
+        <div class="weather-details">
+            <div class="rain-intensity-container" id="rain-intensity-container" style="display: none;">
+                <span class="intensity-label">Intensity:</span>
+                <div class="rain-intensity-bar">
+                    <div class="intensity-fill" id="intensity-fill"></div>
+                </div>
+            </div>
+            <div class="weather-timing">
+                <span class="timing-label">Next change:</span>
+                <span class="timing-value" id="next-change">--</span>
+            </div>
+        </div>
+        <div class="weather-hint">Press W to cycle weather</div>
+    </div>
+    
     <!-- Charger les modules dans l'ordre correct -->
     <!-- Core systems -->
     <script src="js/core/debug_manager.js"></script>
     <script src="js/core/time_manager.js"></script>
+    <script src="js/core/weather_manager.js"></script>
     <script src="js/core/shader_manager.js"></script>
     <script src="js/core/geometry_manager.js"></script>
     <script src="js/core/procedural_generator.js"></script>

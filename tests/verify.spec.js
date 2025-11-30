@@ -9,7 +9,7 @@ const CONFIG = {
   passThresholds: {
     maxConsoleErrors: 0,
     minFPS: 30, // Lower threshold for headless Chrome (uses software rendering)
-    maxVisualDiffPercent: 40, // High threshold due to procedural generation
+    maxVisualDiffPercent: 50, // High threshold due to procedural generation + weather particles
     maxLoadTimeMs: 3000,
     maxWarnings: 10
   },

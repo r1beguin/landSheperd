@@ -14,6 +14,14 @@ module.exports = defineConfig({
     ? '**/context-menu-functional.spec.js'
     : process.env.TEST_OVERLAY === 'true'
     ? '**/overlay-cycling.spec.js'
+    : process.env.TEST_WEATHER === 'true'
+    ? '**/weather-debug.spec.js'
+    : process.env.TEST_WEATHER_SOIL === 'true'
+    ? '**/weather-soil-effects.spec.js'
+    : process.env.TEST_NITROGEN_REGEN === 'true'
+    ? '**/nitrogen-regeneration.spec.js'
+    : process.env.TEST_SPLASH === 'true'
+    ? '**/splash-particles-debug.spec.js'
     : process.env.TEST_INTERACTIVE === 'true' || 
       process.env.TEST_SCREENSHOT_ONLY === 'true' || 
       process.env.TEST_LOG_ONLY === 'true'

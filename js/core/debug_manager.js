@@ -129,6 +129,30 @@ class DebugManager {
                     <button id="toggle-water-layer" class="debug-toggle-btn inactive">Water</button>
                     <button id="toggle-pollution-layer" class="debug-toggle-btn inactive">Pollution</button>
                 </div>
+                <div id="weather-section" class="debug-section">
+                    <div class="debug-section-title">Weather</div>
+                    <div class="debug-info">
+                        <span class="debug-label">State:</span>
+                        <span class="debug-value" id="weather-state">N/A</span>
+                    </div>
+                    <div class="debug-info">
+                        <span class="debug-label">Rain Intensity:</span>
+                        <span class="debug-value" id="weather-intensity">0%</span>
+                    </div>
+                    <div class="debug-info">
+                        <span class="debug-label">Particles:</span>
+                        <span class="debug-value" id="weather-particles">0</span>
+                    </div>
+                    <div class="debug-info">
+                        <span class="debug-label">Next Change:</span>
+                        <span class="debug-value" id="weather-next-change">0.0 days</span>
+                    </div>
+                    <div class="debug-controls">
+                        <button id="weather-btn-sunny" class="debug-weather-btn">Sunny</button>
+                        <button id="weather-btn-cloudy" class="debug-weather-btn">Cloudy</button>
+                        <button id="weather-btn-rainy" class="debug-weather-btn">Rainy</button>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -147,6 +171,7 @@ class DebugManager {
         setTimeout(() => {
             this.initializeLayerToggles();
             this.initializeShadowControls();
+            this.initializeWeatherControls();
         }, 100);
     }
     
@@ -372,6 +397,44 @@ class DebugManager {
                 border-radius: 50%;
                 cursor: pointer;
                 border: none;
+            }
+            
+            .debug-section {
+                margin-top: 15px;
+                padding-top: 10px;
+                border-top: 1px solid #333;
+            }
+            
+            .debug-info {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 5px;
+                font-size: 11px;
+            }
+            
+            .debug-value {
+                color: #00ff00;
+            }
+            
+            .debug-weather-btn {
+                background: rgba(0, 255, 0, 0.2);
+                border: 1px solid #00ff00;
+                color: #00ff00;
+                padding: 4px 8px;
+                border-radius: 3px;
+                cursor: pointer;
+                font-size: 10px;
+                transition: all 0.2s;
+                flex: 1;
+            }
+            
+            .debug-weather-btn:hover {
+                background: rgba(0, 255, 0, 0.3);
+                box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+            }
+            
+            .debug-weather-btn:active {
+                background: rgba(0, 255, 0, 0.5);
             }
         `;
         document.head.appendChild(style);
@@ -626,5 +689,104 @@ class DebugManager {
     getShadowParams() {
         // Shadow parameters removed - no longer needed without trees
         return null;
+    }
+    
+    initializeWeatherControls() {
+        // Add click handlers for weather buttons
+        const sunnyBtn = document.getElementById('weather-btn-sunny');
+        const cloudyBtn = document.getElementById('weather-btn-cloudy');
+        const rainyBtn = document.getElementById('weather-btn-rainy');
+        
+        if (sunnyBtn) {
+            sunnyBtn.addEventListener('click', () => {
+                if (window.graphicsEngine && window.graphicsEngine.weatherManager) {
+                    const currentDay = window.graphicsEngine.timeManager.getCurrentDay();
+                    window.graphicsEngine.weatherManager.setWeather('sunny', currentDay);
+                }
+            });
+        }
+        
+        if (cloudyBtn) {
+            cloudyBtn.addEventListener('click', () => {
+                if (window.graphicsEngine && window.graphicsEngine.weatherManager) {
+                    const currentDay = window.graphicsEngine.timeManager.getCurrentDay();
+                    window.graphicsEngine.weatherManager.setWeather('cloudy', currentDay);
+                }
+            });
+        }
+        
+        if (rainyBtn) {
+            rainyBtn.addEventListener('click', () => {
+                if (window.graphicsEngine && window.graphicsEngine.weatherManager) {
+                    const currentDay = window.graphicsEngine.timeManager.getCurrentDay();
+                    window.graphicsEngine.weatherManager.setWeather('rainy', currentDay);
+                }
+            });
+        }
+    }
+    
+    updateWeatherMetrics(weatherManager, timeManager) {
+        if (!this.isEnabled || !weatherManager || !weatherManager.isEnabled()) {
+            return;
+        }
+        
+        const stateElement = document.getElementById('weather-state');
+        const intensityElement = document.getElementById('weather-intensity');
+        const particlesElement = document.getElementById('weather-particles');
+        const nextChangeElement = document.getElementById('weather-next-change');
+        
+        if (stateElement) {
+            const state = weatherManager.getCurrentWeather() || 'N/A';
+            stateElement.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+            
+            // Color code by state
+            if (state === 'sunny') {
+                stateElement.style.color = '#ffff00'; // Yellow
+            } else if (state === 'cloudy') {
+                stateElement.style.color = '#aaaaaa'; // Gray
+            } else if (state === 'rainy') {
+                stateElement.style.color = '#00aaff'; // Blue
+            }
+        }
+        
+        if (intensityElement) {
+            const intensity = weatherManager.getRainIntensity();
+            intensityElement.textContent = `${(intensity * 100).toFixed(0)}%`;
+            
+            // Color code by intensity
+            if (intensity === 0) {
+                intensityElement.style.color = '#888888';
+            } else if (intensity < 0.5) {
+                intensityElement.style.color = '#ffff00';
+            } else {
+                intensityElement.style.color = '#00aaff';
+            }
+        }
+        
+        if (particlesElement) {
+            const particles = weatherManager.getActiveParticles().length;
+            particlesElement.textContent = particles;
+            
+            // Color code by particle count
+            if (particles === 0) {
+                particlesElement.style.color = '#888888';
+            } else if (particles < 500) {
+                particlesElement.style.color = '#ffff00';
+            } else {
+                particlesElement.style.color = '#00ff00';
+            }
+        }
+        
+        if (nextChangeElement && timeManager) {
+            const timeUntil = weatherManager.getTimeUntilTransition(timeManager.getCurrentDay());
+            nextChangeElement.textContent = `${timeUntil.toFixed(1)} days`;
+            
+            // Color code by time remaining
+            if (timeUntil < 1) {
+                nextChangeElement.style.color = '#ff8800';
+            } else {
+                nextChangeElement.style.color = '#00ff00';
+            }
+        }
     }
 }

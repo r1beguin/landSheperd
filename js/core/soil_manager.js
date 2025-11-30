@@ -38,6 +38,9 @@ class SoilManager {
         this.totalCells = 0;
         this.visibleCellsCount = 0;
         
+        // Weather effects tracking
+        this.weatherEffectsConfig = this.config.world.weather?.soilEffects || null;
+        
         this.initializeSoilGrid();
         this.createSoilGeometry();
     }
@@ -368,6 +371,104 @@ class SoilManager {
         this.soilGrid.forEach(soil => {
             soil.update(deltaTime);
         });
+        
+        // Apply weather effects to soil water
+        this.applyWeatherEffects(deltaTime);
+    }
+    
+    /**
+     * Apply weather effects to soil water and nitrogen levels
+     * @param {number} deltaTime - Time since last frame (seconds)
+     */
+    applyWeatherEffects(deltaTime) {
+        // Check if weather system is available and configured
+        if (!this.weatherEffectsConfig) {
+            return;
+        }
+        
+        const weatherManager = window.graphicsEngine?.weatherManager;
+        if (!weatherManager || !weatherManager.initialized) {
+            return;
+        }
+        
+        const currentWeather = weatherManager.getCurrentWeather();
+        if (!currentWeather) {
+            return;
+        }
+        
+        // Calculate water change rate based on weather
+        let waterChangePerDay = 0;
+        let nitrogenChangePerDay = 0;
+        
+        if (currentWeather === 'rainy') {
+            const rainIntensity = weatherManager.getRainIntensity();
+            waterChangePerDay = this.weatherEffectsConfig.rainWaterIncreasePerDay * rainIntensity;
+            
+            // Nitrogen regeneration during rain (atmospheric deposition)
+            if (this.weatherEffectsConfig.rainNitrogenRestorePerDay) {
+                nitrogenChangePerDay = this.weatherEffectsConfig.rainNitrogenRestorePerDay * rainIntensity;
+            }
+        } else if (currentWeather === 'sunny') {
+            waterChangePerDay = -this.weatherEffectsConfig.sunEvaporationPerDay;
+        } else if (currentWeather === 'cloudy') {
+            waterChangePerDay = -this.weatherEffectsConfig.cloudyEvaporationPerDay;
+        }
+        
+        // Convert from per-day to per-second
+        const timeManager = window.graphicsEngine?.timeManager;
+        if (!timeManager) {
+            return;
+        }
+        
+        const realSecondsPerGameDay = timeManager.config.realSecondsPerGameDay;
+        const waterChangePerSecond = waterChangePerDay / realSecondsPerGameDay;
+        const waterChangeThisFrame = waterChangePerSecond * deltaTime;
+        
+        const nitrogenChangePerSecond = nitrogenChangePerDay / realSecondsPerGameDay;
+        const nitrogenChangeThisFrame = nitrogenChangePerSecond * deltaTime;
+        
+        // Apply to all soil cells
+        const hasWaterChange = Math.abs(waterChangeThisFrame) > 0.001;
+        const hasNitrogenChange = Math.abs(nitrogenChangeThisFrame) > 0.001;
+        
+        if (hasWaterChange || hasNitrogenChange) {
+            let waterCellsUpdated = 0;
+            let nitrogenCellsUpdated = 0;
+            
+            this.soilGrid.forEach(soil => {
+                // Apply water changes
+                if (hasWaterChange) {
+                    const oldWater = soil.waterRetention;
+                    soil.waterRetention = Math.max(0, Math.min(100, soil.waterRetention + waterChangeThisFrame));
+                    
+                    // If water changed significantly, regenerate water pixels
+                    if (Math.abs(soil.waterRetention - oldWater) > 0.1) {
+                        soil.waterPixels = soil.generateWaterPixels();
+                        soil.needsUpdate = true;
+                        waterCellsUpdated++;
+                    }
+                }
+                
+                // Apply nitrogen changes
+                if (hasNitrogenChange) {
+                    const oldNitrogen = soil.nitrogen;
+                    soil.nitrogen = Math.max(0, Math.min(100, soil.nitrogen + nitrogenChangeThisFrame));
+                    
+                    // If nitrogen changed significantly, recalculate fertility
+                    if (Math.abs(soil.nitrogen - oldNitrogen) > 0.1) {
+                        soil.fertility = soil.calculateFertility();
+                        soil.baseColor = soil.calculateBaseColor();
+                        soil.needsUpdate = true;
+                        nitrogenCellsUpdated++;
+                    }
+                }
+            });
+            
+            // Invalidate texture cache if cells updated
+            if (waterCellsUpdated > 0 || nitrogenCellsUpdated > 0) {
+                this.needsRefresh = true;
+            }
+        }
     }
     
     // Utility methods for interaction with other systems

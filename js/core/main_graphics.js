@@ -50,6 +50,11 @@ class GraphicsEngine {
             this.setupGameSystems();
             this.initPlayer();
             
+            // Initialize weather manager with current game day
+            if (this.weatherManager) {
+                this.weatherManager.initialize(this.timeManager.getCurrentDay());
+            }
+            
             // Start render loop
             this.render(0);
         } catch (error) {
@@ -79,6 +84,9 @@ class GraphicsEngine {
         
         // Time manager with configuration (provide default if config.time is undefined)
         this.timeManager = new TimeManager(this.config.time || {});
+        
+        // Weather manager with configuration (after TimeManager)
+        this.weatherManager = new WeatherManager(this.config.world?.weather || {});
         
         // Texture manager with configuration
         this.textureGenerator = new TextureGenerator(this.gl, this.config);
@@ -203,8 +211,61 @@ class GraphicsEngine {
             }
         `;
         
+        // Particle shader for rain effects
+        const particleVertexShaderSource = `
+            attribute vec2 a_position;     // World position (x, y)
+            attribute float a_size;        // Particle size (1-3 pixels)
+            attribute float a_alpha;       // Transparency (0-1)
+            
+            uniform vec2 u_resolution;     // Screen resolution
+            uniform float u_zoom;          // Camera zoom
+            uniform vec2 u_camera;         // Camera position
+            
+            varying float v_alpha;         // Pass alpha to fragment shader
+            
+            void main() {
+                // Apply camera (offset)
+                vec2 cameraPosition = a_position - u_camera;
+                
+                // Apply zoom
+                vec2 zoomedPosition = cameraPosition * u_zoom;
+                
+                // Center zoom on screen
+                vec2 screenCenter = u_resolution * 0.5;
+                vec2 finalPosition = zoomedPosition + screenCenter;
+                
+                // Convert to clip space
+                vec2 zeroToOne = finalPosition / u_resolution;
+                vec2 zeroToTwo = zeroToOne * 2.0;
+                vec2 clipSpace = zeroToTwo - 1.0;
+                
+                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+                gl_PointSize = a_size * u_zoom; // Scale particle size with zoom
+                v_alpha = a_alpha;
+            }
+        `;
+        
+        const particleFragmentShaderSource = `
+            precision mediump float;
+            
+            uniform vec4 u_color;          // Rain particle color (configurable)
+            varying float v_alpha;         // Alpha from vertex shader
+            
+            void main() {
+                // Make particles round (circular shape)
+                vec2 coord = gl_PointCoord - vec2(0.5);
+                if (length(coord) > 0.5) {
+                    discard;  // Discard pixels outside circle
+                }
+                
+                // Apply color with per-particle alpha
+                gl_FragColor = vec4(u_color.rgb, u_color.a * v_alpha);
+            }
+        `;
+        
         this.shaderManager.createProgram(vertexShaderSource, fragmentShaderSource, 'basic');
         this.shaderManager.createProgram(textureVertexShaderSource, textureFragmentShaderSource, 'texture');
+        this.shaderManager.createProgram(particleVertexShaderSource, particleFragmentShaderSource, 'particleShader');
     }
     
     setupGeometry() {
@@ -338,6 +399,31 @@ class GraphicsEngine {
                         }
                     }
                     break;
+                case 'w':
+                case 'W': // Cycle weather manually
+                    if (this.weatherManager && this.timeManager) {
+                        const currentWeather = this.weatherManager.getCurrentWeather();
+                        const currentDay = this.timeManager.getCurrentDay();
+                        
+                        // Cycle through weather states: sunny → cloudy → rainy → sunny
+                        let newWeather;
+                        switch (currentWeather) {
+                            case 'sunny':
+                                newWeather = 'cloudy';
+                                break;
+                            case 'cloudy':
+                                newWeather = 'rainy';
+                                break;
+                            case 'rainy':
+                                newWeather = 'sunny';
+                                break;
+                            default:
+                                newWeather = 'sunny';
+                        }
+                        
+                        this.weatherManager.setWeather(newWeather, currentDay);
+                    }
+                    break;
             }
         });
     }
@@ -422,6 +508,16 @@ class GraphicsEngine {
         const gameDaysElapsed = this.timeManager.update(deltaTime);
         const currentDay = this.timeManager.getCurrentDayPrecise();
         
+        // Update weather
+        if (this.weatherManager) {
+            this.weatherManager.update(currentDay);
+        }
+        
+        // Update weather particles (uses real-time deltaTime in seconds)
+        if (this.weatherManager) {
+            this.weatherManager.updateParticles(deltaTime / 1000, this.cameraManager);
+        }
+        
         // Update camera
         this.cameraManager.update();
         
@@ -450,7 +546,12 @@ class GraphicsEngine {
             this.renderSystem.renderBatch(visiblePlants, viewMatrix);
         }
         
-        // 3. Render other entities on top (character, etc.)
+        // 3. Render rain particles (above plants, below UI)
+        if (this.weatherManager) {
+            this.renderSystem.renderParticles(this.weatherManager, this.cameraManager);
+        }
+        
+        // 4. Render other entities on top (character, etc.)
         this.renderSystem.renderBatch(this.entities, viewMatrix);
     }
     
@@ -488,6 +589,9 @@ class GraphicsEngine {
         // Update plant count
         this.debugManager.updatePlantCount(this.plantManager.plants.size);
         
+        // Update weather metrics
+        this.debugManager.updateWeatherMetrics(this.weatherManager, this.timeManager);
+        
         // Update soil information under player
         if (this.player) {
             const playerCenterX = this.player.position.x + this.player.size / 2;
@@ -518,6 +622,9 @@ class GraphicsEngine {
         
         // Update overlay UI display
         this.updateOverlayUI();
+        
+        // Update weather UI display
+        this.updateWeatherUI();
     }
     
     updateOverlayUI() {
@@ -539,6 +646,58 @@ class GraphicsEngine {
         if (overlayLegendElement) {
             // Show legend only when overlay is active
             overlayLegendElement.style.display = this.overlayManager.isOverlayActive() ? 'block' : 'none';
+        }
+    }
+    
+    updateWeatherUI() {
+        if (!this.weatherManager || !this.weatherManager.isEnabled()) return;
+        
+        const currentWeather = this.weatherManager.getCurrentWeather();
+        const rainIntensity = this.weatherManager.getRainIntensity();
+        const timeUntilChange = this.weatherManager.getTimeUntilTransition(this.timeManager.getCurrentDay());
+        
+        // Update weather icon and state
+        const weatherIconElement = document.getElementById('weather-icon');
+        const weatherStateElement = document.getElementById('weather-state');
+        
+        if (weatherIconElement && weatherStateElement) {
+            switch (currentWeather) {
+                case 'sunny':
+                    weatherIconElement.textContent = '☀️';
+                    weatherStateElement.textContent = 'Sunny';
+                    break;
+                case 'cloudy':
+                    weatherIconElement.textContent = '☁️';
+                    weatherStateElement.textContent = 'Cloudy';
+                    break;
+                case 'rainy':
+                    weatherIconElement.textContent = '🌧️';
+                    weatherStateElement.textContent = 'Rainy';
+                    break;
+            }
+        }
+        
+        // Update rain intensity bar (only show for rainy weather)
+        const rainIntensityContainer = document.getElementById('rain-intensity-container');
+        const intensityFillElement = document.getElementById('intensity-fill');
+        
+        if (rainIntensityContainer && intensityFillElement) {
+            if (currentWeather === 'rainy') {
+                rainIntensityContainer.style.display = 'block';
+                intensityFillElement.style.width = `${rainIntensity * 100}%`;
+            } else {
+                rainIntensityContainer.style.display = 'none';
+            }
+        }
+        
+        // Update next change timing
+        const nextChangeElement = document.getElementById('next-change');
+        if (nextChangeElement) {
+            if (timeUntilChange > 0) {
+                nextChangeElement.textContent = `${timeUntilChange.toFixed(1)} days`;
+            } else {
+                nextChangeElement.textContent = 'Soon';
+            }
         }
     }
     

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rain Particle System Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .controls {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:active {
+            background: #3d8b40;
+        }
+        .status {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+        .metric-value {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            background: white;
+        }
+        .info {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🌧️ Rain Particle System Test - Milestone 2 + Splash Animation</h1>
+        
+        <div class="controls">
+            <h3>Weather Controls</h3>
+            <button onclick="setWeather('sunny')">☀️ Sunny (No Rain)</button>
+            <button onclick="setWeather('rainy')">🌧️ Rainy (Spawn Particles)</button>
+            <button onclick="setWeather('cloudy')">☁️ Cloudy (No Rain)</button>
+            <button onclick="setIntensity(0.3)">Light Rain (30%)</button>
+            <button onclick="setIntensity(0.7)">Medium Rain (70%)</button>
+            <button onclick="setIntensity(1.0)">Heavy Rain (100%)</button>
+        </div>
+        
+        <div class="status">
+            <h3>Current Status</h3>
+            <div class="metric">
+                <span>Weather State:</span>
+                <span class="metric-value" id="weather-state">Loading...</span>
+            </div>
+            <div class="metric">
+                <span>Rain Intensity:</span>
+                <span class="metric-value" id="rain-intensity">0.00</span>
+            </div>
+            <div class="metric">
+                <span>Active Particles:</span>
+                <span class="metric-value" id="particle-count">0</span>
+            </div>
+            <div class="metric">
+                <span>Target Particle Count:</span>
+                <span class="metric-value" id="target-count">0</span>
+            </div>
+            <div class="metric">
+                <span>Rain Particles:</span>
+                <span class="metric-value" id="rain-count">0</span>
+            </div>
+            <div class="metric">
+                <span>Splash Particles:</span>
+                <span class="metric-value" id="splash-count">0</span>
+            </div>
+        </div>
+        
+        <iframe id="game-frame" src="../../index.html"></iframe>
+        
+        <div class="info">
+            <h3>Expected Behavior</h3>
+            <ul>
+                <li><strong>Sunny/Cloudy:</strong> No particles visible, particle count = 0</li>
+                <li><strong>Light Rain (30%):</strong> ~300 particles falling smoothly</li>
+                <li><strong>Medium Rain (70%):</strong> ~700 particles falling smoothly</li>
+                <li><strong>Heavy Rain (100%):</strong> ~1000 particles falling smoothly</li>
+                <li><strong>Rain Particles:</strong> Should be small (1-3px), semi-transparent, falling straight down</li>
+                <li><strong>Splash Particles:</strong> When rain hits ground (~15% probability), 2-4 small particles burst outward</li>
+                <li><strong>Splash Behavior:</strong> Expand horizontally, fade out quickly (0.1-0.3 seconds), smaller than rain droplets</li>
+                <li><strong>Performance:</strong> Should maintain 60 FPS with 1000+ particles (rain + splashes)</li>
+                <li><strong>Spawning:</strong> Rain spawns above screen, despawns at ground level (creating splashes)</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        const frame = document.getElementById('game-frame');
+        let graphicsEngine = null;
+        
+        // Wait for game to load
+        frame.onload = () => {
+            console.log('[TEST] Game loaded, waiting for GraphicsEngine...');
+            
+            // Poll until graphicsEngine is available
+            const pollInterval = setInterval(() => {
+                try {
+                    graphicsEngine = frame.contentWindow.graphicsEngine;
+                    if (graphicsEngine && graphicsEngine.weatherManager) {
+                        console.log('[TEST] GraphicsEngine found!');
+                        clearInterval(pollInterval);
+                        
+                        // Start status updates
+                        setInterval(updateStatus, 100);
+                        updateStatus();
+                    }
+                } catch (e) {
+                    console.log('[TEST] Still waiting for engine...');
+                }
+            }, 100);
+        };
+        
+        function setWeather(state) {
+            if (!graphicsEngine || !graphicsEngine.weatherManager) {
+                alert('Game not loaded yet, please wait...');
+                return;
+            }
+            
+            const currentDay = graphicsEngine.timeManager.getCurrentDay();
+            graphicsEngine.weatherManager.setWeather(state, currentDay);
+            console.log(`[TEST] Weather set to: ${state}`);
+            updateStatus();
+        }
+        
+        function setIntensity(intensity) {
+            if (!graphicsEngine || !graphicsEngine.weatherManager) {
+                alert('Game not loaded yet, please wait...');
+                return;
+            }
+            
+            // First set weather to rainy
+            const currentDay = graphicsEngine.timeManager.getCurrentDay();
+            graphicsEngine.weatherManager.setWeather('rainy', currentDay);
+            
+            // Then manually override intensity (for testing)
+            graphicsEngine.weatherManager.rainIntensity = intensity;
+            
+            console.log(`[TEST] Rain intensity set to: ${intensity}`);
+            updateStatus();
+        }
+        
+        function updateStatus() {
+            if (!graphicsEngine || !graphicsEngine.weatherManager) {
+                return;
+            }
+            
+            const wm = graphicsEngine.weatherManager;
+            const state = wm.getCurrentWeather();
+            const intensity = wm.getRainIntensity();
+            const particles = wm.getActiveParticles();
+            const targetCount = Math.floor(wm.maxParticles * intensity);
+            
+            // Count rain vs splash particles
+            let rainCount = 0;
+            let splashCount = 0;
+            particles.forEach(p => {
+                if (p.type === 'rain') rainCount++;
+                else if (p.type === 'splash') splashCount++;
+            });
+            
+            document.getElementById('weather-state').textContent = state.toUpperCase();
+            document.getElementById('rain-intensity').textContent = intensity.toFixed(2);
+            document.getElementById('particle-count').textContent = particles.length;
+            document.getElementById('target-count').textContent = targetCount;
+            document.getElementById('rain-count').textContent = rainCount;
+            document.getElementById('splash-count').textContent = splashCount;
+        }
+    </script>
+</body>
+</html>

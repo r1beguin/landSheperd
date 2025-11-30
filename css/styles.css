@@ -437,3 +437,90 @@ canvas {
     font-size: 10px;
     color: #888;
 }
+
+/* Weather Widget UI */
+#weather-widget {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.85);
+    padding: 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    z-index: 1000;
+    min-width: 220px;
+    color: white;
+    font-family: 'Courier New', monospace;
+}
+
+#weather-widget .weather-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+#weather-widget .weather-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+#weather-widget .weather-state {
+    color: #4CAF50;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+#weather-widget .weather-details {
+    margin-bottom: 10px;
+}
+
+#weather-widget .rain-intensity-container {
+    margin-bottom: 10px;
+}
+
+#weather-widget .intensity-label {
+    display: block;
+    font-size: 11px;
+    color: #aaa;
+    margin-bottom: 5px;
+}
+
+#weather-widget .rain-intensity-bar {
+    background-color: #2a2a2a;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid #444;
+}
+
+#weather-widget .intensity-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2196F3 0%, #64B5F6 100%);
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+#weather-widget .weather-timing {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+
+#weather-widget .timing-label {
+    color: #aaa;
+}
+
+#weather-widget .timing-value {
+    color: white;
+    font-weight: bold;
+}
+
+#weather-widget .weather-hint {
+    font-size: 11px;
+    color: #888;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #444;
+}

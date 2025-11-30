@@ -12,6 +12,10 @@
     "test": "playwright test",
     "test:interactive": "playwright test tests/interactive.spec.js",
     "test:overlay": "cross-env TEST_OVERLAY=true playwright test",
+    "test:weather": "cross-env TEST_WEATHER=true playwright test",
+    "test:weather-soil": "cross-env TEST_WEATHER_SOIL=true playwright test",
+    "test:nitrogen": "cross-env TEST_NITROGEN_REGEN=true playwright test",
+    "test:splash": "cross-env TEST_SPLASH=true playwright test --headed",
     "test:context-menu": "cross-env TEST_FUNCTIONAL=true playwright test --headed",
     "dev": "npx http-server -p 8080",
     "postinstall": "playwright install chromium"
