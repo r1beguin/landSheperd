@@ -1,6 +1,9 @@
 # Land Shepherd
 **Pixel art nature simulation in WebGL**
 
+> **For AI Agents**: See [AGENTS.md](AGENTS.md) for development guidelines and workflow.
+> **For Documentation**: See [doc/INDEX.md](doc/INDEX.md) for complete navigation.
+
 ## Overview
 
 Land Shepherd is a pixel art nature simulation developed with pure WebGL and vanilla JavaScript. The project uses a modular architecture with decoupled systems to optimize performance and facilitate maintenance.
@@ -14,10 +17,14 @@ landSheperd/
 ├── index.html               # HTML entry point
 ├── css/
 │   └── styles.css          # CSS styles and debug interface
-├── doc/                    # Documentation
-│   ├── plant_generation_system.md
-│   ├── redering_workflow.md
-│   └── technical_doc.md
+├── doc/                    # Documentation (see doc/INDEX.md)
+│   ├── guides/             # Developer guides
+│   ├── architecture/       # System architecture
+│   ├── features/           # Feature documentation
+│   ├── testing/            # Testing guides
+│   ├── troubleshooting/    # Problem-solving
+│   ├── devlogs/            # Development history
+│   └── INDEX.md            # Documentation navigation hub
 ├── js/
 │   ├── core/               # Core engine systems
 │   │   ├── main_graphics.js        # Main GraphicsEngine
@@ -226,19 +233,21 @@ Use time controls to speed up or slow down the simulation!
 2. **Local server** (required for WebGL):
    ```bash
    # Option 1: Python
-   python -m http.server 8080
+   python -m http.server 8081
    
    # Option 2: Node.js
-   npx http-server -p 8080
+   npx http-server -p 8081
    
    # Option 3: Live Server (VS Code)
-   # Use the Live Server extension
+   # Use the Live Server extension (configure to port 8081)
    ```
 
 3. **Open in browser**:
    ```
-   http://localhost:8080
+   http://localhost:8081
    ```
+   
+   **Note**: Port 8081 is used to avoid conflicts with other local services (e.g., Traefik on port 8080).
 
 ## Testing
 
@@ -261,7 +270,7 @@ The project includes a comprehensive interactive testing framework with:
 - **Visual diff generation** for regression testing
 - **Modular test modes** for focused testing scenarios
 
-See [Interactive Testing Guide](doc/interactive_testing.md) for detailed usage and API reference.
+See [Interactive Testing Guide](doc/testing/interactive-testing.md) for detailed usage and API reference.
 
 Test results are saved in `test-results/`:
 - `baseline/` - Reference screenshots and reports

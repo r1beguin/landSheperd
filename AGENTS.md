@@ -1,5 +1,18 @@
 # Agent Guidelines for Land Shepherd
 
+## Documentation Structure
+
+**This project uses organized, modular documentation. For comprehensive information, see:**
+
+- **[doc/INDEX.md](doc/INDEX.md)** - Complete documentation navigation hub
+- **[doc/dev-guidelines.md](doc/dev-guidelines.md)** - Quick reference and routing guide
+- **[doc/guides/](doc/guides/)** - Developer guides and workflows
+- **[doc/architecture/](doc/architecture/)** - System architecture and technical reference
+- **[doc/features/](doc/features/)** - Feature-specific documentation
+- **[doc/testing/](doc/testing/)** - Testing documentation and verification guides
+- **[doc/troubleshooting/](doc/troubleshooting/)** - Problem-solving guides
+- **[doc/devlogs/](doc/devlogs/)** - Development history by date
+
 ## Running the Project
 - **No build step required** - Pure vanilla JS with direct script loading
 - **Local server**: `python -m http.server 8081` or `npx http-server -p 8081` or use VS Code Live Server (port 8081)
@@ -39,7 +52,7 @@ npm run verify:interactive          # Full interactive mode
 npm run verify:screenshot-only      # Screenshots only
 npm run verify:log-only             # Log analysis only
 ```
-See [doc/interactive_testing.md](doc/interactive_testing.md) for detailed usage and API reference.
+See [doc/testing/interactive-testing.md](doc/testing/interactive-testing.md) for detailed usage and API reference.
 
 This automated test will:
 1. Start local server on port 8081
@@ -110,6 +123,9 @@ This installs dependencies and creates initial baseline.
 5. Consider creating new baseline if visual changes are intentional
 
 ## Documentation
-- **Update doc/dev-guidelines.md** after every feature with implementation details, files changed, and usage
-- **Technical docs**: Place detailed system docs in doc/ directory
+- **Update feature docs** after every feature in `doc/features/` with implementation details
+- **Create devlogs** for significant features in `doc/devlogs/YYYY-MM/`
+- **Update guides** if workflows change in `doc/guides/`
+- **Architecture docs**: Place system design docs in `doc/architecture/`
 - **Code comments**: Document "why" not "what"
+- **See**: [doc/INDEX.md](doc/INDEX.md) for complete documentation structure
