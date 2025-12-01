@@ -130,6 +130,8 @@
         "description": "Improves soil structure and slow-release nutrients"
       }
     },
+    "lightRequirement": 0.6,
+    "rootDepth": "shallow",
     "description": "Nettles are nitrogen-loving pioneers requiring balanced soil nutrients"
   },
   "proceduralModules": {

@@ -30,6 +30,10 @@ module.exports = defineConfig({
     ? '**/seed-system.spec.js'
     : process.env.TEST_SEED_PERSISTENCE === 'true'
     ? '**/seed-persistence.spec.js'
+    : process.env.TEST_OAK_CANOPY === 'true'
+    ? '**/oak-canopy-cropping.spec.js'
+    : process.env.TEST_MULTI_LAYER === 'true'
+    ? '**/multi-layer-simple.spec.js'
     : process.env.TEST_INTERACTIVE === 'true' || 
       process.env.TEST_SCREENSHOT_ONLY === 'true' || 
       process.env.TEST_LOG_ONLY === 'true'

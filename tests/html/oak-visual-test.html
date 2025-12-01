@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oak Visual Test - Land Shepherd</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: monospace;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 400px;
+            z-index: 1000;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        .test-result {
+            margin: 5px 0;
+            padding: 5px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        canvas {
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>Oak Visual Test</h1>
+        <div id="test-output">Initializing...</div>
+    </div>
+    <canvas id="gameCanvas" width="1280" height="720"></canvas>
+
+    <!-- Load game scripts in correct order -->
+    <script src="../js/core/debug_manager.js"></script>
+    <script src="../js/core/geometry_manager.js"></script>
+    <script src="../js/core/shader_manager.js"></script>
+    <script src="../js/core/texture_generator.js"></script>
+    <script src="../js/entities/soil.js"></script>
+    <script src="../js/core/soil_manager.js"></script>
+    <script src="../js/core/procedural_generator.js"></script>
+    <script src="../js/procedural/plant_generator.js"></script>
+    <script src="../js/entities/plant.js"></script>
+    <script src="../js/core/plant_manager.js"></script>
+    <script src="../js/core/time_manager.js"></script>
+    <script src="../js/core/lighting_manager.js"></script>
+    <script src="../js/core/weather_manager.js"></script>
+    <script src="../js/systems/camera_manager.js"></script>
+    <script src="../js/systems/input_manager.js"></script>
+    <script src="../js/systems/overlay_manager.js"></script>
+    <script src="../js/systems/render_system.js"></script>
+    <script src="../js/systems/context_menu_manager.js"></script>
+    <script src="../js/entities/character.js"></script>
+    <script src="../js/core/main_graphics.js"></script>
+
+    <!-- Load test script -->
+    <script>
+        const testOakVisuals = async () => {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<div class="test-result">Waiting for initialization...</div>';
+            
+            // Wait for game to fully initialize
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            if (!window.graphicsEngine) {
+                output.innerHTML = '<div class="test-result error">✗ GraphicsEngine not initialized</div>';
+                return;
+            }
+            
+            const plantManager = window.graphicsEngine.plantManager;
+            
+            if (!plantManager) {
+                output.innerHTML = '<div class="test-result error">✗ PlantManager not initialized</div>';
+                return;
+            }
+            
+            let html = '<div class="test-result success">✓ PlantManager loaded</div>';
+            html += '<div class="test-result">Species: ' + Object.keys(plantManager.speciesConfigs).join(', ') + '</div>';
+            
+            // Find a good location near center
+            const testX = 10;
+            const testY = 5;
+            
+            // Test 1: Plant Sapling
+            const sapling = plantManager.addPlant(testX, testY, 'quercus_robur', 'Sapling');
+            if (sapling) {
+                html += '<div class="test-result success">✓ Sapling planted (40x50px)</div>';
+            } else {
+                html += '<div class="test-result error">✗ Sapling failed</div>';
+            }
+            
+            // Test 2: Plant Young Tree
+            const youngTree = plantManager.addPlant(testX + 3, testY, 'quercus_robur', 'YoungTree');
+            if (youngTree) {
+                html += '<div class="test-result success">✓ Young Tree planted (40x50px)</div>';
+            } else {
+                html += '<div class="test-result error">✗ Young Tree failed</div>';
+            }
+            
+            // Test 3: Plant Mature Tree
+            const matureTree = plantManager.addPlant(testX + 6, testY, 'quercus_robur', 'MatureTree');
+            if (matureTree) {
+                html += '<div class="test-result success">✓ Mature Tree planted (40x50px)</div>';
+            } else {
+                html += '<div class="test-result error">✗ Mature Tree failed</div>';
+            }
+            
+            // Test 4: Plant Withered Tree
+            const witheredTree = plantManager.addPlant(testX + 9, testY, 'quercus_robur', 'Withered');
+            if (witheredTree) {
+                html += '<div class="test-result success">✓ Withered Tree planted (40x50px)</div>';
+            } else {
+                html += '<div class="test-result error">✗ Withered Tree failed</div>';
+            }
+            
+            html += '<hr>';
+            html += '<div class="test-result">VISUAL CHECK:</div>';
+            html += '<div class="test-result">1. Sapling canopy fully visible?</div>';
+            html += '<div class="test-result">2. Young Tree canopy NOT cropped?</div>';
+            html += '<div class="test-result">3. Mature Tree canopy NOT cropped?</div>';
+            html += '<div class="test-result">4. Withered trunk with bare branches?</div>';
+            
+            output.innerHTML = html;
+        };
+        
+        // Auto-run when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', testOakVisuals);
+        } else {
+            testOakVisuals();
+        }
+    </script>
+</body>
+</html>

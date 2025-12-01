@@ -1,0 +1,193 @@
+{
+  "id": "quercus_robur",
+  "commonName": "Oak Tree",
+  "category": "tree",
+  "layer": "top",
+  "appearance": {
+    "dimensions": {
+      "width": 40,
+      "height": 50
+    },
+    "colorPalette": {
+      "trunk": ["#5C4033", "#4A3426", "#3E281F"],
+      "bark": ["#6D5A4F", "#5A4A3F", "#4A3A2F"],
+      "leaf": ["#4A7C3C", "#3D6B32", "#2F5A28"],
+      "autumnLeaf": ["#D4A017", "#B8860B", "#8B6914"],
+      "witheredTrunk": ["#8B7355", "#7A6245", "#6B5235"],
+      "witheredLeaf": ["#A0826D", "#8B7355", "#6B5A45"]
+    }
+  },
+  "growthStages": [
+    {
+      "name": "Sapling",
+      "daysToGrow": 7,
+      "generator": "saplingGeneration",
+      "visibleOrgans": ["trunk", "leaf"],
+      "nutrientConsumption": {
+        "nitrogen": 15,
+        "phosphorus": 10,
+        "potassium": 8,
+        "organicMatter": 5
+      },
+      "growthModifiers": {
+        "nitrogen": {
+          "weight": 0.30,
+          "description": "Early shoot development"
+        },
+        "phosphorus": {
+          "weight": 0.35,
+          "description": "Critical for root establishment"
+        },
+        "potassium": {
+          "weight": 0.20,
+          "description": "Seedling vigor"
+        },
+        "organicMatter": {
+          "weight": 0.15,
+          "description": "Soil moisture for young roots"
+        }
+      }
+    },
+    {
+      "name": "YoungTree",
+      "daysToGrow": 20,
+      "generator": "youngTreeGeneration",
+      "visibleOrgans": ["trunk", "bark", "leaf"],
+      "nutrientConsumption": {
+        "nitrogen": 35,
+        "phosphorus": 25,
+        "potassium": 20,
+        "organicMatter": 15
+      },
+      "growthModifiers": {
+        "nitrogen": {
+          "weight": 0.35,
+          "description": "Supports trunk growth and leaf production"
+        },
+        "phosphorus": {
+          "weight": 0.25,
+          "description": "Root expansion and structural development"
+        },
+        "potassium": {
+          "weight": 0.25,
+          "description": "Tree vigor and stress resistance"
+        },
+        "organicMatter": {
+          "weight": 0.15,
+          "description": "Soil health and moisture retention"
+        }
+      }
+    },
+    {
+      "name": "MatureTree",
+      "daysToGrow": null,
+      "generator": "matureTreeGeneration",
+      "visibleOrgans": ["trunk", "bark", "leaf"],
+      "nutrientConsumption": {
+        "nitrogen": 50,
+        "phosphorus": 35,
+        "potassium": 30,
+        "organicMatter": 25
+      },
+      "growthModifiers": {
+        "nitrogen": {
+          "weight": 0.30,
+          "description": "Maintains canopy and new growth"
+        },
+        "phosphorus": {
+          "weight": 0.25,
+          "description": "Deep root maintenance"
+        },
+        "potassium": {
+          "weight": 0.30,
+          "description": "Overall tree health and resilience"
+        },
+        "organicMatter": {
+          "weight": 0.15,
+          "description": "Long-term soil quality"
+        }
+      }
+    },
+    {
+      "name": "Withered",
+      "daysToGrow": 5,
+      "generator": "witheredGeneration",
+      "visibleOrgans": ["trunk", "leaf"],
+      "nutrientReturn": {
+        "nitrogen": 25,
+        "phosphorus": 15,
+        "potassium": 12,
+        "organicMatter": 60
+      }
+    }
+  ],
+  "environment": {
+    "nutrientRequirements": {
+      "nitrogen": {
+        "minimum": 30,
+        "optimal": 70,
+        "description": "Deep roots access nitrogen throughout soil profile"
+      },
+      "phosphorus": {
+        "minimum": 20,
+        "optimal": 50,
+        "description": "Critical for root establishment and structural growth"
+      },
+      "potassium": {
+        "minimum": 20,
+        "optimal": 50,
+        "description": "Essential for tree vigor and disease resistance"
+      },
+      "organicMatter": {
+        "minimum": 15,
+        "optimal": 50,
+        "description": "Supports mycorrhizal networks and moisture retention"
+      }
+    },
+    "lightRequirement": 0.9,
+    "rootDepth": "deep",
+    "lightCasting": {
+      "enabled": true,
+      "activeStages": ["YoungTree", "MatureTree"],
+      "shadeStrength": 0.5,
+      "radius": 1
+    },
+    "description": "Oak trees are deep-rooted, shade-casting canopy trees requiring full sun and rich soil"
+  },
+  "proceduralModules": {
+    "trunk": {
+      "segments": 5,
+      "curveIntensity": 0.05,
+      "colorVariation": 0.20,
+      "baseWidth": 0.6,
+      "tapering": 0.8
+    },
+    "bark": {
+      "textureIntensity": 0.7,
+      "roughness": 0.6,
+      "colorVariation": 0.25
+    },
+    "leaf": {
+      "shapeType": "lobed",
+      "irregularity": 0.4,
+      "clusterCount": 4,
+      "edgeVariation": 0.6,
+      "density": 0.8
+    },
+    "sapling": {
+      "trunk": {
+        "segments": 2,
+        "curveIntensity": 0.1,
+        "colorVariation": 0.15,
+        "baseWidth": 0.3
+      },
+      "leaf": {
+        "shapeType": "lobed",
+        "irregularity": 0.3,
+        "clusterCount": 2,
+        "edgeVariation": 0.5,
+        "density": 0.6
+      }
+    }
+  }
+}

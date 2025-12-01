@@ -14,8 +14,11 @@ class Plant {
         this.health = 1.0;
         this.texture = null;
         this.webglTexture = null; // Cache for WebGL texture
-        this.width = 20;
-        this.height = 20;
+        
+        // Set dimensions from species config if available
+        const dimensions = speciesConfig.appearance?.dimensions;
+        this.width = dimensions?.width || 20;
+        this.height = dimensions?.height || 20;
         
         // Reproduction tracking
         this.lastReproductionDay = currentDay;
@@ -374,14 +377,79 @@ class Plant {
         return [r, g, b, 1.0];
     }
 
+    /**
+     * Get the layer this plant occupies
+     * @returns {string} Layer name: "bottom", "middle", or "top"
+     */
+    getLayer() {
+        return this.species.layer || "middle";
+    }
+
+    /**
+     * Calculate render Y offset based on layer for visual stacking
+     * @returns {number} Y offset in pixels
+     */
+    getRenderOffset() {
+        const config = window.config?.world?.plants?.layers;
+        if (!config || !config.enabled) return 0;
+        
+        const offsets = config.renderOffsets || {bottom: 0, middle: 5, top: 15};
+        const layer = this.getLayer();
+        return offsets[layer] || 0;
+    }
+
+    /**
+     * Check if this plant casts shade on lower layers
+     * @returns {boolean} True if plant casts shade
+     */
+    castsShade() {
+        const lightCasting = this.species.environment?.lightCasting;
+        if (!lightCasting || !lightCasting.enabled) return false;
+        
+        // Only cast shade in specific growth stages
+        if (lightCasting.activeStages && !lightCasting.activeStages.includes(this.stage)) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Get light requirement for this species (0.0 to 1.0)
+     * @returns {number} Light requirement
+     */
+    getLightRequirement() {
+        return this.species.environment?.lightRequirement || 0.5;
+    }
+
+    /**
+     * Get shade strength this plant casts (0.0 to 1.0)
+     * @returns {number} Shade strength, 0 if doesn't cast shade
+     */
+    getShadeStrength() {
+        if (!this.castsShade()) return 0;
+        return this.species.environment?.lightCasting?.shadeStrength || 0;
+    }
+
+    /**
+     * Get shade radius in grid cells
+     * @returns {number} Radius in cells
+     */
+    getShadeRadius() {
+        if (!this.castsShade()) return 0;
+        return this.species.environment?.lightCasting?.radius || 0;
+    }
+
     getRenderData() {
+        const yOffset = this.getRenderOffset();
         return {
-            x: this.x - this.width / 2,  // Center the plant sprite on its position
-            y: this.y - this.height / 2, // Center the plant sprite on its position
+            x: this.x - this.width / 2,  // Center horizontally
+            y: this.y - this.height - yOffset, // Anchor at bottom (plant "stands" on ground)
             width: this.width,
             height: this.height,
             texture: this.texture,
-            tint: this.calculateNutrientTint()
+            tint: this.calculateNutrientTint(),
+            layer: this.getLayer() // Add layer info for rendering system
         };
     }
 

@@ -813,7 +813,8 @@ class SoilManager {
             // Check if cell still has active decomposition conditions:
             // 1. Has living plant (root zone activity boosts microbes)
             // 2. OR had recent plant death (within activity window)
-            const hasLivingPlant = plantManager && plantManager.getPlantAt(x, y);
+            const plants = plantManager && plantManager.getPlantAt(x, y); // Returns array
+            const hasLivingPlant = plants && plants.length > 0;
             const lastActivity = this.cellLastPlantActivity.get(cellKey) || 0;
             const daysSinceActivity = currentGameDay - lastActivity;
             

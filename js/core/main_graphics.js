@@ -489,6 +489,9 @@ class GraphicsEngine {
     }
 
     setupGameSystems() {
+        // Set plant manager reference for species palette
+        this.inputManager.setPlantManager(this.plantManager);
+        
         this.setupInputHandlers();
         this.setupCameraControls();
     }
@@ -747,11 +750,11 @@ class GraphicsEngine {
         // 1. Render soil first (background)
         this.soilManager.renderSoil(this.renderSystem, viewMatrix, this.cameraManager, this.lightingManager);
         
-        // 2. Render plants (middle layer)
+        // 2. Render plants by layer for proper Z-ordering (bottom → middle → top)
         const visibleBounds = this.cameraManager.getVisibleBounds();
         const visiblePlants = this.plantManager.getVisiblePlants(visibleBounds);
         if (visiblePlants.length > 0) {
-            this.renderSystem.renderBatch(visiblePlants, viewMatrix, this.lightingManager);
+            this.renderSystem.renderPlantsByLayer(visiblePlants, viewMatrix, this.lightingManager);
         }
         
         // 3. Render rain particles (above plants, below UI)

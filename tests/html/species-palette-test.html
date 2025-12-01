@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Species Palette Test - Milestone 5</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #88cc88;
+            padding: 20px;
+        }
+        h1 { color: #4CAF50; }
+        .test-section {
+            background: rgba(40, 40, 40, 0.95);
+            border: 2px solid rgba(100, 150, 100, 0.8);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .test-step {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(60, 60, 60, 0.8);
+            border-left: 3px solid #4CAF50;
+        }
+        .success { color: #4CAF50; }
+        .warning { color: #FFA726; }
+        .instruction { color: #64B5F6; }
+    </style>
+</head>
+<body>
+    <h1>🌿 Species Palette Test - Milestone 5</h1>
+    
+    <div class="test-section">
+        <h2>Test Checklist</h2>
+        
+        <div class="test-step">
+            <h3>1. Visual UI Check</h3>
+            <p class="instruction">✓ Species palette visible in bottom-left corner</p>
+            <p class="instruction">✓ Two species icons shown: Nettle (leaf icon) and Oak (tree icon)</p>
+            <p class="instruction">✓ Nettle selected by default (green highlight)</p>
+            <p class="instruction">✓ Icons have distinct visual appearance</p>
+        </div>
+        
+        <div class="test-step">
+            <h3>2. Selection Interaction</h3>
+            <p class="instruction">→ Click Oak icon</p>
+            <p class="instruction">✓ Oak icon should highlight (green border/shadow)</p>
+            <p class="instruction">✓ Nettle icon should unhighlight</p>
+            <p class="instruction">✓ Info text should update: "Oak Tree selected (top layer)"</p>
+            <p class="instruction">✓ Console log: "Selected species: quercus_robur"</p>
+        </div>
+        
+        <div class="test-step">
+            <h3>3. Plant Placement</h3>
+            <p class="instruction">→ With Oak selected, right-click on soil</p>
+            <p class="instruction">✓ Context menu shows "Plant Oak Tree" button</p>
+            <p class="instruction">✓ Click "Plant Oak Tree"</p>
+            <p class="instruction">✓ Oak sapling should appear (40x50px, larger than nettle)</p>
+        </div>
+        
+        <div class="test-step">
+            <h3>4. Switch Species</h3>
+            <p class="instruction">→ Click Nettle icon</p>
+            <p class="instruction">✓ Nettle icon highlights</p>
+            <p class="instruction">✓ Info text: "Stinging Nettle selected (middle layer)"</p>
+            <p class="instruction">→ Right-click on different soil</p>
+            <p class="instruction">✓ Context menu shows "Plant Stinging Nettle"</p>
+            <p class="instruction">✓ Click button to place nettle (20x20px)</p>
+        </div>
+        
+        <div class="test-step">
+            <h3>5. Context Menu - Layer Info</h3>
+            <p class="instruction">→ Right-click on placed nettle</p>
+            <p class="instruction">✓ Context menu shows: "Layer: Middle"</p>
+            <p class="instruction">✓ Context menu shows: "Light Need: 60%"</p>
+            <p class="instruction">✓ No shade casting info (nettles don't cast shade)</p>
+        </div>
+        
+        <div class="test-step">
+            <h3>6. Context Menu - Oak Layer Info</h3>
+            <p class="instruction">→ Right-click on placed oak sapling</p>
+            <p class="instruction">✓ Context menu shows: "Layer: Top"</p>
+            <p class="instruction">✓ Context menu shows: "Light Need: 90%"</p>
+            <p class="instruction">✓ No shade casting yet (sapling stage)</p>
+        </div>
+        
+        <div class="test-step">
+            <h3>7. Oak Shade Casting (Advanced Growth)</h3>
+            <p class="instruction">→ Advance oak to YoungTree stage (click "Advance Growth" multiple times)</p>
+            <p class="instruction">✓ When YoungTree or older, context menu should show:</p>
+            <p class="instruction">✓ "Casts Shade: 50% (1 cells)" or similar</p>
+        </div>
+        
+        <div class="test-step">
+            <h3>8. Z-Ordering Visual Test</h3>
+            <p class="instruction">→ Place oak and nettle near each other</p>
+            <p class="instruction">✓ Oak should render ABOVE nettle (top layer > middle layer)</p>
+            <p class="instruction">✓ Oak has Y-offset of +15px, nettle has +5px offset</p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Expected Console Logs</h2>
+        <pre class="success">
+Selected species: quercus_robur
+Selected species: urtica_dioica
+PlantManager loaded 2 species: urtica_dioica, quercus_robur
+        </pre>
+    </div>
+    
+    <div class="test-section">
+        <h2>Performance Check</h2>
+        <p class="instruction">✓ No lag when clicking species icons</p>
+        <p class="instruction">✓ Context menu updates smoothly</p>
+        <p class="instruction">✓ FPS stays above 60</p>
+        <p class="instruction">✓ No console errors</p>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="success">Test Instructions</h2>
+        <p>1. Open <code>http://localhost:8081</code> in your browser</p>
+        <p>2. Open Developer Console (F12)</p>
+        <p>3. Follow the test steps above</p>
+        <p>4. Check console for expected logs</p>
+        <p>5. Verify all visual feedback works</p>
+    </div>
+</body>
+</html>

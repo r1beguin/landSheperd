@@ -28,6 +28,9 @@ class InputManager {
         
         this.keyState = new Map();
         
+        // Manager references for species palette
+        this.plantManager = null;
+        
         this.setupEventListeners();
     }
     
@@ -193,5 +196,51 @@ class InputManager {
     
     getMousePosition() {
         return { x: this.mouseState.x, y: this.mouseState.y };
+    }
+    
+    /**
+     * Set plant manager reference for species selection
+     * @param {PlantManager} plantManager - The plant manager instance
+     */
+    setPlantManager(plantManager) {
+        this.plantManager = plantManager;
+        // Initialize species palette UI
+        this.initSpeciesPalette();
+    }
+    
+    /**
+     * Initialize species palette interactions
+     */
+    initSpeciesPalette() {
+        const paletteIcons = document.querySelectorAll('.species-icon');
+        
+        paletteIcons.forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                const speciesId = icon.dataset.species;
+                
+                // Update PlantManager selection
+                if (this.plantManager) {
+                    this.plantManager.setSelectedSpecies(speciesId);
+                    
+                    // Update UI to show selection
+                    paletteIcons.forEach(i => i.classList.remove('selected'));
+                    icon.classList.add('selected');
+                    
+                    // Update info text
+                    const speciesConfig = this.plantManager.getSpeciesById(speciesId);
+                    if (speciesConfig) {
+                        const infoElement = document.getElementById('selected-species-info');
+                        const layerName = speciesConfig.layer || 'middle';
+                        if (infoElement) {
+                            infoElement.textContent = `${speciesConfig.commonName} selected (${layerName} layer)`;
+                        }
+                    }
+                    
+                    console.log(`Selected species: ${speciesId}`);
+                }
+            });
+        });
     }
 }

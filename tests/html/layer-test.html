@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layer Rendering Test - Land Shepherd</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #2a2a2a;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+        }
+        
+        #gameCanvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        #test-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 350px;
+        }
+        
+        .test-button {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            background: #4CAF50;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        .test-button:hover {
+            background: #45a049;
+        }
+        
+        .info {
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        h3 {
+            margin-top: 0;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 5px;
+        }
+        
+        .status {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="test-panel">
+        <h3>Layer Rendering Test</h3>
+        
+        <div class="info">
+            <div>Plant Count: <span id="plant-count" class="status">0</span></div>
+            <div>Render Logging: <span id="render-logging" class="status">OFF</span></div>
+        </div>
+        
+        <button class="test-button" onclick="runLayerTest()">Run Layer Test</button>
+        <button class="test-button" onclick="clearPlants()">Clear Plants</button>
+        <button class="test-button" onclick="toggleRenderLogging()">Toggle Render Logging</button>
+        <button class="test-button" onclick="spawnOverlappingTest()">Spawn Overlapping Test</button>
+        <button class="test-button" onclick="spawnMixedColony()">Spawn Mixed Colony</button>
+        
+        <div class="info">
+            <strong>Expected Behavior:</strong><br>
+            - Oak trees (40x50px) appear larger<br>
+            - Oak trees render ABOVE nettles<br>
+            - No Z-fighting/flickering<br>
+            - Layer separation visible (+5px, +15px)
+        </div>
+        
+        <div class="info" id="log-output" style="max-height: 200px; overflow-y: auto; font-size: 10px;">
+            <strong>Console Log:</strong><br>
+            <div id="log-content">Waiting for tests...</div>
+        </div>
+    </div>
+    
+    <script>
+        // Intercept console.log to display in panel
+        const originalLog = console.log;
+        const logContent = document.getElementById('log-content');
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            logContent.innerHTML += message + '<br>';
+            // Auto-scroll
+            logContent.parentElement.scrollTop = logContent.parentElement.scrollHeight;
+        };
+        
+        function updatePlantCount() {
+            const count = window.graphicsEngine?.plantManager?.plants?.size || 0;
+            document.getElementById('plant-count').textContent = count;
+        }
+        
+        function updateRenderLoggingStatus() {
+            const enabled = window.config?.world?.plants?.layers?.renderLogging || false;
+            document.getElementById('render-logging').textContent = enabled ? 'ON' : 'OFF';
+        }
+        
+        function runLayerTest() {
+            if (!window.graphicsEngine || !window.graphicsEngine.plantManager) {
+                console.log('ERROR: Graphics engine not initialized!');
+                return;
+            }
+            
+            const plantManager = window.graphicsEngine.plantManager;
+            const timeManager = window.graphicsEngine.timeManager;
+            const currentDay = timeManager.getCurrentDayPrecise();
+            
+            console.log('=== LAYER RENDERING TEST ===');
+            
+            // Clear existing plants
+            plantManager.plants.clear();
+            
+            // Test 1: Side-by-side comparison
+            console.log('Test 1: Side-by-side (nettle at 20,20 / oak at 22,20)');
+            plantManager.addPlant(20, 20, 'urtica_dioica', currentDay);
+            plantManager.addPlant(22, 20, 'quercus_robur', currentDay);
+            
+            // Test 2: Overlapping (oak should render above nettle)
+            console.log('Test 2: Overlapping (both at 25,25)');
+            plantManager.addPlant(25, 25, 'urtica_dioica', currentDay);
+            plantManager.addPlant(25, 25, 'quercus_robur', currentDay);
+            
+            // Test 3: Multiple mixed
+            console.log('Test 3: Mixed colony (4x4 grid)');
+            for (let i = 28; i < 32; i++) {
+                for (let j = 20; j < 24; j++) {
+                    const species = Math.random() > 0.5 ? 'quercus_robur' : 'urtica_dioica';
+                    plantManager.addPlant(i, j, species, currentDay);
+                }
+            }
+            
+            updatePlantCount();
+            console.log(`Total plants spawned: ${plantManager.plants.size}`);
+            console.log('=== TEST COMPLETE ===');
+        }
+        
+        function clearPlants() {
+            if (window.graphicsEngine?.plantManager) {
+                window.graphicsEngine.plantManager.plants.clear();
+                updatePlantCount();
+                console.log('All plants cleared');
+            }
+        }
+        
+        function toggleRenderLogging() {
+            if (window.config?.world?.plants?.layers) {
+                const current = window.config.world.plants.layers.renderLogging;
+                window.config.world.plants.layers.renderLogging = !current;
+                updateRenderLoggingStatus();
+                console.log(`Render logging: ${!current ? 'ENABLED' : 'DISABLED'}`);
+            }
+        }
+        
+        function spawnOverlappingTest() {
+            if (!window.graphicsEngine?.plantManager) return;
+            
+            const plantManager = window.graphicsEngine.plantManager;
+            const timeManager = window.graphicsEngine.timeManager;
+            const currentDay = timeManager.getCurrentDayPrecise();
+            
+            plantManager.plants.clear();
+            
+            console.log('=== OVERLAPPING TEST ===');
+            console.log('Spawning 3 nettles and 3 oaks at same position (25,25)');
+            
+            for (let i = 0; i < 3; i++) {
+                plantManager.addPlant(25, 25, 'urtica_dioica', currentDay);
+            }
+            for (let i = 0; i < 3; i++) {
+                plantManager.addPlant(25, 25, 'quercus_robur', currentDay);
+            }
+            
+            updatePlantCount();
+            console.log('All oaks should render ABOVE all nettles');
+        }
+        
+        function spawnMixedColony() {
+            if (!window.graphicsEngine?.plantManager) return;
+            
+            const plantManager = window.graphicsEngine.plantManager;
+            const timeManager = window.graphicsEngine.timeManager;
+            const currentDay = timeManager.getCurrentDayPrecise();
+            
+            plantManager.plants.clear();
+            
+            console.log('=== MIXED COLONY TEST ===');
+            console.log('Spawning 8x8 grid of random plants');
+            
+            for (let i = 20; i < 28; i++) {
+                for (let j = 20; j < 28; j++) {
+                    const species = Math.random() > 0.5 ? 'quercus_robur' : 'urtica_dioica';
+                    plantManager.addPlant(i, j, species, currentDay);
+                }
+            }
+            
+            updatePlantCount();
+            console.log(`Spawned ${plantManager.plants.size} plants`);
+        }
+        
+        // Update counters every second
+        setInterval(() => {
+            updatePlantCount();
+            updateRenderLoggingStatus();
+        }, 1000);
+        
+        // Wait for engine to initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded - waiting for graphics engine...');
+            const checkEngine = setInterval(() => {
+                if (window.graphicsEngine && window.graphicsEngine.plantManager) {
+                    console.log('Graphics engine ready!');
+                    console.log('Click buttons above to run layer tests');
+                    updatePlantCount();
+                    updateRenderLoggingStatus();
+                    clearInterval(checkEngine);
+                }
+            }, 100);
+        });
+    </script>
+    
+    <!-- Load all game scripts in correct order -->
+    <script src="../../config.json" type="application/json" id="game-config"></script>
+    
+    <!-- Core managers -->
+    <script src="../../js/core/shader_manager.js"></script>
+    <script src="../../js/core/geometry_manager.js"></script>
+    <script src="../../js/core/debug_manager.js"></script>
+    <script src="../../js/core/time_manager.js"></script>
+    <script src="../../js/core/weather_manager.js"></script>
+    <script src="../../js/core/lighting_manager.js"></script>
+    <script src="../../js/core/texture_generator.js"></script>
+    <script src="../../js/core/soil_manager.js"></script>
+    <script src="../../js/core/plant_manager.js"></script>
+    
+    <!-- Procedural generation -->
+    <script src="../../js/core/procedural_generator.js"></script>
+    <script src="../../js/procedural/plant_generator.js"></script>
+    
+    <!-- Systems -->
+    <script src="../../js/systems/camera_manager.js"></script>
+    <script src="../../js/systems/input_manager.js"></script>
+    <script src="../../js/systems/render_system.js"></script>
+    <script src="../../js/systems/overlay_manager.js"></script>
+    <script src="../../js/systems/context_menu_manager.js"></script>
+    <script src="../../js/systems/screenshot_manager.js"></script>
+    <script src="../../js/systems/log_reader.js"></script>
+    
+    <!-- Entities -->
+    <script src="../../js/entities/character.js"></script>
+    <script src="../../js/entities/soil.js"></script>
+    <script src="../../js/entities/plant.js"></script>
+    
+    <!-- Main graphics engine (must be last) -->
+    <script src="../../js/core/main_graphics.js"></script>
+</body>
+</html>

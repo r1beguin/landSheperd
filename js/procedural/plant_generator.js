@@ -7,7 +7,12 @@ class PlantGenerator {
         // Find the growth stage configuration
         const growthStage = speciesConfig.growthStages.find(gs => gs.name === stage);
         if (!growthStage) {
-            console.warn(`Growth stage ${stage} not found, defaulting to Seedling`);
+            console.warn(`Growth stage ${stage} not found, defaulting to appropriate generator`);
+            // Check if this is an oak tree (has Sapling stage)
+            const hasSaplingStage = speciesConfig.growthStages.some(gs => gs.name === 'Sapling');
+            if (hasSaplingStage) {
+                return this.generateSaplingSprite(speciesConfig);
+            }
             return this.generateSeedlingSprite(speciesConfig);
         }
 
@@ -20,9 +25,25 @@ class PlantGenerator {
             case 'floweringGeneration':
                 return this.generateFloweringSprite(speciesConfig);
             case 'witheredGeneration':
+                // Check if this is oak tree based on category or presence of Sapling stage
+                if (speciesConfig.category === 'tree' || speciesConfig.growthStages.some(gs => gs.name === 'Sapling')) {
+                    return this.generateOakWitheredSprite(speciesConfig);
+                }
                 return this.generateWitheredSprite(speciesConfig);
+            // Oak tree generators
+            case 'saplingGeneration':
+                return this.generateSaplingSprite(speciesConfig);
+            case 'youngTreeGeneration':
+                return this.generateYoungTreeSprite(speciesConfig);
+            case 'matureTreeGeneration':
+                return this.generateMatureTreeSprite(speciesConfig);
             default:
-                console.warn(`Unknown generator ${growthStage.generator}, defaulting to seedling`);
+                console.warn(`Unknown generator ${growthStage.generator}, defaulting to appropriate generator`);
+                // Smart default: check if tree or herb
+                const hasSaplingStage = speciesConfig.growthStages.some(gs => gs.name === 'Sapling');
+                if (hasSaplingStage) {
+                    return this.generateSaplingSprite(speciesConfig);
+                }
                 return this.generateSeedlingSprite(speciesConfig);
         }
     }
@@ -392,6 +413,243 @@ class PlantGenerator {
             leafX + leafWidth/2, leafY + leafHeight/2                // End point
         );
         ctx.stroke();
+    }
+    
+    /**
+     * Oak Tree Sprite Generation Methods
+     * Generate oak tree sprites for different growth stages
+     */
+    
+    static generateSaplingSprite(speciesConfig) {
+        const dimensions = speciesConfig.appearance?.dimensions || {width: 40, height: 50};
+        const canvas = document.createElement('canvas');
+        canvas.width = dimensions.width;
+        canvas.height = dimensions.height;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const modules = speciesConfig.proceduralModules.sapling || speciesConfig.proceduralModules;
+        const colors = speciesConfig.appearance.colorPalette;
+        
+        // Draw sapling trunk (thin, small) - positioned lower to leave room for canopy
+        const trunkWidth = 3;
+        const trunkHeight = 15;
+        const trunkX = canvas.width / 2 - trunkWidth / 2;
+        const trunkY = canvas.height - trunkHeight - 2; // More room at bottom
+        
+        ctx.fillStyle = colors.trunk[0];
+        ctx.fillRect(trunkX, trunkY, trunkWidth, trunkHeight);
+        
+        // Add trunk texture
+        ctx.fillStyle = colors.trunk[1];
+        ctx.fillRect(trunkX, trunkY + 2, 1, trunkHeight - 4);
+        
+        // Draw small canopy - ensure it fits within canvas top
+        const canopyRadius = 7;
+        const canopyY = trunkY - canopyRadius - 2; // Ensure canopy fits with margin
+        
+        ctx.fillStyle = colors.sapling ? colors.sapling[0] : colors.leaf[0];
+        
+        // Draw 3 overlapping circles for canopy
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 - 4, canopyY + 2, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 + 4, canopyY + 2, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2, canopyY, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        return canvas;
+    }
+
+    static generateYoungTreeSprite(speciesConfig) {
+        const dimensions = speciesConfig.appearance?.dimensions || {width: 40, height: 50};
+        const canvas = document.createElement('canvas');
+        canvas.width = dimensions.width;
+        canvas.height = dimensions.height;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const colors = speciesConfig.appearance.colorPalette;
+        
+        // Draw thicker trunk - positioned to leave room for canopy
+        const trunkWidth = 5;
+        const trunkHeight = 20;
+        const trunkX = canvas.width / 2 - trunkWidth / 2;
+        const trunkY = canvas.height - trunkHeight - 2;
+        
+        ctx.fillStyle = colors.trunk[0];
+        ctx.fillRect(trunkX, trunkY, trunkWidth, trunkHeight);
+        
+        // Add trunk texture
+        ctx.fillStyle = colors.trunk[1];
+        ctx.fillRect(trunkX + 1, trunkY + 3, 1, trunkHeight - 6);
+        ctx.fillRect(trunkX, trunkY + trunkHeight/2, trunkWidth, 1);
+        
+        // Draw larger canopy - ensure it fits within canvas
+        const canopyRadius = 10;
+        const canopyY = canopyRadius + 6; // Position from top: radius + top circle offset (6px)
+        
+        ctx.fillStyle = colors.leaf[0];
+        
+        // Draw 5 overlapping circles for fuller canopy
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 - 8, canopyY, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 + 8, canopyY, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2, canopyY - 6, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 - 4, canopyY + 4, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 + 4, canopyY + 4, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Add darker accents for depth
+        ctx.fillStyle = colors.leaf[1];
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2, canopyY, canopyRadius * 0.6, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        return canvas;
+    }
+
+    static generateMatureTreeSprite(speciesConfig) {
+        const dimensions = speciesConfig.appearance?.dimensions || {width: 40, height: 50};
+        const canvas = document.createElement('canvas');
+        canvas.width = dimensions.width;
+        canvas.height = dimensions.height;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const colors = speciesConfig.appearance.colorPalette;
+        
+        // Draw thick trunk - leave room for large canopy
+        const trunkWidth = 7;
+        const trunkHeight = 22;
+        const trunkX = canvas.width / 2 - trunkWidth / 2;
+        const trunkY = canvas.height - trunkHeight - 2;
+        
+        ctx.fillStyle = colors.trunk[0];
+        ctx.fillRect(trunkX, trunkY, trunkWidth, trunkHeight);
+        
+        // Add detailed trunk texture
+        ctx.fillStyle = colors.trunk[1];
+        ctx.fillRect(trunkX + 1, trunkY + 3, 2, trunkHeight - 6);
+        ctx.fillRect(trunkX, trunkY + trunkHeight/3, trunkWidth, 2);
+        ctx.fillRect(trunkX, trunkY + 2*trunkHeight/3, trunkWidth, 1);
+        
+        // Draw large, full canopy - ensure top fits
+        const canopyRadius = 13;
+        const canopyY = canopyRadius + 8; // Position from top: radius + top circle offset (8px)
+        
+        ctx.fillStyle = colors.leaf[0];
+        
+        // Draw 7 overlapping circles for very full canopy
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 - 12, canopyY + 2, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 + 12, canopyY + 2, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2, canopyY - 8, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 - 6, canopyY + 6, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 + 6, canopyY + 6, canopyRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 - 9, canopyY - 3, canopyRadius * 0.8, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 + 9, canopyY - 3, canopyRadius * 0.8, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Add multiple layers of darker accents for depth
+        ctx.fillStyle = colors.leaf[1];
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2, canopyY, canopyRadius * 0.7, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.fillStyle = colors.leaf[2];
+        ctx.beginPath();
+        ctx.arc(trunkX + trunkWidth/2 - 3, canopyY - 2, canopyRadius * 0.4, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        return canvas;
+    }
+
+    static generateOakWitheredSprite(speciesConfig) {
+        const dimensions = speciesConfig.appearance?.dimensions || {width: 40, height: 50};
+        const canvas = document.createElement('canvas');
+        canvas.width = dimensions.width;
+        canvas.height = dimensions.height;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const colors = speciesConfig.appearance.colorPalette;
+        
+        // Draw trunk (same as mature but darker)
+        const trunkWidth = 7;
+        const trunkHeight = 35;
+        const trunkX = canvas.width / 2 - trunkWidth / 2;
+        const trunkY = canvas.height - trunkHeight;
+        
+        ctx.fillStyle = colors.witheredTrunk ? colors.witheredTrunk[0] : colors.trunk[2];
+        ctx.fillRect(trunkX, trunkY, trunkWidth, trunkHeight);
+        
+        // Sparse withered branches (just bare sticks)
+        ctx.strokeStyle = colors.witheredTrunk ? colors.witheredTrunk[1] : colors.trunk[2];
+        ctx.lineWidth = 2;
+        
+        // Left branches
+        ctx.beginPath();
+        ctx.moveTo(trunkX, trunkY + 10);
+        ctx.lineTo(trunkX - 8, trunkY + 5);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(trunkX, trunkY + 18);
+        ctx.lineTo(trunkX - 6, trunkY + 15);
+        ctx.stroke();
+        
+        // Right branches
+        ctx.beginPath();
+        ctx.moveTo(trunkX + trunkWidth, trunkY + 12);
+        ctx.lineTo(trunkX + trunkWidth + 8, trunkY + 8);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(trunkX + trunkWidth, trunkY + 20);
+        ctx.lineTo(trunkX + trunkWidth + 6, trunkY + 18);
+        ctx.stroke();
+        
+        return canvas;
     }
 }
 

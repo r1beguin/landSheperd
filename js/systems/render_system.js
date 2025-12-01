@@ -358,6 +358,49 @@ class RenderSystem {
         }
     }
     
+    /**
+     * Render plants sorted by layer for proper Z-ordering
+     * Renders in order: bottom → middle → top
+     * @param {Array} plants - Array of plant entities
+     * @param {Array} viewMatrix - Camera view matrix
+     * @param {Object} lightingManager - Lighting manager reference
+     */
+    renderPlantsByLayer(plants, viewMatrix, lightingManager) {
+        if (!plants || plants.length === 0) return;
+        
+        // Group plants by layer
+        const layerGroups = {
+            bottom: [],
+            middle: [],
+            top: []
+        };
+        
+        plants.forEach(plant => {
+            const layer = plant.getLayer ? plant.getLayer() : 'middle';
+            if (layerGroups[layer]) {
+                layerGroups[layer].push(plant);
+            }
+        });
+        
+        // Render each layer in order (bottom to top)
+        const renderOrder = ['bottom', 'middle', 'top'];
+        
+        renderOrder.forEach(layerName => {
+            const layerPlants = layerGroups[layerName];
+            if (layerPlants.length === 0) return;
+            
+            // Log layer rendering for debugging (can be disabled via config)
+            if (window.config?.world?.plants?.layers?.renderLogging) {
+                console.log(`Rendering ${layerPlants.length} plants in ${layerName} layer`);
+            }
+            
+            // Render all plants in this layer
+            layerPlants.forEach(plant => {
+                this.renderPlant(plant, viewMatrix, lightingManager);
+            });
+        });
+    }
+    
     // Getters pour les métriques de debug
     getRenderCalls() {
         return this.renderCallsThisFrame;

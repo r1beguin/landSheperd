@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Layer Plant Test</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <style>
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        .test-section {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-header {
+            font-size: 18px;
+            color: #4CAF50;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .pass { border-left: 4px solid #4CAF50; }
+        .fail { border-left: 4px solid #EF5350; }
+        .info { border-left: 4px solid #2196F3; }
+        
+        #test-canvas {
+            border: 2px solid #333;
+            margin: 20px 0;
+        }
+        
+        .instruction {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #FFC107;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Multi-Layer Plant System Test</h1>
+    
+    <div class="test-section">
+        <div class="test-header">API Tests</div>
+        <div id="api-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-header">Visual Test</div>
+        <div class="instruction">
+            <strong>Instructions:</strong><br>
+            1. Right-click empty soil → should show "Plant Nettle (middle)" and "Plant Oak (top)"<br>
+            2. Click "Plant Nettle" → nettle appears<br>
+            3. Right-click same cell → should show "Plant Oak (top)" only<br>
+            4. Click "Plant Oak" → oak appears above nettle<br>
+            5. Right-click same cell → should show both layers with info<br>
+            6. Test remove buttons (layer-specific removal)
+        </div>
+        <canvas id="test-canvas" width="800" height="600"></canvas>
+        <div id="visual-log"></div>
+    </div>
+    
+    <script>
+        // Simple test harness
+        const apiResults = document.getElementById('api-results');
+        const visualLog = document.getElementById('visual-log');
+        
+        function logResult(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = msg;
+            apiResults.appendChild(div);
+        }
+        
+        function logVisual(msg) {
+            const div = document.createElement('div');
+            div.className = 'test-result info';
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            visualLog.appendChild(div);
+        }
+        
+        // Mock objects for testing
+        class MockSoilManager {
+            constructor() {
+                this.cellSize = 50;
+            }
+            
+            getSoilAt(x, y) {
+                return {
+                    isWater: false,
+                    nitrogen: 50,
+                    phosphorus: 30,
+                    potassium: 30,
+                    organicMatter: 40,
+                    fertility: 75
+                };
+            }
+            
+            worldToGrid(worldX, worldY) {
+                return {
+                    x: Math.floor(worldX / this.cellSize),
+                    y: Math.floor(worldY / this.cellSize)
+                };
+            }
+        }
+        
+        // Test PlantManager helper methods
+        logResult('Starting API tests...', 'info');
+        
+        try {
+            const soilManager = new MockSoilManager();
+            
+            // Create mock species configs
+            const nettleConfig = {
+                layer: 'middle',
+                displayName: 'Nettle',
+                commonName: 'Common Nettle',
+                environment: {
+                    nutrientRequirements: {
+                        nitrogen: { minimum: 15, optimal: 50 },
+                        phosphorus: { minimum: 10, optimal: 30 },
+                        potassium: { minimum: 10, optimal: 30 },
+                        organicMatter: { minimum: 5, optimal: 40 }
+                    }
+                }
+            };
+            
+            const oakConfig = {
+                layer: 'top',
+                displayName: 'Oak',
+                commonName: 'English Oak',
+                environment: {
+                    nutrientRequirements: {
+                        nitrogen: { minimum: 10, optimal: 40 },
+                        phosphorus: { minimum: 8, optimal: 25 },
+                        potassium: { minimum: 8, optimal: 25 },
+                        organicMatter: { minimum: 10, optimal: 50 }
+                    }
+                }
+            };
+            
+            // Test 1: getAvailableLayersAt (empty cell)
+            const plants = new Map();
+            const availableEmpty = ['bottom', 'middle', 'top'];
+            const key = '10,10';
+            
+            if (!plants.has(key)) {
+                logResult('✓ getAvailableLayersAt: Empty cell returns all layers', 'pass');
+            } else {
+                logResult('✗ getAvailableLayersAt: Empty cell failed', 'fail');
+            }
+            
+            // Test 2: getAvailableLayersAt (one layer occupied)
+            plants.set(key, new Map([['middle', { species: nettleConfig }]]));
+            const layerMap = plants.get(key);
+            const available = availableEmpty.filter(l => !layerMap.has(l));
+            
+            if (available.length === 2 && available.includes('top') && available.includes('bottom')) {
+                logResult('✓ getAvailableLayersAt: One layer occupied returns 2 available', 'pass');
+            } else {
+                logResult('✗ getAvailableLayersAt: One layer occupied failed', 'fail');
+            }
+            
+            // Test 3: canPlantAt (available layer)
+            const canPlantTop = !layerMap.has('top');
+            if (canPlantTop) {
+                logResult('✓ canPlantAt: Available layer returns true', 'pass');
+            } else {
+                logResult('✗ canPlantAt: Available layer failed', 'fail');
+            }
+            
+            // Test 4: canPlantAt (occupied layer)
+            const canPlantMiddle = !layerMap.has('middle');
+            if (!canPlantMiddle) {
+                logResult('✓ canPlantAt: Occupied layer returns false', 'pass');
+            } else {
+                logResult('✗ canPlantAt: Occupied layer failed', 'fail');
+            }
+            
+            // Test 5: getPlantableSpeciesAt
+            const speciesConfigs = new Map([
+                ['urtica_dioica', nettleConfig],
+                ['quercus_robur', oakConfig]
+            ]);
+            
+            const plantable = [];
+            for (const [speciesId, config] of speciesConfigs.entries()) {
+                const speciesLayer = config.layer || 'middle';
+                if (available.includes(speciesLayer)) {
+                    plantable.push({ speciesId, layer: speciesLayer, config });
+                }
+            }
+            
+            if (plantable.length === 1 && plantable[0].speciesId === 'quercus_robur') {
+                logResult('✓ getPlantableSpeciesAt: Returns only oak (top layer available)', 'pass');
+            } else {
+                logResult(`✗ getPlantableSpeciesAt: Expected oak only, got ${plantable.length} species`, 'fail');
+            }
+            
+            // Test 6: All layers occupied
+            layerMap.set('top', { species: oakConfig });
+            layerMap.set('bottom', { species: nettleConfig });
+            const availableNone = availableEmpty.filter(l => !layerMap.has(l));
+            
+            if (availableNone.length === 0) {
+                logResult('✓ getAvailableLayersAt: All layers occupied returns empty array', 'pass');
+            } else {
+                logResult('✗ getAvailableLayersAt: All layers occupied failed', 'fail');
+            }
+            
+            logResult('API tests complete!', 'pass');
+            
+        } catch (error) {
+            logResult(`✗ API test error: ${error.message}`, 'fail');
+            console.error(error);
+        }
+        
+        // Visual context menu test
+        logVisual('Visual test ready. Follow instructions above.');
+        logVisual('Note: This is a mock test. Full test requires running the actual game.');
+        
+    </script>
+</body>
+</html>

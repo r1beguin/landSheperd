@@ -5,15 +5,59 @@
     box-sizing: border-box;
 }
 
-body {
-    font-family: 'Courier New', monospace;
-    background-color: #1a1a1a;
-    color: #ffffff;
-    overflow: hidden; /* Éviter les barres de défilement */
+
+/* Species selection in context menu */
+.context-menu-section {
+    margin-bottom: 12px;
+}
+
+.context-menu-section:last-child {
+    margin-bottom: 0;
+}
+
+.plant-species-btn {
     display: flex;
-    justify-content: center;
     align-items: center;
-    height: 100vh;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(70, 70, 70, 0.8);
+    border: 1px solid rgba(100, 100, 100, 0.6);
+    border-radius: 4px;
+    color: #cccccc;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 4px;
+}
+
+.plant-species-btn:hover {
+    background: rgba(90, 120, 90, 0.9);
+    border-color: #88cc88;
+}
+
+.species-icon-small {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.species-icon-small.urtica_dioica {
+    background: linear-gradient(135deg, #4a7c59 0%, #2f5a3b 100%);
+    border: 1px solid #88cc88;
+}
+
+.species-icon-small.quercus_robur {
+    background: linear-gradient(135deg, #5c4033 0%, #6b8e50 100%);
+    border: 1px solid #8B7355;
+}
+
+.layer-tag {
+    font-size: 10px;
+    color: #88cc88;
+    opacity: 0.7;
+    text-transform: uppercase;
+    margin-left: auto;
 }
 
 /* Container principal du jeu */
@@ -455,6 +499,80 @@ canvas {
     border-color: #666;
 }
 
+/* Multi-layer plant display */
+.multi-layer-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.layer-header {
+    font-weight: bold;
+    color: #FFD700;
+    font-size: 13px;
+    margin-top: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.layer-plant-info {
+    color: #fff;
+    margin-left: 10px;
+    font-size: 13px;
+    margin-top: 3px;
+}
+
+.layer-age {
+    color: #aaa;
+    font-size: 11px;
+    margin-left: 10px;
+    margin-top: 2px;
+}
+
+.layer-empty {
+    color: #555;
+    font-size: 12px;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.layer-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: 10px;
+    margin-top: 5px;
+}
+
+.context-menu-btn-small {
+    padding: 4px 10px;
+    border: 1px solid #555;
+    border-radius: 3px;
+    background-color: #2a2a2a;
+    color: white;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+}
+
+.context-menu-btn-small:hover {
+    background-color: #3a3a3a;
+    border-color: #777;
+}
+
+.context-menu-btn-small.context-menu-btn-danger {
+    background-color: #5a2020;
+    border-color: #EF5350;
+    color: #EF5350;
+}
+
+.context-menu-btn-small.context-menu-btn-danger:hover {
+    background-color: #6a2020;
+    border-color: #E57373;
+    color: #E57373;
+}
+
 .context-menu-btn-secondary:hover {
     background-color: #525252;
     border-color: #888;
@@ -614,3 +732,4 @@ canvas {
     padding-top: 10px;
     border-top: 1px solid #444;
 }
+

@@ -19,6 +19,7 @@
     "test:nitrogen": "cross-env TEST_NITROGEN_REGEN=true playwright test",
     "test:splash": "cross-env TEST_SPLASH=true playwright test --headed",
     "test:context-menu": "cross-env TEST_FUNCTIONAL=true playwright test --headed",
+    "test:oak-canopy": "cross-env TEST_OAK_CANOPY=true playwright test",
     "dev": "npx http-server -p 8080",
     "postinstall": "playwright install chromium"
   },

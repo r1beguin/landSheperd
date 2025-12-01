@@ -167,8 +167,9 @@ landSheperd/
   - Procedural generation with modular components
   - **Automatic growth progression** through multiple life stages
   - **Time-based lifecycle** (Seedling → Vegetative → Flowering → Withered)
-  - Right-click placement and removal
-  - Currently includes Stinging Nettle (Urtica dioica)
+  - **Multi-layer plant placement**: Plant multiple species on same cell (e.g., nettle + oak)
+  - Right-click placement and removal with layer-aware context menu
+  - Currently includes Stinging Nettle (Urtica dioica) and Oak Tree (Quercus robur)
 - **Player character** movable on click with animation
 - **Time system** with adjustable speed controls
   - Configurable time scale (pause to 20x speed)

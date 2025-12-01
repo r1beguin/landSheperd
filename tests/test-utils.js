@@ -222,7 +222,8 @@ async function getEntityAtPosition(page, x, y) {
         
         // Check for plant
         const gridCoords = window.graphicsEngine.soilManager.worldToGrid(worldCoords.x, worldCoords.y);
-        const plant = window.graphicsEngine.plantManager.getPlantAt(gridCoords.x, gridCoords.y);
+        const plants = window.graphicsEngine.plantManager.getPlantAt(gridCoords.x, gridCoords.y);
+        const plant = plants.length > 0 ? plants[0] : null;
         
         if (plant) {
             return {

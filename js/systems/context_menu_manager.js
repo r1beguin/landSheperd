@@ -56,7 +56,8 @@ class ContextMenuManager {
         
         // Get soil and plant data
         const soil = this.soilManager.getSoilAt(gridX, gridY);
-        const plant = this.plantManager.getPlantAt(gridX, gridY);
+        const plants = this.plantManager.getPlantAt(gridX, gridY); // Returns array
+        const plant = plants.length > 0 ? plants[0] : null; // For now, show first plant
         
         if (!soil) {
             return; // No soil, no menu
@@ -90,7 +91,8 @@ class ContextMenuManager {
         
         // Get current soil and plant data
         const soil = this.soilManager.getSoilAt(this.currentGridX, this.currentGridY);
-        const plant = this.plantManager.getPlantAt(this.currentGridX, this.currentGridY);
+        const plants = this.plantManager.getPlantAt(this.currentGridX, this.currentGridY); // Returns array
+        const plant = plants.length > 0 ? plants[0] : null; // For now, show first plant
         
         if (!soil) {
             this.hide(); // Soil disappeared, close menu
@@ -269,12 +271,15 @@ class ContextMenuManager {
     }
     
     buildMenuHTML(soil, plant) {
+        const plants = this.plantManager.getPlantAt(this.currentGridX, this.currentGridY); // Get all plants at cell
+        const hasPlants = plants && plants.length > 0;
+        
         let html = '<div class="context-menu-header">';
         
-        if (plant) {
-            html += `<div class="context-menu-title">🌿 ${plant.species.commonName}</div>`;
+        if (hasPlants) {
+            html += `<div class="context-menu-title">Cell (${this.currentGridX}, ${this.currentGridY})</div>`;
         } else {
-            html += '<div class="context-menu-title">🌱 Empty Soil</div>';
+            html += '<div class="context-menu-title">Empty Soil</div>';
         }
         
         html += '</div>';
@@ -285,28 +290,101 @@ class ContextMenuManager {
         html += this.buildSoilInfo(soil);
         html += '</div>';
         
-        // Plant information section (if plant exists)
-        if (plant) {
+        // Multi-layer plant information section
+        if (hasPlants) {
             html += '<div class="context-menu-section">';
-            html += '<div class="context-menu-subtitle">Plant Status</div>';
-            html += this.buildPlantInfo(plant, soil);
+            html += '<div class="context-menu-subtitle">Plants at Cell</div>';
+            html += this.buildMultiLayerPlantInfo(plants, soil);
+            html += '</div>';
+        }
+        
+        // Plantable species section (show available species with layer indicators)
+        const plantableSpecies = this.plantManager.getPlantableSpeciesAt(this.currentGridX, this.currentGridY);
+        
+        if (plantableSpecies.length > 0) {
+            html += '<div class="context-menu-section">';
+            html += '<div class="context-menu-subtitle">Plant:</div>';
+            
+            for (const { speciesId, layer, config } of plantableSpecies) {
+                const displayName = config.displayName || config.commonName || speciesId;
+                const layerColor = {
+                    'bottom': '#8B4513', // Brown for ground
+                    'middle': '#228B22', // Forest green for middle
+                    'top': '#2E8B57'     // Sea green for trees
+                }[layer];
+                
+                html += `<button class="context-menu-btn plant-species-btn" data-action="plant-species" data-species="${speciesId}" style="border-left: 4px solid ${layerColor}; padding-left: 8px;">
+                    ${displayName} (${layer})
+                </button>`;
+            }
+            
+            html += '</div>';
+        } else if (hasPlants && plants.length >= 3) {
+            // All layers occupied
+            html += '<div class="context-menu-section">';
+            html += '<div style="color: #888; padding: 5px;">All layers occupied</div>';
             html += '</div>';
         }
         
         // Actions section
         html += '<div class="context-menu-section">';
-        html += '<div class="context-menu-subtitle">Actions</div>';
         html += '<div class="context-menu-actions">';
-        
-        if (plant) {
-            html += '<button class="context-menu-btn" data-action="advance">Advance Growth</button>';
-            html += '<button class="context-menu-btn context-menu-btn-danger" data-action="remove">Remove Plant</button>';
-        } else {
-            html += '<button class="context-menu-btn context-menu-btn-primary" data-action="plant">Plant Nettle</button>';
-        }
-        
         html += '<button class="context-menu-btn context-menu-btn-secondary" data-action="close">Close</button>';
         html += '</div>';
+        html += '</div>';
+        
+        return html;
+    }
+    
+    buildMultiLayerPlantInfo(plants, soil) {
+        let html = '<div class="multi-layer-container">';
+        
+        // Create a map of layer -> plant
+        const layerMap = new Map();
+        plants.forEach(plant => {
+            const layer = plant.getLayer ? plant.getLayer() : 'middle';
+            layerMap.set(layer, plant);
+        });
+        
+        // Show layers in visual order: top to bottom
+        const layerNames = ['top', 'middle', 'bottom'];
+        
+        for (const layerName of layerNames) {
+            const plant = layerMap.get(layerName);
+            
+            if (plant) {
+                // Layer header
+                html += `<div class="layer-header">[${layerName.toUpperCase()}]</div>`;
+                
+                // Plant info (species, stage, age)
+                const speciesName = plant.species?.displayName || plant.species?.commonName || 'Unknown';
+                html += `<div class="layer-plant-info">${speciesName} (${plant.stage})</div>`;
+                
+                // Age
+                html += `<div class="layer-age">Age: ${plant.age.toFixed(1)} days</div>`;
+                
+                // Growth rate
+                const growthRate = plant.calculateGrowthRate();
+                const ratePercent = (growthRate * 100).toFixed(0);
+                let rateStatus = '';
+                if (growthRate >= 0.8) rateStatus = 'Optimal';
+                else if (growthRate >= 0.5) rateStatus = 'Good';
+                else if (growthRate >= 0.2) rateStatus = 'Slow';
+                else rateStatus = 'Stunted';
+                
+                html += `<div class="layer-age">Growth: ${ratePercent}% (${rateStatus})</div>`;
+                
+                // Action buttons for this layer
+                html += '<div class="layer-actions">';
+                html += `<button class="context-menu-btn-small" data-action="advance-layer" data-layer="${layerName}">Advance</button>`;
+                html += `<button class="context-menu-btn-small context-menu-btn-danger" data-action="remove-layer" data-layer="${layerName}">Remove</button>`;
+                html += '</div>';
+            } else {
+                // Layer empty
+                html += `<div class="layer-empty">[${layerName.toUpperCase()}] (empty)</div>`;
+            }
+        }
+        
         html += '</div>';
         
         return html;
@@ -384,6 +462,33 @@ class ContextMenuManager {
         html += '<div class="context-menu-label">Age:</div>';
         html += `<div class="context-menu-value">${plant.age.toFixed(1)} days</div>`;
         html += '</div>';
+        
+        // Layer information
+        const layer = plant.getLayer ? plant.getLayer() : 'unknown';
+        const layerDisplay = layer.charAt(0).toUpperCase() + layer.slice(1);
+        html += '<div class="context-menu-row">';
+        html += '<div class="context-menu-label">Layer:</div>';
+        html += `<div class="context-menu-value">${layerDisplay}</div>`;
+        html += '</div>';
+        
+        // Light requirement
+        if (plant.getLightRequirement) {
+            const lightReq = plant.getLightRequirement();
+            html += '<div class="context-menu-row">';
+            html += '<div class="context-menu-label">Light Need:</div>';
+            html += `<div class="context-menu-value">${(lightReq * 100).toFixed(0)}%</div>`;
+            html += '</div>';
+        }
+        
+        // Shade casting information (only if plant casts shade)
+        if (plant.castsShade && plant.castsShade()) {
+            const shadeStrength = plant.getShadeStrength ? plant.getShadeStrength() : 0;
+            const shadeRadius = plant.getShadeRadius ? plant.getShadeRadius() : 0;
+            html += '<div class="context-menu-row">';
+            html += '<div class="context-menu-label">Casts Shade:</div>';
+            html += `<div class="context-menu-value">${(shadeStrength * 100).toFixed(0)}% (${shadeRadius} cells)</div>`;
+            html += '</div>';
+        }
         
         // Growth progress
         const currentStageIndex = plant.species.growthStages.findIndex(s => s.name === plant.stage);
@@ -492,27 +597,74 @@ class ContextMenuManager {
         const currentDay = this.timeManager.getCurrentDayPrecise();
         
         switch (action) {
+            case 'plant-species':
+                // Get species ID from button's data-species attribute
+                const button = event.target.closest('[data-species]');
+                if (button) {
+                    const speciesId = button.getAttribute('data-species');
+                    const config = this.plantManager.getSpeciesById(speciesId);
+                    const layer = config?.layer || 'middle';
+                    this.plantManager.addPlantAtPosition(
+                        this.currentGridX, 
+                        this.currentGridY, 
+                        this.currentWorldX, 
+                        this.currentWorldY,
+                        speciesId,
+                        currentDay
+                    );
+                    console.log(`Planted ${speciesId} at (${this.currentGridX}, ${this.currentGridY}) on ${layer} layer`);
+                }
+                break;
+                
+            case 'advance-layer':
+                // Advance plant growth stage for specific layer
+                const advanceButton = event.target.closest('[data-layer]');
+                if (advanceButton) {
+                    const layer = advanceButton.getAttribute('data-layer');
+                    const layerPlant = this.plantManager.getPlantAt(this.currentGridX, this.currentGridY, layer);
+                    if (layerPlant) {
+                        layerPlant.advanceGrowthStage(currentDay);
+                        console.log(`Advanced ${layerPlant.species.commonName} on ${layer} layer at (${this.currentGridX}, ${this.currentGridY})`);
+                    }
+                }
+                break;
+                
+            case 'remove-layer':
+                // Remove plant from specific layer
+                const removeButton = event.target.closest('[data-layer]');
+                if (removeButton) {
+                    const layer = removeButton.getAttribute('data-layer');
+                    const layerPlant = this.plantManager.getPlantAt(this.currentGridX, this.currentGridY, layer);
+                    if (layerPlant) {
+                        const speciesName = layerPlant.species?.commonName || 'Plant';
+                        this.plantManager.removePlant(this.currentGridX, this.currentGridY, layer);
+                        console.log(`Removed ${speciesName} from ${layer} layer at (${this.currentGridX}, ${this.currentGridY})`);
+                    }
+                }
+                break;
+                
             case 'plant':
-                // Plant new nettle at the clicked position
+                // Legacy fallback - plant selected species at the clicked position
+                const selectedSpecies = this.plantManager.getSelectedSpecies();
                 this.plantManager.addPlantAtPosition(
                     this.currentGridX, 
                     this.currentGridY, 
                     this.currentWorldX, 
                     this.currentWorldY,
-                    'urtica_dioica',
+                    selectedSpecies,
                     currentDay
                 );
                 break;
                 
             case 'advance':
-                // Advance plant growth stage
+                // Advance plant growth stage (legacy - single plant)
                 if (plant) {
                     plant.advanceGrowthStage(currentDay);
                 }
                 break;
                 
             case 'remove':
-                // Remove plant
+                // Remove plant (legacy - single plant)
                 if (plant) {
                     this.plantManager.removePlant(this.currentGridX, this.currentGridY);
                 }

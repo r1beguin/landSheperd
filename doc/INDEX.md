@@ -1,6 +1,6 @@
 # Land Shepherd Documentation Index
 
-**Last updated:** 2025-12-01
+**Last updated:** 2025-12-01 (Multi-Layer Planting System)
 
 Welcome to the Land Shepherd documentation. This index helps you find the information you need quickly.
 

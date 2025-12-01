@@ -67,6 +67,30 @@
             },
             "decomposition": {
                 "enableLogging": false
+            },
+            "ui": {
+                "speciesPalette": {
+                    "enabled": true,
+                    "position": "bottom-left",
+                    "showLayerInfo": true
+                }
+            },
+            "layers": {
+                "enabled": true,
+                "renderOffsets": {
+                    "bottom": 0,
+                    "middle": 5,
+                    "top": 15
+                },
+                "renderLogging": false,
+                "lightFiltering": {
+                    "enabled": true,
+                    "treeShadeStrength": 0.5,
+                    "shadeRadius": 1
+                },
+                "nutrientPriority": {
+                    "enabled": false
+                }
             }
         },
         "soil": {

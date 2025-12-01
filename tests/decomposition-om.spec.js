@@ -103,13 +103,15 @@ test.describe('Plant Decomposition - Organic Matter Contribution', () => {
         
         // CHECKPOINT 3: Force plant to wither immediately
         await page.evaluate(() => {
-            const plant = window.graphicsEngine.plantManager.getPlantAt(0, 0);
+            const plants = window.graphicsEngine.plantManager.getPlantAt(0, 0);
+            const plant = plants[0];
             const currentDay = window.graphicsEngine.timeManager.getCurrentDay();
             plant.forceWither(currentDay);
         });
         
         const witheredInfo = await page.evaluate(() => {
-            const plant = window.graphicsEngine.plantManager.getPlantAt(0, 0);
+            const plants = window.graphicsEngine.plantManager.getPlantAt(0, 0);
+            const plant = plants[0];
             return {
                 stage: plant.stage,
                 age: plant.age,
@@ -125,7 +127,8 @@ test.describe('Plant Decomposition - Organic Matter Contribution', () => {
         
         const advanceResult = await page.evaluate(() => {
             const engine = window.graphicsEngine;
-            const plant = engine.plantManager.getPlantAt(0, 0);
+            const plants = engine.plantManager.getPlantAt(0, 0);
+            const plant = plants[0];
             const witheredStage = plant.species.growthStages.find(s => s.name === 'Withered');
             const daysToDecompose = witheredStage.daysToGrow + 1; // +1 to ensure we go past threshold
             
@@ -149,7 +152,8 @@ test.describe('Plant Decomposition - Organic Matter Contribution', () => {
             engine.update(deltaTimeMs);
             
             const dayAfter = engine.timeManager.getCurrentDay();
-            const plantStillExists = engine.plantManager.getPlantAt(0, 0) !== undefined;
+            const plants = engine.plantManager.getPlantAt(0, 0);
+            const plantStillExists = plants && plants.length > 0;
             
             // Restore original timeScale
             engine.timeManager.setTimeScale(originalTimeScale);
@@ -160,7 +164,7 @@ test.describe('Plant Decomposition - Organic Matter Contribution', () => {
                 dayAfter,
                 daysAdvanced: dayAfter - dayBefore,
                 plantStillExists,
-                shouldDespawn: plantStillExists ? engine.plantManager.getPlantAt(0, 0).shouldDespawn : null
+                shouldDespawn: plantStillExists ? plants[0].shouldDespawn : null
             };
         });
         
@@ -175,7 +179,8 @@ test.describe('Plant Decomposition - Organic Matter Contribution', () => {
         
         // CHECKPOINT 5: Verify decomposition occurred
         const decompositionResult = await page.evaluate(() => {
-            const plantExists = window.graphicsEngine.plantManager.getPlantAt(0, 0) !== undefined;
+            const plants = window.graphicsEngine.plantManager.getPlantAt(0, 0);
+            const plantExists = plants && plants.length > 0;
             const soil = window.graphicsEngine.soilManager.getSoilAt(0, 0);
             
             return {
@@ -301,7 +306,8 @@ test.describe('Plant Decomposition - Organic Matter Contribution', () => {
         // Advance time to trigger decomposition
         await page.evaluate(() => {
             const engine = window.graphicsEngine;
-            const plant = engine.plantManager.getPlantAt(1, 1);
+            const plants = engine.plantManager.getPlantAt(1, 1);
+            const plant = plants[0];
             const witheredStage = plant.species.growthStages.find(s => s.name === 'Withered');
             const daysToDecompose = witheredStage.daysToGrow + 1;
             
