@@ -41,6 +41,17 @@ class SoilManager {
         // Weather effects tracking
         this.weatherEffectsConfig = this.config.world.weather?.soilEffects || null;
         
+        // OM decomposition tracking (Milestone 2)
+        this.decompositionConfig = this.config.world.soil?.decomposition || null;
+        this.decompositionLogCounter = 0;
+        this.decompositionLogInterval = this.decompositionConfig?.loggingInterval || 5;
+        
+        // Localized decomposition tracking (Milestone 4 - Phase 2)
+        this.activeCells = new Set();  // Set of "x,y" keys for cells with active decomposition
+        this.cellLastPlantActivity = new Map();  // "x,y" → timestamp (game day)
+        this.decompositionRadius = this.config.world.soil?.decomposition?.radius || 1;  // Radius around plants
+        this.decompositionActivityWindow = this.config.world.soil?.decomposition?.activityWindowDays || 30;  // Days after death
+        
         this.initializeSoilGrid();
         this.createSoilGeometry();
     }
@@ -376,6 +387,9 @@ class SoilManager {
         
         // Apply weather effects to soil water
         this.applyWeatherEffects(deltaTime);
+        
+        // Apply organic matter decomposition (Milestone 2)
+        this.applyOrganicMatterDecomposition(deltaTime);
     }
     
     /**
@@ -473,6 +487,170 @@ class SoilManager {
         }
     }
     
+    /**
+     * Apply organic matter decomposition into nitrogen and phosphorus (Milestone 2)
+     * UPDATED Milestone 4 Phase 2: Localized decomposition only in active plant zones
+     * @param {number} deltaTime - Time since last frame (seconds)
+     */
+    applyOrganicMatterDecomposition(deltaTime) {
+        // Check if decomposition is enabled
+        if (!this.decompositionConfig || !this.decompositionConfig.enabled) {
+            return;
+        }
+        
+        // Get time manager for game day calculations
+        const timeManager = window.graphicsEngine?.timeManager;
+        if (!timeManager) {
+            return;
+        }
+        
+        // Calculate game days elapsed this frame
+        const realSecondsPerGameDay = timeManager.config.realSecondsPerGameDay;
+        const gameDaysElapsed = deltaTime / realSecondsPerGameDay;
+        const currentGameDay = timeManager.getElapsedGameDays();
+        
+        // Calculate base decay rate
+        const baseDecayPerDay = this.decompositionConfig.organicMatterDecayPerDay;
+        
+        // Apply weather multiplier (Milestone 3)
+        let weatherMultiplier = 1.0; // Default (no weather or cloudy baseline)
+        
+        const weatherManager = window.graphicsEngine?.weatherManager;
+        if (weatherManager && weatherManager.initialized && this.decompositionConfig.weatherModifiers) {
+            const currentWeather = weatherManager.getCurrentWeather();
+            
+            if (currentWeather === 'rainy') {
+                // Rain accelerates decomposition (moisture + microbes)
+                const rainIntensity = weatherManager.getRainIntensity();
+                const rainyConfig = this.decompositionConfig.weatherModifiers.rainy;
+                weatherMultiplier = rainyConfig.base + (rainIntensity * rainyConfig.intensityScale);
+            } else if (currentWeather === 'sunny') {
+                // Sun slows decomposition (drier soil, heat stress on microbes)
+                weatherMultiplier = this.decompositionConfig.weatherModifiers.sunny;
+            } else if (currentWeather === 'cloudy') {
+                // Cloudy is baseline
+                weatherMultiplier = this.decompositionConfig.weatherModifiers.cloudy;
+            }
+        }
+        
+        // Calculate final decay amount with weather modifier
+        const decayThisFrame = baseDecayPerDay * weatherMultiplier * gameDaysElapsed;
+        
+        // Skip if decay amount is negligible
+        if (decayThisFrame < 0.001) {
+            return;
+        }
+        
+        // Get decomposition ratios
+        const nitrogenRatio = this.decompositionConfig.nitrogenReleaseRatio;
+        const phosphorusRatio = this.decompositionConfig.phosphorusReleaseRatio;
+        const minimumOM = this.decompositionConfig.minimumOMForBreakdown;
+        
+        // Track cells affected for logging
+        let cellsAffected = 0;
+        let totalOMDecayed = 0;
+        let totalNAdded = 0;
+        let totalPAdded = 0;
+        let cellsExpired = 0;
+        
+        // Get plant manager for living plant checks
+        const plantManager = window.graphicsEngine?.plantManager;
+        
+        // PHASE 2: Apply decomposition ONLY to active cells (localized)
+        const cellsToCheck = Array.from(this.activeCells);
+        
+        cellsToCheck.forEach(cellKey => {
+            const [x, y] = cellKey.split(',').map(Number);
+            const soil = this.getSoilAt(x, y);
+            
+            if (!soil) {
+                this.activeCells.delete(cellKey);
+                this.cellLastPlantActivity.delete(cellKey);
+                return;
+            }
+            
+            // Check if cell still has active decomposition conditions:
+            // 1. Has living plant (root zone activity boosts microbes)
+            // 2. OR had recent plant death (within activity window)
+            const hasLivingPlant = plantManager && plantManager.getPlantAt(x, y);
+            const lastActivity = this.cellLastPlantActivity.get(cellKey) || 0;
+            const daysSinceActivity = currentGameDay - lastActivity;
+            
+            const isActive = hasLivingPlant || daysSinceActivity < this.decompositionActivityWindow;
+            
+            if (!isActive) {
+                // No recent activity - remove from active set
+                this.activeCells.delete(cellKey);
+                this.cellLastPlantActivity.delete(cellKey);
+                cellsExpired++;
+                return;
+            }
+            
+            // Update activity timestamp if living plant present
+            if (hasLivingPlant) {
+                this.cellLastPlantActivity.set(cellKey, currentGameDay);
+            }
+            
+            // Only decompose if OM is above minimum threshold
+            if (soil.organicMatter > minimumOM) {
+                // Store old values
+                const oldOM = soil.organicMatter;
+                const oldN = soil.nitrogen;
+                const oldP = soil.phosphorus;
+                
+                // Calculate actual decay (don't go below minimum)
+                const availableOM = soil.organicMatter - minimumOM;
+                const actualDecay = Math.min(decayThisFrame, availableOM);
+                
+                // Apply decay
+                soil.organicMatter -= actualDecay;
+                soil.nitrogen += actualDecay * nitrogenRatio;
+                soil.phosphorus += actualDecay * phosphorusRatio;
+                
+                // Clamp all values to 0-100 range
+                soil.organicMatter = Math.max(0, Math.min(100, soil.organicMatter));
+                soil.nitrogen = Math.max(0, Math.min(100, soil.nitrogen));
+                soil.phosphorus = Math.max(0, Math.min(100, soil.phosphorus));
+                
+                // Update derived properties if significant change occurred
+                if (actualDecay > 0.01) {
+                    soil.fertility = soil.calculateFertility();
+                    soil.baseColor = soil.calculateBaseColor();
+                    soil.needsUpdate = true;
+                    
+                    cellsAffected++;
+                    totalOMDecayed += actualDecay;
+                    totalNAdded += soil.nitrogen - oldN;
+                    totalPAdded += soil.phosphorus - oldP;
+                }
+            }
+        });
+        
+        // Invalidate texture cache if cells updated
+        if (cellsAffected > 0) {
+            this.needsRefresh = true;
+            
+            // Optional logging (throttled)
+            if (this.decompositionConfig.enableLogging) {
+                this.decompositionLogCounter += gameDaysElapsed;
+                
+                if (this.decompositionLogCounter >= this.decompositionLogInterval) {
+                    // Get current weather for logging
+                    const weatherManager = window.graphicsEngine?.weatherManager;
+                    let weatherInfo = '';
+                    if (weatherManager && weatherManager.initialized) {
+                        const weather = weatherManager.getCurrentWeather();
+                        const multiplier = weatherMultiplier.toFixed(2);
+                        weatherInfo = ` [Weather: ${weather}, multiplier: ${multiplier}x]`;
+                    }
+                    
+                    console.log(`[OM DECOMP LOCALIZED] ${cellsAffected}/${this.activeCells.size} active cells decomposed (${cellsExpired} expired) - OM decayed: ${totalOMDecayed.toFixed(2)}, N added: ${totalNAdded.toFixed(2)}, P added: ${totalPAdded.toFixed(2)}${weatherInfo}`);
+                    this.decompositionLogCounter = 0;
+                }
+            }
+        }
+    }
+    
     // Utility methods for interaction with other systems
     
     // Get average fertility of an area
@@ -550,6 +728,33 @@ class SoilManager {
         return soil ? soil.getInfo() : null;
     }
     
+    /**
+     * Mark a soil cell and its neighbors for active decomposition (Milestone 4 - Phase 2)
+     * Called when plants die or interact with soil
+     * @param {number} gridX - Grid X coordinate
+     * @param {number} gridY - Grid Y coordinate
+     */
+    markCellForDecomposition(gridX, gridY) {
+        const timeManager = window.graphicsEngine?.timeManager;
+        if (!timeManager) return;
+        
+        const currentGameDay = timeManager.getElapsedGameDays();
+        const radius = this.decompositionRadius;
+        
+        // Mark this cell and neighbors within radius
+        for (let dx = -radius; dx <= radius; dx++) {
+            for (let dy = -radius; dy <= radius; dy++) {
+                const key = `${gridX + dx},${gridY + dy}`;
+                const soil = this.getSoilAt(gridX + dx, gridY + dy);
+                
+                if (soil) {
+                    this.activeCells.add(key);
+                    this.cellLastPlantActivity.set(key, currentGameDay);
+                }
+            }
+        }
+    }
+    
     // Getters for debug metrics
     getTotalCells() {
         return this.totalCells;
@@ -559,9 +764,15 @@ class SoilManager {
         return this.visibleCellsCount;
     }
     
+    getActiveCellsCount() {
+        return this.activeCells.size;
+    }
+    
     // Cleanup resources
     cleanup() {
         this.soilGrid.clear();
         this.visibleCells = [];
+        this.activeCells.clear();
+        this.cellLastPlantActivity.clear();
     }
 }

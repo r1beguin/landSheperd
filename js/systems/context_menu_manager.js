@@ -502,18 +502,12 @@ class ContextMenuManager {
                     'urtica_dioica',
                     currentDay
                 );
-                console.log(`[CONTEXT] Planted nettle at grid (${this.currentGridX}, ${this.currentGridY})`);
                 break;
                 
             case 'advance':
                 // Advance plant growth stage
                 if (plant) {
-                    const advanced = plant.advanceGrowthStage(currentDay);
-                    if (advanced) {
-                        console.log(`[CONTEXT] Advanced ${plant.species.commonName} to ${plant.stage}`);
-                    } else {
-                        console.log(`[CONTEXT] Cannot advance ${plant.species.commonName} - at final stage or stunted`);
-                    }
+                    plant.advanceGrowthStage(currentDay);
                 }
                 break;
                 
@@ -521,7 +515,6 @@ class ContextMenuManager {
                 // Remove plant
                 if (plant) {
                     this.plantManager.removePlant(this.currentGridX, this.currentGridY);
-                    console.log(`[CONTEXT] Removed ${plant.species.commonName} at grid (${this.currentGridX}, ${this.currentGridY})`);
                 }
                 break;
                 

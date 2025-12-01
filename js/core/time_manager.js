@@ -70,6 +70,14 @@ class TimeManager {
     }
     
     /**
+     * Get elapsed game days (alias for getCurrentDayPrecise)
+     * Used by localized decomposition system
+     */
+    getElapsedGameDays() {
+        return this.currentDay;
+    }
+    
+    /**
      * Get current time scale multiplier
      */
     getTimeScale() {

@@ -53,20 +53,6 @@ class GraphicsEngine {
             // Initialize weather manager with current game day
             if (this.weatherManager) {
                 this.weatherManager.initialize(this.timeManager.getCurrentDay());
-                
-                // Listen to weather changes to log lighting impact
-                this.weatherManager.addEventListener((event) => {
-                    console.log(`[WEATHER→LIGHTING] Weather changed: ${event.oldState} → ${event.newState}`);
-                    console.log(`[WEATHER→LIGHTING] Rain intensity: ${(event.rainIntensity * 100).toFixed(0)}%`);
-                    
-                    // Log new lighting state
-                    if (this.lightingManager) {
-                        const brightness = (this.lightingManager.getAmbientBrightness() * 100).toFixed(0);
-                        const color = this.lightingManager.getAmbientColor();
-                        console.log(`[WEATHER→LIGHTING] New brightness: ${brightness}% | ` +
-                                   `Color: [${color[0].toFixed(2)}, ${color[1].toFixed(2)}, ${color[2].toFixed(2)}]`);
-                    }
-                });
             }
             
             // Start render loop
@@ -420,7 +406,6 @@ class GraphicsEngine {
                 case 'F': // Cycle nutrient overlay modes
                     if (this.overlayManager) {
                         const newMode = this.overlayManager.cycleMode();
-                        console.log(`[Overlay] Switched to: ${newMode.name}`);
                         
                         // Force soil refresh to show new overlay mode
                         if (this.soilManager) {
@@ -598,14 +583,7 @@ class GraphicsEngine {
         this.updateTimeUI();
         
         // Log time of day info periodically (every 5 seconds)
-        if (!this._lastTimeLog || currentTime - this._lastTimeLog > 5000) {
-            this._lastTimeLog = currentTime;
-            if (this.timeManager && this.lightingManager && this.lightingManager.isEnabled()) {
-                const hour = this.timeManager.getHourOfDay();
-                const timeString = this.timeManager.getTimeOfDayString();
-                console.log(`[TIME] Time of day: ${hour.toFixed(2)} hours (${timeString}) | ${this.lightingManager.getDebugString()}`);
-            }
-        }
+        // Time logging disabled for production
         
         if (!this.debugManager || !this.debugManager.isDebugEnabled()) return;
         

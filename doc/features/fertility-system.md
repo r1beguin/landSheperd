@@ -58,20 +58,64 @@ After withering (Day 20-25), the plant decomposes and returns:
 | Nitrogen (N) | 8 | 20% |
 | Phosphorus (P) | 5 | 18% |
 | Potassium (K) | 4 | 18% |
-| Organic Matter (OM) | 12 | 86% |
-| **TOTAL RETURNED** | **29** | **28%** |
+| Organic Matter (OM) | 20 | 143% |
+| **TOTAL RETURNED** | **37** | **36%** |
+
+**Note:** OM return (20) exceeds consumption (14), creating a net +6 OM gain. This accumulated OM slowly decomposes into nitrogen and phosphorus through the Localized Decomposition System (see below).
+
+### Localized Organic Matter Decomposition
+
+**New System (Dec 2025):** Organic matter now undergoes realistic, spatially-aware decomposition:
+
+#### How It Works
+- OM decomposes ONLY in soil cells with recent plant activity (not grid-wide)
+- When a plant dies, it marks its location + 1-cell radius for "active decomposition"
+- Active cells decompose OM at 0.3 per game day
+- Released nutrients: 40% Nitrogen, 30% Phosphorus
+- Cells remain active for 30 game days after last plant interaction
+
+#### Spatial Nutrient Dynamics
+This creates three distinct zones:
+
+1. **Depleted Zones** (around dead plants) - Nitrogen exhausted, high OM accumulated
+2. **Moderate Zones** (edges of plant clusters) - Mixed nutrient availability
+3. **Pristine Zones** (untouched soil) - Original nutrient composition preserved
+
+#### Nutrient Cycling Example
+```
+Plant Death (instant):
+  → Soil receives 8N, 5P, 4K, 20OM
+
+OM Decomposition (local, over 20 days):
+  → 20 OM × 0.3/day × 0.4 ratio = ~2.4N released
+  → 20 OM × 0.3/day × 0.3 ratio = ~1.8P released
+
+Total Local Return:
+  → 8N (instant) + 2.4N (decomp) = 10.4N out of 40N consumed
+  → 26% nitrogen recovery creates gradual depletion pressure
+```
+
+#### Multi-Species Foundation
+This spatial system enables ecosystem diversity:
+- **N-depleted zones** (N: 0-20) → Ideal for nitrogen-fixing legumes
+- **P-rich zones** (P: 50-100) → Ideal for flowering plants
+- **Pristine zones** (N: 50-100) → Ideal for nitrogen-loving pioneers
+
+See `doc/devlogs/2025-12/2025-12-01-organic-matter-system-complete.md` for complete technical details.
 
 ### Net Impact Per Plant
-**Net Loss:** 104 - 29 = **75 nutrient points**
+**Net Loss:** 104 - 37 = **67 nutrient points**
 
 Breaking it down:
-- **N Loss:** 40 - 8 = -32
-- **P Loss:** 28 - 5 = -23
+- **N Loss:** 40 - 10.4 = -29.6 (with decomposition)
+- **P Loss:** 28 - 6.8 = -21.2 (with decomposition)
 - **K Loss:** 22 - 4 = -18
-- **OM Gain:** 14 - 12 = -2 (only 2 lost!)
+- **OM Gain:** 14 - 20 = +6 (net gain!)
 
 **Fertility Impact:**
-- Net loss = 75 / 4 nutrients = **-18.75 fertility points per plant lifecycle**
+- Net loss = 67 / 4 nutrients = **-16.75 fertility points per plant lifecycle**
+- Creates gradual nitrogen depletion, especially in high-activity zones
+- OM accumulates as nutrient buffer for slow release
 
 ---
 
@@ -85,9 +129,11 @@ Initial: N=65, P=60, K=62, OM=53 → Fertility = 60
 ### After 1 Nettle Lifecycle (25 days)
 ```
 Consumed: N=40, P=28, K=22, OM=14
-Returned:  N=8,  P=5,  K=4,  OM=12
+Returned (instant):  N=8,  P=5,  K=4,  OM=20
+OM Decomposes (if in active zone): +2.4N, +1.8P over 20 days
 
-Result: N=33, P=37, K=44, OM=51 → Fertility = 41.25 (-18.75)
+Result (active zone): N=35.4, P=38.8, K=44, OM=51 → Fertility = 42.3
+Result (inactive zone): N=33, P=37, K=44, OM=73 → Fertility = 46.8 (OM accumulated)
 ```
 
 ### After 2 Nettle Lifecycles (50 days)

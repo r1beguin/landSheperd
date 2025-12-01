@@ -434,6 +434,170 @@ function compareImageData(data1, data2) {
     };
 }
 
+/**
+ * Sample ecosystem metrics (soil nutrients, plant population, etc.)
+ * @param {Page} page - Playwright page object
+ * @returns {Promise<Object>} Ecosystem metrics
+ */
+async function sampleEcosystemMetrics(page) {
+    return await page.evaluate(() => {
+        const engine = window.graphicsEngine;
+        if (!engine || !engine.soilManager || !engine.plantManager || !engine.timeManager) {
+            return { success: false, error: 'Required managers not available' };
+        }
+        
+        const soilManager = engine.soilManager;
+        const plantManager = engine.plantManager;
+        const timeManager = engine.timeManager;
+        const weatherManager = engine.weatherManager;
+        
+        let totalN = 0, totalP = 0, totalK = 0, totalOM = 0, totalFertility = 0;
+        let count = 0;
+        let minN = Infinity, maxN = -Infinity;
+        let minP = Infinity, maxP = -Infinity;
+        let minK = Infinity, maxK = -Infinity;
+        let minOM = Infinity, maxOM = -Infinity;
+        
+        // Sample all soil cells
+        soilManager.soilGrid.forEach(soil => {
+            totalN += soil.nitrogen;
+            totalP += soil.phosphorus;
+            totalK += soil.potassium;
+            totalOM += soil.organicMatter;
+            totalFertility += soil.fertility;
+            
+            minN = Math.min(minN, soil.nitrogen);
+            maxN = Math.max(maxN, soil.nitrogen);
+            minP = Math.min(minP, soil.phosphorus);
+            maxP = Math.max(maxP, soil.phosphorus);
+            minK = Math.min(minK, soil.potassium);
+            maxK = Math.max(maxK, soil.potassium);
+            minOM = Math.min(minOM, soil.organicMatter);
+            maxOM = Math.max(maxOM, soil.organicMatter);
+            
+            count++;
+        });
+        
+        const avgN = totalN / count;
+        const avgP = totalP / count;
+        const avgK = totalK / count;
+        const avgOM = totalOM / count;
+        const avgFertility = totalFertility / count;
+        
+        return {
+            success: true,
+            gameDay: Math.floor(timeManager.getCurrentDayPrecise() * 10) / 10, // 1 decimal place
+            averages: {
+                nitrogen: Math.round(avgN * 10) / 10,
+                phosphorus: Math.round(avgP * 10) / 10,
+                potassium: Math.round(avgK * 10) / 10,
+                organicMatter: Math.round(avgOM * 10) / 10,
+                fertility: Math.round(avgFertility * 10) / 10
+            },
+            ranges: {
+                nitrogen: { min: Math.round(minN * 10) / 10, max: Math.round(maxN * 10) / 10 },
+                phosphorus: { min: Math.round(minP * 10) / 10, max: Math.round(maxP * 10) / 10 },
+                potassium: { min: Math.round(minK * 10) / 10, max: Math.round(maxK * 10) / 10 },
+                organicMatter: { min: Math.round(minOM * 10) / 10, max: Math.round(maxOM * 10) / 10 }
+            },
+            plantCount: plantManager.plants.size,
+            weather: weatherManager?.getCurrentWeather() || 'unknown',
+            cellsSampled: count
+        };
+    });
+}
+
+/**
+ * Advance game time with deterministic timeScale
+ * @param {Page} page - Playwright page object
+ * @param {number} days - Number of game days to advance
+ * @param {Object} options - Options
+ * @param {number} options.timeScale - Override timeScale (default: 1.0)
+ * @returns {Promise<Object>} Result with days advanced
+ */
+async function advanceGameTimeDeterministic(page, days, options = {}) {
+    const { timeScale = 1.0 } = options;
+    
+    return await page.evaluate(({ daysToAdvance, targetTimeScale }) => {
+        const engine = window.graphicsEngine;
+        if (!engine || !engine.timeManager) {
+            return { success: false, error: 'TimeManager not available' };
+        }
+        
+        const timeManager = engine.timeManager;
+        const dayBefore = timeManager.getCurrentDayPrecise();
+        
+        // Set timeScale for deterministic advancement
+        const originalTimeScale = timeManager.getTimeScale();
+        timeManager.setTimeScale(targetTimeScale);
+        
+        // Calculate delta time needed
+        const realSecondsPerGameDay = timeManager.realSecondsPerGameDay || 10;
+        const deltaTimeMs = daysToAdvance * realSecondsPerGameDay * 1000;
+        
+        // Update engine
+        engine.update(deltaTimeMs);
+        
+        const dayAfter = timeManager.getCurrentDayPrecise();
+        
+        // Restore original timeScale
+        timeManager.setTimeScale(originalTimeScale);
+        
+        return {
+            success: true,
+            dayBefore: Math.round(dayBefore * 10) / 10,
+            dayAfter: Math.round(dayAfter * 10) / 10,
+            daysAdvanced: Math.round((dayAfter - dayBefore) * 10) / 10
+        };
+    }, { daysToAdvance: days, targetTimeScale: timeScale });
+}
+
+/**
+ * Cycle nutrient overlay to specific nutrient type
+ * @param {Page} page - Playwright page object
+ * @param {string} nutrientType - 'nitrogen', 'phosphorus', 'potassium', 'organicMatter', or 'off'
+ * @returns {Promise<Object>} Result
+ */
+async function setNutrientOverlay(page, nutrientType) {
+    return await page.evaluate((type) => {
+        const engine = window.graphicsEngine;
+        if (!engine || !engine.overlayManager) {
+            return { success: false, error: 'OverlayManager not available' };
+        }
+        
+        const overlayManager = engine.overlayManager;
+        const soilManager = engine.soilManager;
+        
+        // Map type to overlay state
+        const typeMap = {
+            'off': null,
+            'nitrogen': 'nitrogen',
+            'phosphorus': 'phosphorus',
+            'potassium': 'potassium',
+            'organicMatter': 'organicMatter'
+        };
+        
+        const targetState = typeMap[type];
+        if (targetState === undefined) {
+            return { success: false, error: `Invalid nutrient type: ${type}` };
+        }
+        
+        // Set overlay state directly
+        overlayManager.currentNutrient = targetState;
+        
+        // Force soil refresh
+        soilManager.needsRefresh = true;
+        if (engine.cameraManager) {
+            soilManager.updateVisibleCells(engine.cameraManager);
+        }
+        
+        return { 
+            success: true, 
+            currentOverlay: targetState 
+        };
+    }, nutrientType);
+}
+
 module.exports = {
     waitForRenderFrames,
     simulateMouseDrag,
@@ -447,5 +611,8 @@ module.exports = {
     spawnPlantAt,
     toggleDebugOverlay,
     waitForCondition,
-    compareImageData
+    compareImageData,
+    sampleEcosystemMetrics,
+    advanceGameTimeDeterministic,
+    setNutrientOverlay
 };

@@ -8,7 +8,11 @@ module.exports = defineConfig({
   testDir: './tests',
   
   // Use different test files based on mode
-  testMatch: process.env.TEST_CONTEXT_MENU === 'true'
+  testMatch: process.env.TEST_DECOMP_OM === 'true'
+    ? '**/decomposition-om.spec.js'
+    : process.env.TEST_BALANCE === 'true'
+    ? '**/ecosystem-balance.spec.js'
+    : process.env.TEST_CONTEXT_MENU === 'true'
     ? '**/context-menu-debug.spec.js'
     : process.env.TEST_FUNCTIONAL === 'true'
     ? '**/context-menu-functional.spec.js'

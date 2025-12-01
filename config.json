@@ -32,13 +32,33 @@
             "stuntGracePeriod": 7,
             "starvationReturnMultiplier": 0.5,
             "reproduction": {
-                "enableLogging": true
+                "enableLogging": false
             },
             "decomposition": {
-                "enableLogging": true
+                "enableLogging": false
             }
         },
         "soil": {
+            "decomposition": {
+                "enabled": true,
+                "organicMatterDecayPerDay": 0.3,
+                "nitrogenReleaseRatio": 0.4,
+                "phosphorusReleaseRatio": 0.3,
+                "minimumOMForBreakdown": 10,
+                "enableLogging": false,
+                "loggingInterval": 5,
+                "radius": 1,
+                "activityWindowDays": 30,
+                
+                "weatherModifiers": {
+                    "rainy": {
+                        "base": 1.3,
+                        "intensityScale": 0.4
+                    },
+                    "cloudy": 1.0,
+                    "sunny": 0.7
+                }
+            },
             "fertility": {
                 "hotspots": 8,
                 "baseValue": 30,
@@ -142,7 +162,7 @@
                 "rainWaterIncreasePerDay": 15,
                 "sunEvaporationPerDay": 5,
                 "cloudyEvaporationPerDay": 2,
-                "rainNitrogenRestorePerDay": 0.8
+                "rainNitrogenRestorePerDay": 0.0
             }
         },
         

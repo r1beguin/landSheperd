@@ -49,10 +49,6 @@ class LightingManager {
         
         // Convert phases object to sorted array for easier iteration
         this.phasesArray = this._buildPhasesArray();
-        
-        console.log('[LIGHTING] LightingManager initialized');
-        console.log(`[LIGHTING] Enabled: ${this.enabled}`);
-        console.log(`[LIGHTING] Phases configured: ${this.phasesArray.length}`);
     }
     
     /**
@@ -283,7 +279,6 @@ class LightingManager {
         }
         
         this.timeOverride = hour;
-        console.log(`[LIGHTING] Time override set to ${hour} hours`);
     }
     
     /**
@@ -291,7 +286,6 @@ class LightingManager {
      */
     resetTimeOverride() {
         this.timeOverride = null;
-        console.log('[LIGHTING] Time override reset');
     }
     
     /**

@@ -208,14 +208,28 @@ class Plant {
                     const wasStarved = this.daysStunted > 0;
                     const returnMultiplier = wasStarved ? starvationMultiplier : 1.0;
                     
+                    // Calculate actual returns after multiplier
+                    const actualReturns = {
+                        nitrogen: returns.nitrogen * returnMultiplier,
+                        phosphorus: returns.phosphorus * returnMultiplier,
+                        potassium: returns.potassium * returnMultiplier,
+                        organicMatter: returns.organicMatter * returnMultiplier
+                    };
+                    
                     // Calculate new nutrient levels after decomposition
-                    const newNitrogen = soil.nitrogen + returns.nitrogen * returnMultiplier;
-                    const newPhosphorus = soil.phosphorus + returns.phosphorus * returnMultiplier;
-                    const newPotassium = soil.potassium + returns.potassium * returnMultiplier;
-                    const newOrganicMatter = soil.organicMatter + returns.organicMatter * returnMultiplier;
+                    const newNitrogen = soil.nitrogen + actualReturns.nitrogen;
+                    const newPhosphorus = soil.phosphorus + actualReturns.phosphorus;
+                    const newPotassium = soil.potassium + actualReturns.potassium;
+                    const newOrganicMatter = soil.organicMatter + actualReturns.organicMatter;
                     
                     // Update soil nutrients
                     soil.updateNutrients(newNitrogen, newPhosphorus, newPotassium, newOrganicMatter);
+                    
+                    // PHASE 2: Mark this area for localized decomposition
+                    const soilManager = window.graphicsEngine?.soilManager;
+                    if (soilManager && soilManager.markCellForDecomposition) {
+                        soilManager.markCellForDecomposition(Math.round(soil.gridX), Math.round(soil.gridY));
+                    }
                     
                     // Invalidate texture cache to reflect visual changes
                     window.graphicsEngine.soilManager.needsRefresh = true;
