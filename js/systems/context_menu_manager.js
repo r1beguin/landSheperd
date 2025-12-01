@@ -623,8 +623,14 @@ class ContextMenuManager {
                     const layer = advanceButton.getAttribute('data-layer');
                     const layerPlant = this.plantManager.getPlantAt(this.currentGridX, this.currentGridY, layer);
                     if (layerPlant) {
-                        layerPlant.advanceGrowthStage(currentDay);
-                        console.log(`Advanced ${layerPlant.species.commonName} on ${layer} layer at (${this.currentGridX}, ${this.currentGridY})`);
+                        const advanced = layerPlant.advanceGrowthStage(currentDay);
+                        if (advanced) {
+                            console.log(`Advanced ${layerPlant.species.commonName} on ${layer} layer to ${layerPlant.stage}`);
+                            // Immediately refresh menu to show new stage
+                            this.refresh();
+                        } else {
+                            console.log(`Cannot advance ${layerPlant.species.commonName} (already at final stage or insufficient nutrients)`);
+                        }
                     }
                 }
                 break;
@@ -659,7 +665,14 @@ class ContextMenuManager {
             case 'advance':
                 // Advance plant growth stage (legacy - single plant)
                 if (plant) {
-                    plant.advanceGrowthStage(currentDay);
+                    const advanced = plant.advanceGrowthStage(currentDay);
+                    if (advanced) {
+                        console.log(`Advanced ${plant.species.commonName} to ${plant.stage}`);
+                        // Immediately refresh menu to show new stage
+                        this.refresh();
+                    } else {
+                        console.log(`Cannot advance ${plant.species.commonName} (already at final stage or insufficient nutrients)`);
+                    }
                 }
                 break;
                 

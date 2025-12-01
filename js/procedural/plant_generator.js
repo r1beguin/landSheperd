@@ -536,9 +536,12 @@ class PlantGenerator {
     }
 
     static generateMatureTreeSprite(speciesConfig) {
+        // Increase canvas width to prevent horizontal cropping of canopy
+        // Original: 40px caused 5px cropping on each side
+        // New: 50px gives proper margins for full canopy (radius 13 + offsets)
         const dimensions = speciesConfig.appearance?.dimensions || {width: 40, height: 50};
         const canvas = document.createElement('canvas');
-        canvas.width = dimensions.width;
+        canvas.width = 50; // Increased from 40 to fit full canopy
         canvas.height = dimensions.height;
         const ctx = canvas.getContext('2d');
         
@@ -546,7 +549,7 @@ class PlantGenerator {
         
         const colors = speciesConfig.appearance.colorPalette;
         
-        // Draw thick trunk - leave room for large canopy
+        // Draw thick trunk - centered in wider canvas
         const trunkWidth = 7;
         const trunkHeight = 22;
         const trunkX = canvas.width / 2 - trunkWidth / 2;
@@ -561,9 +564,9 @@ class PlantGenerator {
         ctx.fillRect(trunkX, trunkY + trunkHeight/3, trunkWidth, 2);
         ctx.fillRect(trunkX, trunkY + 2*trunkHeight/3, trunkWidth, 1);
         
-        // Draw large, full canopy - ensure top fits
+        // Draw large, full canopy - now fits within 50px width
         const canopyRadius = 13;
-        const canopyY = canopyRadius + 8; // Position from top: radius + top circle offset (8px)
+        const canopyY = canopyRadius + 8; // Position from top
         
         ctx.fillStyle = colors.leaf[0];
         

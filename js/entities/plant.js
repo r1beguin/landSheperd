@@ -41,6 +41,12 @@ class Plant {
         // Use the global PlantGenerator to create the sprite with current growth stage
         if (window.PlantGenerator) {
             this.texture = window.PlantGenerator.generatePlantSprite(this.species, this.stage);
+            
+            // Update dimensions from generated sprite
+            if (this.texture) {
+                this.width = this.texture.width;
+                this.height = this.texture.height;
+            }
         }
     }
 
