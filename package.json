@@ -11,6 +11,7 @@
     "verify:log-only": "node scripts/verify-changes.js --log-only",
     "test": "playwright test",
     "test:interactive": "playwright test tests/interactive.spec.js",
+    "test:clover": "cross-env TEST_CLOVER=true playwright test",
     "test:decomp": "cross-env TEST_DECOMP_OM=true playwright test",
     "test:balance": "cross-env TEST_BALANCE=true playwright test tests/ecosystem-balance.spec.js --timeout=600000",
     "test:overlay": "cross-env TEST_OVERLAY=true playwright test",

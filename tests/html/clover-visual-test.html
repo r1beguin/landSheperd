@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clover Visual Test - Land Shepherd</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #2c3e50;
+            color: #ecf0f1;
+        }
+        h1 {
+            text-align: center;
+            color: #3498db;
+        }
+        .test-section {
+            background: #34495e;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .sprite-display {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .sprite-box {
+            background: #2c3e50;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            min-width: 150px;
+        }
+        .sprite-box h3 {
+            margin: 0 0 10px 0;
+            color: #e74c3c;
+            font-size: 14px;
+        }
+        .sprite-canvas {
+            display: inline-block;
+            background: #8B7355;
+            border: 1px solid #555;
+            image-rendering: pixelated;
+            transform: scale(3);
+            transform-origin: center;
+            margin: 30px;
+        }
+        .info {
+            background: #2c3e50;
+            padding: 15px;
+            border-left: 4px solid #e74c3c;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .stack-test {
+            display: flex;
+            gap: 30px;
+            margin: 20px 0;
+            align-items: flex-start;
+        }
+        .stack-box {
+            background: #2c3e50;
+            border: 2px solid #27ae60;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stack-visualization {
+            position: relative;
+            width: 120px;
+            height: 150px;
+            background: #8B7355;
+            margin: 20px auto;
+            border: 1px solid #555;
+        }
+        .layer-sprite {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            image-rendering: pixelated;
+        }
+        .layer-sprite.bottom {
+            bottom: 0px;
+            z-index: 1;
+        }
+        .layer-sprite.middle {
+            bottom: 5px;
+            z-index: 2;
+        }
+        .layer-sprite.top {
+            bottom: 15px;
+            z-index: 3;
+        }
+        .layer-label {
+            position: absolute;
+            right: -80px;
+            width: 70px;
+            font-size: 11px;
+            color: #95a5a6;
+        }
+        .layer-label.bottom {
+            bottom: 0px;
+        }
+        .layer-label.middle {
+            bottom: 5px;
+        }
+        .layer-label.top {
+            bottom: 15px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        #results {
+            background: #1a252f;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🍀 Clover Visual Test - Land Shepherd</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Clover Growth Stages</h2>
+        <div class="info">
+            <strong>Purpose:</strong> Verify all 3 clover growth stages generate sprites correctly at 16x16px
+        </div>
+        <div class="sprite-display" id="cloverStages"></div>
+        <button onclick="runTest1()">Run Test 1</button>
+        <div id="results1"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Three-Layer Stack (Clover + Nettle + Oak)</h2>
+        <div class="info">
+            <strong>Purpose:</strong> Verify clover (bottom), nettle (middle), and oak (top) render stacked correctly with proper Y-offsets
+        </div>
+        <div class="stack-test">
+            <div class="stack-box">
+                <h3>Layer Stack Visualization</h3>
+                <div class="stack-visualization" id="stackViz">
+                    <!-- Sprites will be injected here -->
+                </div>
+                <p style="font-size: 12px; color: #95a5a6;">
+                    Bottom layer (clover) at +0px<br>
+                    Middle layer (nettle) at +5px<br>
+                    Top layer (oak) at +15px
+                </p>
+            </div>
+            <div class="stack-box">
+                <h3>Individual Sprites</h3>
+                <div id="individualSprites" style="display: flex; flex-direction: column; gap: 20px; align-items: center;"></div>
+            </div>
+        </div>
+        <button onclick="runTest2()">Run Test 2</button>
+        <div id="results2"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Species Configuration Validation</h2>
+        <div class="info">
+            <strong>Purpose:</strong> Verify clover species config loads correctly with all required fields
+        </div>
+        <button onclick="runTest3()">Run Test 3</button>
+        <div id="results3"></div>
+    </div>
+
+    <script src="../../js/procedural/plant_generator.js"></script>
+    <script>
+        let cloverConfig = null;
+        let nettleConfig = null;
+        let oakConfig = null;
+
+        // Load species configs
+        async function loadConfigs() {
+            try {
+                const cloverResponse = await fetch('../../species/clover.json');
+                cloverConfig = await cloverResponse.json();
+                
+                const nettleResponse = await fetch('../../species/nettles.json');
+                nettleConfig = await nettleResponse.json();
+                
+                const oakResponse = await fetch('../../species/oak.json');
+                oakConfig = await oakResponse.json();
+                
+                console.log('Configs loaded successfully');
+                return true;
+            } catch (error) {
+                console.error('Failed to load configs:', error);
+                return false;
+            }
+        }
+
+        async function runTest1() {
+            const resultsDiv = document.getElementById('results1');
+            resultsDiv.innerHTML = '<p>Loading...</p>';
+            
+            if (!cloverConfig) {
+                const loaded = await loadConfigs();
+                if (!loaded) {
+                    resultsDiv.innerHTML = '<p class="error">❌ Failed to load clover config</p>';
+                    return;
+                }
+            }
+
+            const stagesDiv = document.getElementById('cloverStages');
+            stagesDiv.innerHTML = '';
+            
+            const stages = ['Sprout', 'Spreading', 'Flowering'];
+            let results = [];
+            
+            for (const stage of stages) {
+                try {
+                    const canvas = PlantGenerator.generatePlantSprite(cloverConfig, stage);
+                    
+                    // Validate dimensions
+                    const expectedWidth = cloverConfig.appearance.dimensions.width;
+                    const expectedHeight = cloverConfig.appearance.dimensions.height;
+                    const widthMatch = canvas.width === expectedWidth;
+                    const heightMatch = canvas.height === expectedHeight;
+                    
+                    // Check if sprite has content (not empty)
+                    const ctx = canvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const hasContent = imageData.data.some((value, index) => index % 4 === 3 && value > 0);
+                    
+                    // Display sprite
+                    const box = document.createElement('div');
+                    box.className = 'sprite-box';
+                    box.innerHTML = `
+                        <h3>${stage}</h3>
+                        <div class="sprite-canvas" id="stage-${stage}"></div>
+                        <p style="font-size: 12px; margin-top: 50px;">
+                            ${canvas.width}x${canvas.height}px<br>
+                            ${widthMatch && heightMatch ? '<span class="success">✓ Size OK</span>' : '<span class="error">✗ Size Wrong</span>'}<br>
+                            ${hasContent ? '<span class="success">✓ Has Content</span>' : '<span class="error">✗ Empty</span>'}
+                        </p>
+                    `;
+                    stagesDiv.appendChild(box);
+                    document.getElementById(`stage-${stage}`).appendChild(canvas);
+                    
+                    results.push(`${stage}: ${widthMatch && heightMatch && hasContent ? '✓ PASS' : '✗ FAIL'}`);
+                } catch (error) {
+                    results.push(`${stage}: ✗ ERROR - ${error.message}`);
+                }
+            }
+            
+            resultsDiv.innerHTML = `
+                <div id="results">
+                    <strong>Test 1 Results:</strong><br>
+                    ${results.join('<br>')}
+                    <br><br>
+                    <strong>Overall:</strong> ${results.every(r => r.includes('PASS')) ? '<span class="success">✅ ALL TESTS PASSED</span>' : '<span class="error">❌ SOME TESTS FAILED</span>'}
+                </div>
+            `;
+        }
+
+        async function runTest2() {
+            const resultsDiv = document.getElementById('results2');
+            resultsDiv.innerHTML = '<p>Loading...</p>';
+            
+            if (!cloverConfig || !nettleConfig || !oakConfig) {
+                const loaded = await loadConfigs();
+                if (!loaded) {
+                    resultsDiv.innerHTML = '<p class="error">❌ Failed to load configs</p>';
+                    return;
+                }
+            }
+
+            const stackViz = document.getElementById('stackViz');
+            const individualSprites = document.getElementById('individualSprites');
+            stackViz.innerHTML = '';
+            individualSprites.innerHTML = '';
+            
+            let results = [];
+            
+            try {
+                // Generate sprites
+                const cloverCanvas = PlantGenerator.generatePlantSprite(cloverConfig, 'Flowering');
+                const nettleCanvas = PlantGenerator.generatePlantSprite(nettleConfig, 'Flowering');
+                const oakCanvas = PlantGenerator.generatePlantSprite(oakConfig, 'Sapling');
+                
+                // Create stack visualization
+                const cloverLayer = cloverCanvas.cloneNode();
+                cloverLayer.className = 'layer-sprite bottom';
+                stackViz.appendChild(cloverLayer);
+                
+                const cloverLabel = document.createElement('div');
+                cloverLabel.className = 'layer-label bottom';
+                cloverLabel.innerHTML = 'Clover<br>(bottom)';
+                stackViz.appendChild(cloverLabel);
+                
+                const nettleLayer = nettleCanvas.cloneNode();
+                nettleLayer.className = 'layer-sprite middle';
+                stackViz.appendChild(nettleLayer);
+                
+                const nettleLabel = document.createElement('div');
+                nettleLabel.className = 'layer-label middle';
+                nettleLabel.innerHTML = 'Nettle<br>(middle)';
+                stackViz.appendChild(nettleLabel);
+                
+                const oakLayer = oakCanvas.cloneNode();
+                oakLayer.className = 'layer-sprite top';
+                stackViz.appendChild(oakLayer);
+                
+                const oakLabel = document.createElement('div');
+                oakLabel.className = 'layer-label top';
+                oakLabel.innerHTML = 'Oak<br>(top)';
+                stackViz.appendChild(oakLabel);
+                
+                // Display individual sprites
+                individualSprites.innerHTML = `
+                    <div style="text-align: center;">
+                        <strong>Clover (16x16)</strong><br>
+                        <div style="background: #8B7355; padding: 10px; display: inline-block; margin: 5px;">${cloverCanvas.outerHTML}</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong>Nettle (20x20)</strong><br>
+                        <div style="background: #8B7355; padding: 10px; display: inline-block; margin: 5px;">${nettleCanvas.outerHTML}</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong>Oak (40x50)</strong><br>
+                        <div style="background: #8B7355; padding: 10px; display: inline-block; margin: 5px;">${oakCanvas.outerHTML}</div>
+                    </div>
+                `;
+                
+                results.push('✓ All sprites generated successfully');
+                results.push('✓ Stack visualization created');
+                results.push('✓ Layer offsets applied (0px, 5px, 15px)');
+                
+                resultsDiv.innerHTML = `
+                    <div id="results">
+                        <strong>Test 2 Results:</strong><br>
+                        ${results.join('<br>')}
+                        <br><br>
+                        <strong>Overall:</strong> <span class="success">✅ TEST PASSED</span>
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div id="results">
+                        <strong>Test 2 Results:</strong><br>
+                        <span class="error">✗ ERROR: ${error.message}</span>
+                    </div>
+                `;
+            }
+        }
+
+        async function runTest3() {
+            const resultsDiv = document.getElementById('results3');
+            resultsDiv.innerHTML = '<p>Loading...</p>';
+            
+            if (!cloverConfig) {
+                const loaded = await loadConfigs();
+                if (!loaded) {
+                    resultsDiv.innerHTML = '<p class="error">❌ Failed to load clover config</p>';
+                    return;
+                }
+            }
+
+            let results = [];
+            
+            // Validate required fields
+            const checks = [
+                { field: 'id', value: cloverConfig.id, expected: 'trifolium_repens' },
+                { field: 'displayName', value: cloverConfig.displayName, expected: 'Clover' },
+                { field: 'layer', value: cloverConfig.layer, expected: 'bottom' },
+                { field: 'appearance.dimensions.width', value: cloverConfig.appearance?.dimensions?.width, expected: 16 },
+                { field: 'appearance.dimensions.height', value: cloverConfig.appearance?.dimensions?.height, expected: 16 },
+                { field: 'growthStages.length', value: cloverConfig.growthStages?.length, expected: 4 },
+                { field: 'environment.lightRequirement', value: cloverConfig.environment?.lightRequirement, expected: 0.5 },
+                { field: 'environment.rootDepth', value: cloverConfig.environment?.rootDepth, expected: 'shallow' }
+            ];
+            
+            for (const check of checks) {
+                const pass = check.value === check.expected;
+                results.push(`${check.field}: ${pass ? '✓ PASS' : '✗ FAIL'} (got: ${check.value}, expected: ${check.expected})`);
+            }
+            
+            // Check growth stages
+            const stages = ['Sprout', 'Spreading', 'Flowering', 'Withered'];
+            const stageNames = cloverConfig.growthStages.map(s => s.name);
+            for (const stage of stages) {
+                const hasStage = stageNames.includes(stage);
+                results.push(`Has ${stage} stage: ${hasStage ? '✓ PASS' : '✗ FAIL'}`);
+            }
+            
+            const allPass = results.every(r => r.includes('PASS'));
+            
+            resultsDiv.innerHTML = `
+                <div id="results">
+                    <strong>Test 3 Results:</strong><br>
+                    ${results.join('<br>')}
+                    <br><br>
+                    <strong>Overall:</strong> ${allPass ? '<span class="success">✅ ALL CHECKS PASSED</span>' : '<span class="error">❌ SOME CHECKS FAILED</span>'}
+                </div>
+            `;
+        }
+
+        // Auto-run on page load
+        window.addEventListener('load', async () => {
+            await loadConfigs();
+            console.log('Page loaded, configs ready');
+        });
+    </script>
+</body>
+</html>

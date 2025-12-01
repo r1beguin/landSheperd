@@ -1,0 +1,179 @@
+{
+  "id": "trifolium_repens",
+  "displayName": "Clover",
+  "category": "herb",
+  "layer": "bottom",
+  "appearance": {
+    "dimensions": {
+      "width": 16,
+      "height": 16
+    },
+    "colorPalette": {
+      "stem": ["#2d5016", "#1a3d0a"],
+      "leaf": ["#4a7c2e", "#5a9c3e", "#3d6b25"],
+      "flower": ["#f0e8e0", "#e8d8d0", "#ffc0cb"],
+      "witheredStem": ["#6b5c3d", "#5a4d30"],
+      "witheredLeaf": ["#8b7355", "#7a6245"]
+    }
+  },
+  "growthStages": [
+    {
+      "name": "Sprout",
+      "daysToGrow": 2,
+      "generator": "cloverSproutGeneration",
+      "visibleOrgans": ["stem", "leaf"],
+      "nutrientConsumption": {
+        "nitrogen": 3,
+        "phosphorus": 2,
+        "potassium": 2,
+        "organicMatter": 1
+      },
+      "growthModifiers": {
+        "nitrogen": {
+          "weight": 0.25,
+          "description": "Early establishment"
+        },
+        "phosphorus": {
+          "weight": 0.30,
+          "description": "Root development"
+        },
+        "potassium": {
+          "weight": 0.25,
+          "description": "Initial vigor"
+        },
+        "organicMatter": {
+          "weight": 0.20,
+          "description": "Soil health"
+        }
+      }
+    },
+    {
+      "name": "Spreading",
+      "daysToGrow": 5,
+      "generator": "cloverSpreadingGeneration",
+      "visibleOrgans": ["stem", "leaf"],
+      "nutrientConsumption": {
+        "nitrogen": 5,
+        "phosphorus": 3,
+        "potassium": 3,
+        "organicMatter": 2
+      },
+      "growthModifiers": {
+        "nitrogen": {
+          "weight": 0.20,
+          "description": "Moderate nitrogen need (nitrogen-fixing)"
+        },
+        "phosphorus": {
+          "weight": 0.35,
+          "description": "Supports spreading growth"
+        },
+        "potassium": {
+          "weight": 0.25,
+          "description": "Leaf expansion"
+        },
+        "organicMatter": {
+          "weight": 0.20,
+          "description": "Moisture retention"
+        }
+      }
+    },
+    {
+      "name": "Flowering",
+      "daysToGrow": null,
+      "generator": "cloverFloweringGeneration",
+      "visibleOrgans": ["stem", "leaf", "flower"],
+      "nutrientConsumption": {
+        "nitrogen": 2,
+        "phosphorus": 6,
+        "potassium": 5,
+        "organicMatter": 3
+      },
+      "growthModifiers": {
+        "nitrogen": {
+          "weight": 0.15,
+          "description": "Low nitrogen need (fixes own nitrogen)"
+        },
+        "phosphorus": {
+          "weight": 0.40,
+          "description": "Critical for flowering and seed production"
+        },
+        "potassium": {
+          "weight": 0.30,
+          "description": "Flower quality and seed viability"
+        },
+        "organicMatter": {
+          "weight": 0.15,
+          "description": "Overall plant health"
+        }
+      }
+    },
+    {
+      "name": "Withered",
+      "daysToGrow": 5,
+      "generator": "witheredGeneration",
+      "visibleOrgans": ["stem", "leaf"],
+      "nutrientReturn": {
+        "nitrogen": 5,
+        "phosphorus": 2,
+        "potassium": 2,
+        "organicMatter": 10
+      }
+    }
+  ],
+  "reproduction": {
+    "seedProduction": {
+      "enabled": true,
+      "activeStages": ["Flowering"],
+      "checkIntervalDays": 3,
+      "successChance": 0.4,
+      "maxDistance": 2,
+      "germinationChance": 0.7
+    }
+  },
+  "environment": {
+    "nutrientRequirements": {
+      "nitrogen": {
+        "minimum": 5,
+        "optimal": 25,
+        "description": "Low nitrogen requirement - clover fixes its own nitrogen"
+      },
+      "phosphorus": {
+        "minimum": 8,
+        "optimal": 25,
+        "description": "Important for nodule formation and flowering"
+      },
+      "potassium": {
+        "minimum": 8,
+        "optimal": 25,
+        "description": "Supports vigor and drought tolerance"
+      },
+      "organicMatter": {
+        "minimum": 5,
+        "optimal": 30,
+        "description": "Improves moisture retention for shallow roots"
+      }
+    },
+    "lightRequirement": 0.5,
+    "rootDepth": "shallow",
+    "shadeStrength": 0.0,
+    "description": "Clover is a nitrogen-fixing ground cover tolerating partial shade"
+  },
+  "proceduralModules": {
+    "sprout": {
+      "leafCount": 1,
+      "leafSize": 0.3,
+      "stemHeight": 0.3
+    },
+    "spreading": {
+      "leafCount": 3,
+      "leafSize": 0.6,
+      "cloverPattern": true
+    },
+    "flowering": {
+      "leafCount": 3,
+      "leafSize": 0.7,
+      "flowerSize": 0.5,
+      "flowerCount": 2
+    }
+  }
+}

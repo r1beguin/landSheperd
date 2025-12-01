@@ -84,10 +84,39 @@ Species are defined in JSON files with the following structure:
 
 #### Stinging Nettle (Urtica dioica)
 
-- **Category**: Wild herb
-- **Growth Stage**: Seedling only
+- **Category**: Wild herb (middle layer)
+- **Size**: 20x20 pixels
+- **Growth Stages**: Seedling (3 days) → Vegetative (7 days) → Flowering (10 days) → Withered (5 days)
+- **Light Requirement**: 0.6 (moderate light needs)
+- **Root Depth**: Shallow
+- **Nutrient Demand**: Moderate nitrogen, moderate phosphorus
+- **Reproduction**: Enabled in Flowering stage, dispersal radius 3 cells
 - **Leaf Configuration**: 2 serrated leaves with alternating placement
 - **Visual Characteristics**: Green stem with attached leaves and connecting petioles
+
+#### Oak Tree (Quercus robur)
+
+- **Category**: Tree (top layer)
+- **Size**: 40x50 pixels
+- **Growth Stages**: Sapling (20 days) → YoungTree (40 days) → MatureTree (indefinite) → Withered (15 days)
+- **Light Requirement**: 0.9 (high light needs)
+- **Root Depth**: Deep
+- **Nutrient Demand**: High nitrogen, high phosphorus, high potassium
+- **Reproduction**: Enabled in MatureTree stage, dispersal radius 5 cells
+- **Visual**: Progressive canopy development from small (sapling) to full mature tree
+- **Ecological Role**: Canopy layer, shade casting, deep nutrient access
+
+#### Clover (Trifolium repens)
+
+- **Category**: Herb (ground cover, bottom layer)
+- **Size**: 16x16 pixels
+- **Growth Stages**: Sprout (2 days) → Spreading (5 days) → Flowering (indefinite) → Withered (5 days)
+- **Light Requirement**: 0.5 (tolerates partial shade, can grow under trees)
+- **Root Depth**: Shallow
+- **Nutrient Demand**: Low nitrogen (nitrogen-fixing in real life), moderate phosphorus for flowering
+- **Reproduction**: High seed production in Flowering stage, dispersal radius 2 cells
+- **Visual**: Characteristic 3-leaf pattern with white/pink flower clusters
+- **Ecological Role**: Ground cover, soil improvement, nitrogen fixation (future)
 
 ## Plant Entity System
 
@@ -413,9 +442,21 @@ This system enables realistic plant communities where ground cover, herbs, and t
 
 The system defines three vertical layers:
 
-- **Bottom layer**: Ground cover (moss, grass) - *not yet implemented, reserved for future species*
-- **Middle layer**: Herbs, bushes (e.g., Stinging Nettle)
-- **Top layer**: Trees (e.g., Oak Tree)
+- **Bottom layer**: Ground cover (e.g., Clover) - grows at base, +0px render offset
+- **Middle layer**: Herbs, bushes (e.g., Stinging Nettle) - grows above ground, +5px render offset
+- **Top layer**: Trees (e.g., Oak Tree) - tallest plants, +15px render offset
+
+### Visual Stacking
+
+When all 3 layers are occupied, plants render in order:
+
+1. Clover (bottom) - 16x16px at +0px offset - Ground cover base
+2. Nettle (middle) - 20x20px at +5px offset - Herb layer above ground
+3. Oak (top) - 40x50px at +15px offset - Canopy layer above all
+
+This creates a natural ecosystem appearance with ground cover beneath herbs beneath trees, mimicking real forest stratification.
+
+**Example: Full 3-Layer Ecosystem**
 
 ### Storage Architecture
 
@@ -500,44 +541,32 @@ PlantManager uses a nested Map structure for efficient layer-based storage:
   plantManager.removePlant(10, 10); // Removes nettle and oak
   ```
 
-### Usage Example
+### Usage Example (Full 3-Layer Stack)
 
 ```javascript
-// Find an available cell
-const gridX = 10;
-const gridY = 10;
+// Plant clover (bottom layer - ground cover)
+plantManager.addPlant(10, 10, 'trifolium_repens');
+// Available now: ['middle', 'top']
 
-// Check what layers are available
-const available = plantManager.getAvailableLayersAt(gridX, gridY);
-console.log('Available layers:', available);
-// => ['bottom', 'middle', 'top']
+// Plant nettle (middle layer - herb) on same cell
+plantManager.addPlant(10, 10, 'urtica_dioica');
+// Available now: ['top']
 
-// Plant nettle (middle layer)
-const nettle = plantManager.addPlant(gridX, gridY, 'urtica_dioica');
-console.log('Nettle planted on layer:', nettle.getLayer());
-// => 'middle'
-
-// Check available layers after nettle
-const availableNow = plantManager.getAvailableLayersAt(gridX, gridY);
-console.log('Available after nettle:', availableNow);
-// => ['bottom', 'top']
-
-// Plant oak (top layer) on same cell
-const oak = plantManager.addPlant(gridX, gridY, 'quercus_robur');
-console.log('Oak planted on layer:', oak.getLayer());
-// => 'top'
+// Plant oak (top layer - tree) on same cell
+plantManager.addPlant(10, 10, 'quercus_robur');
+// Available now: [] (all layers occupied)
 
 // Get all plants at cell
-const plants = plantManager.getPlantAt(gridX, gridY);
-console.log('Plants at cell:', plants.length);
-// => 2 (nettle and oak)
+const plants = plantManager.getPlantAt(10, 10);
+// => [Plant(clover), Plant(nettle), Plant(oak)]
 
 // Get specific layer
-const oakFromTop = plantManager.getPlantAt(gridX, gridY, 'top');
-const nettleFromMiddle = plantManager.getPlantAt(gridX, gridY, 'middle');
+const clover = plantManager.getPlantAt(10, 10, 'bottom');
+const nettle = plantManager.getPlantAt(10, 10, 'middle');
+const oak = plantManager.getPlantAt(10, 10, 'top');
 
-// Remove specific layer
-plantManager.removePlant(gridX, gridY, 'middle'); // Removes nettle, oak remains
+// Remove specific layer (e.g., remove nettle but keep clover and oak)
+plantManager.removePlant(10, 10, 'middle'); // Removes only nettle
 ```
 
 ### Context Menu UI
@@ -545,13 +574,16 @@ plantManager.removePlant(gridX, gridY, 'middle'); // Removes nettle, oak remains
 The context menu provides visual feedback about multi-layer occupancy:
 
 #### Empty Cell
+
 ```
 Plant:
   [Nettle (middle)]   ← green border
   [Oak (top)]         ← sea green border
+  [Clover (bottom)]   ← brown border
 ```
 
-#### Cell with Plants
+#### Cell with Plants (Full 3-Layer Example)
+
 ```
 [TOP]
   Oak Tree (MatureTree)
@@ -565,7 +597,11 @@ Plant:
   Growth: 92% (Optimal)
   [Advance] [Remove]
 
-[BOTTOM] (empty)
+[BOTTOM]
+  Clover (Spreading)
+  Age: 5.2 days
+  Growth: 88% (Optimal)
+  [Advance] [Remove]
 ```
 
 **Layer Colors:**
@@ -601,6 +637,7 @@ const layerOffsets = {
 
 Each species specifies its layer in `species/*.json`:
 
+**Nettle (Middle Layer)**:
 ```json
 {
   "id": "urtica_dioica",
@@ -611,6 +648,7 @@ Each species specifies its layer in `species/*.json`:
 }
 ```
 
+**Oak (Top Layer)**:
 ```json
 {
   "id": "quercus_robur",
@@ -621,10 +659,21 @@ Each species specifies its layer in `species/*.json`:
 }
 ```
 
+**Clover (Bottom Layer)**:
+```json
+{
+  "id": "trifolium_repens",
+  "commonName": "Clover",
+  "layer": "bottom",
+  "lightRequirement": 0.5,
+  "rootDepth": "shallow"
+}
+```
+
 **Layer Assignment Rules:**
-- Ground cover (moss, grass) → `"layer": "bottom"`
-- Herbs, bushes, low plants → `"layer": "middle"`
-- Trees, tall shrubs → `"layer": "top"`
+- Ground cover (clover, moss, grass) → `"layer": "bottom"`
+- Herbs, bushes, low plants (nettles) → `"layer": "middle"`
+- Trees, tall shrubs (oak) → `"layer": "top"`
 
 ### Ecological Interactions (Future)
 

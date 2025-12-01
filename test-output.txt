@@ -1,0 +1,242 @@
+
+> land-shepherd@0.1.0 test:clover
+> cross-env TEST_CLOVER=true playwright test
+
+
+Running 6 tests using 1 worker
+
+
+=== TEST 1: Clover Growth Stages ===
+Planting clover at Sprout stage...
+✓ Clover planted at (15, 15) - Sprout stage (bottom layer)
+✓ Sprout stage verified: 16x16px
+Advancing to Spreading stage...
+  ✘  1 [chromium] › tests\clover-species.spec.js:129:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 1: Clover species loads and all growth stages render (4.2s)
+
+=== TEST 2: Full 3-Layer Stack ===
+Planting clover at (15, 15)...
+  ✘  2 [chromium] › tests\clover-species.spec.js:278:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 2: Can plant full 3-layer stack (clover + nettle + oak) (3.6s)
+
+=== TEST 3: Context Menu Display ===
+Planting full 3-layer stack...
+Right-clicking at grid (25, 25) -> screen (1660, 1380)
+  ✘  3 [chromium] › tests\clover-species.spec.js:385:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 3: Context menu shows all 3 layers with correct info (33.6s)
+
+=== TEST 4: Layer-Specific Removal ===
+Planting full 3-layer stack...
+✓ Initial state: 3 plants at (20, 20)
+Removing middle layer (nettle)...
+✓ Middle layer removal successful
+  Remaining: unknown (bottom), unknown (top)
+✓ Middle layer now available: [ [32m'middle'[39m ]
+Removing bottom layer (clover)...
+  ✘  4 [chromium] › tests\clover-species.spec.js:473:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 4: Layer-specific removal works with 3 layers (4.8s)
+
+=== TEST 5: Visual Stacking Order ===
+Planting full stack with visible stages...
+✓ Planted:
+  [BOTTOM] Clover - Spreading
+  [MIDDLE] Nettle - Vegetative
+  [TOP] Oak - YoungTree
+
+Render information:
+  [BOTTOM] unknown (Spreading)
+    Size: 16x16px, Y-offset: 0px
+  [MIDDLE] unknown (Vegetative)
+    Size: 20x20px, Y-offset: 0px
+  [TOP] unknown (YoungTree)
+    Size: 40x50px, Y-offset: 0px
+
+Y-offset verification:
+  Bottom: 0px (expected: ~0px)
+  Middle: 0px (expected: ~5px)
+  Top: 0px (expected: ~15px)
+✓ Screenshot captured: test-results/clover/stacking-order-visual.png
+⚠ Render order data not available (expected in some test environments)
+✓ FPS: 0 (maintained with 3-layer visual rendering)
+
+✓ TEST 5 PASSED: Visual stacking order verified
+
+  ✓  5 [chromium] › tests\clover-species.spec.js:572:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 5: Visual stacking order verification (4.3s)
+
+=== PERFORMANCE TEST: Multiple 3-Layer Stacks ===
+Planting 9 3-layer stacks (27 plants total)...
+✓ 9 plants spawned
+
+FPS with 9 plants (9 3-layer stacks):
+  Average: 53
+  Min: 27
+  Max: 769
+✓ Performance maintained: FPS >= 30
+
+✓ PERFORMANCE TEST PASSED
+
+  ✓  6 [chromium] › tests\clover-species.spec.js:685:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Performance: FPS with multiple 3-layer stacks (7.4s)
+
+
+  1) [chromium] › tests\clover-species.spec.js:129:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 1: Clover species loads and all growth stages render 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      164 |         console.log('Advancing to Spreading stage...');
+      165 |         const spreadingSuccess = await forceGrowthStage(page, testX, testY, 'bottom', 'Spreading');
+    > 166 |         expect(spreadingSuccess).toBe(true);
+          |                                  ^
+      167 |         
+      168 |         await waitForRenderFrames(page, 10);
+      169 |         
+        at C:\Users\gibso\Documents\dev\landSheperd\tests\clover-species.spec.js:166:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-fa4ea-nd-all-growth-stages-render-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-fa4ea-nd-all-growth-stages-render-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\clover-species-Clover-Spec-fa4ea-nd-all-growth-stages-render-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-fa4ea-nd-all-growth-stages-render-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\clover-species-Clover-Spec-fa4ea-nd-all-growth-stages-render-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests\clover-species.spec.js:278:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 2: Can plant full 3-layer stack (clover + nettle + oak) 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mnull[39m
+
+      285 |         console.log(`Planting clover at (${testX}, ${testY})...`);
+      286 |         const clover = await spawnPlantAt(page, testX, testY, 'trifolium_repens');
+    > 287 |         expect(clover).toBeTruthy();
+          |                        ^
+      288 |         expect(clover.layer).toBe('bottom');
+      289 |         console.log(`✓ Clover planted at bottom layer`);
+      290 |         
+        at C:\Users\gibso\Documents\dev\landSheperd\tests\clover-species.spec.js:287:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-96313-er-stack-clover-nettle-oak--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-96313-er-stack-clover-nettle-oak--chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\clover-species-Clover-Spec-96313-er-stack-clover-nettle-oak--chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-96313-er-stack-clover-nettle-oak--chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\clover-species-Clover-Spec-96313-er-stack-clover-nettle-oak--chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests\clover-species.spec.js:385:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 3: Context menu shows all 3 layers with correct info 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('#gameCanvas')[22m
+    [2m    - locator resolved to <canvas width="1280" height="720" id="gameCanvas"></canvas>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <html lang="en">…</html> intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <html lang="en">…</html> intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m    42 × waiting for element to be visible, enabled and stable[22m
+    [2m       - element is visible, enabled and stable[22m
+    [2m       - scrolling into view if needed[22m
+    [2m       - done scrolling[22m
+    [2m       - <html lang="en">…</html> intercepts pointer events[22m
+    [2m     - retrying click action[22m
+    [2m       - waiting 500ms[22m
+
+
+      403 |         // Right-click on cell
+      404 |         const canvas = page.locator('#gameCanvas');
+    > 405 |         await canvas.click({ button: 'right', position: screenPos });
+          |                      ^
+      406 |         
+      407 |         // Wait for context menu to appear
+      408 |         await page.waitForSelector('#context-menu', { state: 'visible', timeout: 5000 });
+        at C:\Users\gibso\Documents\dev\landSheperd\tests\clover-species.spec.js:405:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-6632a--3-layers-with-correct-info-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-6632a--3-layers-with-correct-info-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\clover-species-Clover-Spec-6632a--3-layers-with-correct-info-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-6632a--3-layers-with-correct-info-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\clover-species-Clover-Spec-6632a--3-layers-with-correct-info-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests\clover-species.spec.js:473:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 4: Layer-specific removal works with 3 layers 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"quercus_robur"[39m
+    Received: [31m"unknown"[39m
+
+      549 |         expect(finalPlants.length).toBe(1);
+      550 |         expect(finalPlants[0].layer).toBe('top');
+    > 551 |         expect(finalPlants[0].species).toBe('quercus_robur');
+          |                                        ^
+      552 |         console.log('✓ Bottom layer removal successful, only oak remains');
+      553 |         
+      554 |         // Verify both bottom and middle layers now available
+        at C:\Users\gibso\Documents\dev\landSheperd\tests\clover-species.spec.js:551:40
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-ff18f-removal-works-with-3-layers-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-ff18f-removal-works-with-3-layers-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\clover-species-Clover-Spec-ff18f-removal-works-with-3-layers-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\clover-species-Clover-Spec-ff18f-removal-works-with-3-layers-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\clover-species-Clover-Spec-ff18f-removal-works-with-3-layers-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [chromium] › tests\clover-species.spec.js:129:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 1: Clover species loads and all growth stages render 
+    [chromium] › tests\clover-species.spec.js:278:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 2: Can plant full 3-layer stack (clover + nettle + oak) 
+    [chromium] › tests\clover-species.spec.js:385:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 3: Context menu shows all 3 layers with correct info 
+    [chromium] › tests\clover-species.spec.js:473:5 › Clover Species - Comprehensive 3-Layer Stacking Tests › Test 4: Layer-specific removal works with 3 layers 
+  2 passed (1.1m)

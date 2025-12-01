@@ -1,14 +1,14 @@
 {
   "status": "PASS",
-  "timestamp": "2025-12-01T12:51:03.191Z",
-  "session_id": "2025-12-01-12-50-56",
+  "timestamp": "2025-12-01T18:20:56.200Z",
+  "session_id": "2025-12-01-18-20-49",
   "metrics": {
     "console_errors": 0,
     "console_warnings": 5,
-    "fps_average": 46,
+    "fps_average": 44,
     "fps_min": 30,
-    "fps_max": 60,
-    "load_time_ms": 1166,
+    "fps_max": 61,
+    "load_time_ms": 994,
     "webgl_context": "ok"
   },
   "visual": {
@@ -20,65 +20,70 @@
   "console_output": [
     {
       "type": "warning",
-      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A000280064450000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
-      "timestamp": "2025-12-01T12:50:56.878Z"
-    },
-    {
-      "type": "log",
-      "text": "Seed initialized: 3656865533",
-      "timestamp": "2025-12-01T12:50:56.896Z"
-    },
-    {
-      "type": "log",
-      "text": "ProceduralGenerator using seed: 3656865533",
-      "timestamp": "2025-12-01T12:50:56.896Z"
-    },
-    {
-      "type": "log",
-      "text": "Rivers generated: 2 rivers, 347 total cells (1ms)",
-      "timestamp": "2025-12-01T12:50:56.909Z"
-    },
-    {
-      "type": "log",
-      "text": "Lakes generated: 3 lakes, 400 total cells (2ms)",
-      "timestamp": "2025-12-01T12:50:56.911Z"
-    },
-    {
-      "type": "log",
-      "text": "Fertility boost applied to 434 cells near 659 water tiles (4ms)",
-      "timestamp": "2025-12-01T12:50:56.916Z"
+      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A0C02700FC780000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+      "timestamp": "2025-12-01T18:20:49.757Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x18cc0019d400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-01T12:50:57.029Z"
+      "text": "[.WebGL-0x4ffc00195a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-01T18:20:49.760Z"
+    },
+    {
+      "type": "log",
+      "text": "Seed initialized: 3676658411",
+      "timestamp": "2025-12-01T18:20:49.773Z"
+    },
+    {
+      "type": "log",
+      "text": "ProceduralGenerator using seed: 3676658411",
+      "timestamp": "2025-12-01T18:20:49.774Z"
+    },
+    {
+      "type": "log",
+      "text": "Rivers generated: 2 rivers, 363 total cells (2ms)",
+      "timestamp": "2025-12-01T18:20:49.785Z"
+    },
+    {
+      "type": "log",
+      "text": "Lakes generated: 3 lakes, 422 total cells (1ms)",
+      "timestamp": "2025-12-01T18:20:49.786Z"
+    },
+    {
+      "type": "log",
+      "text": "Fertility boost applied to 570 cells near 751 water tiles (5ms)",
+      "timestamp": "2025-12-01T18:20:49.792Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x18cc0019d400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-01T12:50:57.063Z"
+      "text": "[.WebGL-0x4ffc00195a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-01T18:20:49.912Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x18cc0019d400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-01T12:50:57.096Z"
+      "text": "[.WebGL-0x4ffc00195a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-01T18:20:49.943Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x18cc0019d400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
-      "timestamp": "2025-12-01T12:50:57.126Z"
+      "text": "[.WebGL-0x4ffc00195a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+      "timestamp": "2025-12-01T18:20:49.969Z"
+    },
+    {
+      "type": "log",
+      "text": "PlantManager loaded 3 species: urtica_dioica, quercus_robur, trifolium_repens",
+      "timestamp": "2025-12-01T18:20:50.124Z"
     }
   ],
   "console_summary": {
-    "total_logs": 10,
+    "total_logs": 11,
     "errors": 0,
     "warnings": 5
   },
   "recommendations": [
     "✓ No console errors detected",
     "✓ 5 warnings (within threshold)",
-    "✓ FPS 46 meets target (30+)",
-    "✓ Load time 1166ms within target",
+    "✓ FPS 44 meets target (30+)",
+    "✓ Load time 994ms within target",
     "✓ WebGL initialized successfully"
   ],
   "config": {

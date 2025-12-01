@@ -8,7 +8,9 @@ module.exports = defineConfig({
   testDir: './tests',
   
   // Use different test files based on mode
-  testMatch: process.env.TEST_DECOMP_OM === 'true'
+  testMatch: process.env.TEST_CLOVER === 'true'
+    ? '**/clover-species.spec.js'
+    : process.env.TEST_DECOMP_OM === 'true'
     ? '**/decomposition-om.spec.js'
     : process.env.TEST_BALANCE === 'true'
     ? '**/ecosystem-balance.spec.js'

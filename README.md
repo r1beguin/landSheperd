@@ -167,9 +167,10 @@ landSheperd/
   - Procedural generation with modular components
   - **Automatic growth progression** through multiple life stages
   - **Time-based lifecycle** (Seedling → Vegetative → Flowering → Withered)
-  - **Multi-layer plant placement**: Plant multiple species on same cell (e.g., nettle + oak)
+  - **Multi-layer plant placement**: Plant multiple species on same cell (clover + nettle + oak for full ecosystem stacking)
   - Right-click placement and removal with layer-aware context menu
-  - Currently includes Stinging Nettle (Urtica dioica) and Oak Tree (Quercus robur)
+  - **Species**: Stinging Nettle (middle layer), Oak Tree (top layer), Clover (bottom layer - ground cover)
+  - Currently includes 3 species demonstrating full vertical stratification
 - **Player character** movable on click with animation
 - **Time system** with adjustable speed controls
   - Configurable time scale (pause to 20x speed)
@@ -401,10 +402,22 @@ Test results are saved in `test-results/`:
 
 ### Available Species
 
-- **Stinging Nettle (Urtica dioica)** - Seedling stage
+- **Stinging Nettle (Urtica dioica)** - Middle layer herb
   - Serrated leaf generation with procedural modules
   - Multi-segment stem system with natural curves
   - Color variation and edge irregularity
+  - Growth stages: Seedling → Vegetative → Flowering → Withered
+
+- **Oak Tree (Quercus robur)** - Top layer canopy tree
+  - Progressive canopy development across growth stages
+  - Larger sprite (40x50px) for tall tree appearance
+  - Growth stages: Sapling → YoungTree → MatureTree → Withered
+
+- **Clover (Trifolium repens)** - Bottom layer ground cover
+  - Characteristic 3-leaf pattern
+  - White/pink flower clusters in Flowering stage
+  - Smaller sprite (16x16px) for ground cover appearance
+  - Growth stages: Sprout → Spreading → Flowering → Withered
 
 ### Species Configuration Format
 

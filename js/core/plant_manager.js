@@ -24,6 +24,11 @@ class PlantManager {
             const oakConfig = await oakResponse.json();
             this.speciesConfigs.set('quercus_robur', oakConfig);
             
+            // Load clover
+            const cloverResponse = await fetch('./species/clover.json');
+            const cloverConfig = await cloverResponse.json();
+            this.speciesConfigs.set('trifolium_repens', cloverConfig);
+            
             console.log(`PlantManager loaded ${this.speciesConfigs.size} species: ${Array.from(this.speciesConfigs.keys()).join(', ')}`);
         } catch (error) {
             console.error('Failed to load species configs:', error);
