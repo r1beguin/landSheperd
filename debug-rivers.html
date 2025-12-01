@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>River Generation Debug</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .info { margin: 10px 0; padding: 10px; background: #f0f0f0; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        button { padding: 10px 20px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>River Generation Debug</h1>
+    <button onclick="testRivers()">Test River Generation</button>
+    <div id="output"></div>
+
+    <script src="js/core/procedural_generator.js"></script>
+    <script>
+        async function testRivers() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<div class="info">Testing river generation...</div>';
+            
+            try {
+                // Create generator with seed
+                const generator = new ProceduralGenerator({});
+                generator.setSeed(12345);
+                
+                output.innerHTML += '<div class="success">✓ ProceduralGenerator created</div>';
+                output.innerHTML += `<div class="info">Seed: ${generator.getSeed()}</div>`;
+                
+                // Test river generation
+                const config = {
+                    count: 2,
+                    widthMin: 2,
+                    widthMax: 4,
+                    windiness: 0.3,
+                    depthRange: [30, 50]
+                };
+                
+                const startTime = performance.now();
+                const rivers = generator.generateRivers(50, 50, config);
+                const endTime = performance.now();
+                
+                output.innerHTML += `<div class="success">✓ Rivers generated: ${rivers.length} rivers</div>`;
+                output.innerHTML += `<div class="info">Generation time: ${(endTime - startTime).toFixed(2)}ms</div>`;
+                
+                rivers.forEach((river, i) => {
+                    output.innerHTML += `<div class="info">River ${i + 1}: ${river.length} cells</div>`;
+                });
+                
+                const totalCells = rivers.reduce((sum, river) => sum + river.length, 0);
+                output.innerHTML += `<div class="success">✓ Total water cells: ${totalCells}</div>`;
+                
+                // Verify cells have proper structure
+                if (rivers[0] && rivers[0][0]) {
+                    const cell = rivers[0][0];
+                    output.innerHTML += `<div class="info">Sample cell: x=${cell.x}, y=${cell.y}, depth=${cell.depth}</div>`;
+                }
+                
+            } catch (error) {
+                output.innerHTML += `<div class="error">✗ Error: ${error.message}</div>`;
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

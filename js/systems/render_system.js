@@ -88,6 +88,53 @@ class RenderSystem {
         this.entitiesRendered++;
     }
     
+    // Rendu d'un rectangle d'eau avec shader animé
+    renderWaterRect(x, y, width, height, baseColor, viewMatrix, lightingManager, time) {
+        const programInfo = this.shaderManager.useProgram('water');
+        if (!programInfo) {
+            // Fallback to basic rendering if water shader unavailable
+            console.warn('Water shader not available, falling back to basic rendering');
+            return this.renderRect(x, y, width, height, baseColor, viewMatrix, lightingManager);
+        }
+        
+        this.currentProgram = programInfo;
+        
+        // Obtenir ou créer la géométrie avec coordonnées de texture
+        const geometryKey = `quad_tex_${width}_${height}_false`;
+        let geometry = this.geometryManager.getGeometry(geometryKey);
+        if (!geometry) {
+            geometry = this.geometryManager.createQuadWithTexCoords(width, height, false);
+        }
+        
+        // Configurer les uniformes de base
+        this.gl.uniform2f(programInfo.uniforms.u_resolution, viewMatrix.resolution.width, viewMatrix.resolution.height);
+        this.gl.uniform1f(programInfo.uniforms.u_zoom, viewMatrix.zoom);
+        this.gl.uniform2f(programInfo.uniforms.u_camera, viewMatrix.position.x, viewMatrix.position.y);
+        this.gl.uniform2f(programInfo.uniforms.u_translation, x, y);
+        this.gl.uniform2f(programInfo.uniforms.u_scale, 1.0, 1.0);
+        
+        // Configurer les uniformes spécifiques à l'eau
+        this.gl.uniform4f(programInfo.uniforms.u_baseColor, baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
+        this.gl.uniform1f(programInfo.uniforms.u_time, time);
+        this.gl.uniform2f(programInfo.uniforms.u_worldPos, x, y);
+        
+        // Appliquer l'éclairage
+        if (programInfo.uniforms.u_ambientLight) {
+            if (lightingManager && lightingManager.isEnabled()) {
+                const ambientColor = lightingManager.getAmbientColor();
+                this.gl.uniform3f(programInfo.uniforms.u_ambientLight, ambientColor[0], ambientColor[1], ambientColor[2]);
+            } else {
+                // Default: full brightness (no lighting)
+                this.gl.uniform3f(programInfo.uniforms.u_ambientLight, 1.0, 1.0, 1.0);
+            }
+        }
+        
+        // Configurer et dessiner la géométrie
+        this.drawTexturedGeometry(geometry, programInfo.attributes.a_position, programInfo.attributes.a_texCoord);
+        
+        this.entitiesRendered++;
+    }
+    
     // Rendu d'un cercle
     renderCircle(x, y, radius, color, viewMatrix, lightingManager, segments = 16) {
         const programInfo = this.shaderManager.useProgram('basic');

@@ -26,6 +26,10 @@ module.exports = defineConfig({
     ? '**/nitrogen-regeneration.spec.js'
     : process.env.TEST_SPLASH === 'true'
     ? '**/splash-particles-debug.spec.js'
+    : process.env.TEST_SEED === 'true'
+    ? '**/seed-system.spec.js'
+    : process.env.TEST_SEED_PERSISTENCE === 'true'
+    ? '**/seed-persistence.spec.js'
     : process.env.TEST_INTERACTIVE === 'true' || 
       process.env.TEST_SCREENSHOT_ONLY === 'true' || 
       process.env.TEST_LOG_ONLY === 'true'

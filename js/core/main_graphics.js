@@ -72,6 +72,107 @@ class GraphicsEngine {
         }
     }
     
+    // Update seed UI display
+    updateSeedUI() {
+        if (!this.soilManager) return;
+        
+        const currentSeedElement = document.getElementById('current-seed');
+        if (currentSeedElement) {
+            currentSeedElement.textContent = this.soilManager.getSeed();
+        }
+    }
+    
+    // Initialize seed UI interactions
+    initializeSeedUI() {
+        // Update display
+        this.updateSeedUI();
+        
+        // Copy seed button
+        const copySeedBtn = document.getElementById('copy-seed-btn');
+        if (copySeedBtn) {
+            copySeedBtn.addEventListener('click', () => {
+                const seed = this.soilManager.getSeed();
+                navigator.clipboard.writeText(seed.toString()).then(() => {
+                    console.log(`Seed ${seed} copied to clipboard`);
+                    // Visual feedback
+                    copySeedBtn.textContent = '✓';
+                    setTimeout(() => {
+                        copySeedBtn.textContent = '📋';
+                    }, 1000);
+                }).catch(err => {
+                    console.error('Failed to copy seed:', err);
+                });
+            });
+        }
+        
+        // Regenerate button
+        const regenerateBtn = document.getElementById('regenerate-btn');
+        const seedInput = document.getElementById('seed-input');
+        
+        if (regenerateBtn && seedInput) {
+            regenerateBtn.addEventListener('click', () => {
+                const inputValue = seedInput.value.trim();
+                
+                // If empty, clear localStorage to trigger random generation
+                if (inputValue === '') {
+                    console.log('Empty seed input - generating random seed');
+                    localStorage.removeItem('landShepherd_seed');
+                    window.location.reload();
+                    return;
+                }
+                
+                const inputSeed = parseInt(inputValue);
+                
+                if (isNaN(inputSeed) || inputSeed < 0 || inputSeed > 4294967295) {
+                    console.warn('Invalid seed. Must be between 0 and 4294967295');
+                    return;
+                }
+                
+                // Store seed in localStorage
+                localStorage.setItem('landShepherd_seed', inputSeed.toString());
+                
+                // Reload page to regenerate with new seed
+                window.location.reload();
+            });
+        }
+        
+        // Store current seed in localStorage for persistence
+        localStorage.setItem('landShepherd_seed', this.soilManager.getSeed().toString());
+    }
+    
+    // Get seed from URL, localStorage, or config (priority order)
+    static getSeedFromSources(config) {
+        // Priority 1: URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlSeed = urlParams.get('seed');
+        if (urlSeed !== null) {
+            const seed = parseInt(urlSeed);
+            if (!isNaN(seed) && seed >= 0 && seed <= 4294967295) {
+                console.log(`Using seed from URL: ${seed}`);
+                return seed;
+            }
+        }
+        
+        // Priority 2: localStorage
+        const storedSeed = localStorage.getItem('landShepherd_seed');
+        if (storedSeed !== null) {
+            const seed = parseInt(storedSeed);
+            if (!isNaN(seed) && seed >= 0 && seed <= 4294967295) {
+                console.log(`Using seed from localStorage: ${seed}`);
+                return seed;
+            }
+        }
+        
+        // Priority 3: config.json
+        if (config.world?.terrain?.seed !== undefined && config.world.terrain.seed !== null) {
+            console.log(`Using seed from config: ${config.world.terrain.seed}`);
+            return config.world.terrain.seed;
+        }
+        
+        // Priority 4: random (null will trigger random generation in SoilManager)
+        return null;
+    }
+    
     async initManagers() {
         // Base managers
         this.shaderManager = new ShaderManager(this.gl);
@@ -81,6 +182,16 @@ class GraphicsEngine {
         // Wait for debug manager initialization to get config
         const debugEnabled = await this.debugManager.initialize();
         this.config = this.debugManager.getConfig();
+        
+        // Get seed from URL, localStorage, or config
+        const seedFromSources = GraphicsEngine.getSeedFromSources(this.config);
+        if (seedFromSources !== null) {
+            // Override config with seed from higher priority source
+            if (!this.config.world.terrain) {
+                this.config.world.terrain = {};
+            }
+            this.config.world.terrain.seed = seedFromSources;
+        }
         
         // Time manager with configuration (provide default if config.time is undefined)
         this.timeManager = new TimeManager(this.config.time || {});
@@ -98,7 +209,7 @@ class GraphicsEngine {
         // Texture manager with configuration
         this.textureGenerator = new TextureGenerator(this.gl, this.config);
         
-        // Soil manager with configuration
+        // Soil manager with configuration (seed will be used from config)
         this.soilManager = new SoilManager(this.gl, this.geometryManager, this.textureGenerator, this.config);
         
         // Initialize plant manager after soil manager
@@ -117,6 +228,9 @@ class GraphicsEngine {
             this.plantManager, 
             this.timeManager
         );
+        
+        // Initialize seed UI after soil manager is ready
+        this.initializeSeedUI();
     }
     
     setupShaders() {
@@ -282,9 +396,80 @@ class GraphicsEngine {
             }
         `;
         
+        // Water shader with animated ripples
+        const waterVertexShaderSource = `
+            attribute vec2 a_position;
+            attribute vec2 a_texCoord;
+            
+            uniform vec2 u_resolution;
+            uniform vec2 u_translation;
+            uniform vec2 u_scale;
+            uniform float u_zoom;
+            uniform vec2 u_camera;
+            
+            varying vec2 v_texCoord;
+            
+            void main() {
+                // Apply scale to geometry
+                vec2 scaledPosition = a_position * u_scale;
+                
+                // Apply translation (entity position)
+                vec2 worldPosition = scaledPosition + u_translation;
+                
+                // Apply camera (offset)
+                vec2 cameraPosition = worldPosition - u_camera;
+                
+                // Apply zoom
+                vec2 zoomedPosition = cameraPosition * u_zoom;
+                
+                // Center zoom on screen
+                vec2 screenCenter = u_resolution * 0.5;
+                vec2 finalPosition = zoomedPosition + screenCenter;
+                
+                // Convert to clip space
+                vec2 zeroToOne = finalPosition / u_resolution;
+                vec2 zeroToTwo = zeroToOne * 2.0;
+                vec2 clipSpace = zeroToTwo - 1.0;
+                
+                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+                v_texCoord = a_texCoord;
+            }
+        `;
+        
+        const waterFragmentShaderSource = `
+            precision mediump float;
+            
+            varying vec2 v_texCoord;
+            
+            uniform vec4 u_baseColor;      // Base water color from soil.baseColor
+            uniform vec3 u_ambientLight;   // Lighting from LightingManager
+            uniform float u_time;          // Time for animation
+            uniform vec2 u_worldPos;       // World position for variation
+            
+            void main() {
+                // Create ripple effect using sine waves
+                float wave1 = sin(v_texCoord.x * 10.0 + u_time * 2.0) * 0.02;
+                float wave2 = sin(v_texCoord.y * 8.0 + u_time * 1.5) * 0.015;
+                float wave3 = sin((v_texCoord.x + v_texCoord.y) * 12.0 + u_time * 2.5) * 0.01;
+                
+                // Combine waves for ripple effect
+                float ripple = wave1 + wave2 + wave3;
+                
+                // Modulate brightness slightly based on ripples
+                float brightness = 1.0 + ripple;
+                
+                // Apply base color, brightness, and lighting
+                vec3 waterColor = u_baseColor.rgb * brightness;
+                vec3 finalColor = waterColor * u_ambientLight;
+                
+                gl_FragColor = vec4(finalColor, u_baseColor.a);
+            }
+        `;
+        
         this.shaderManager.createProgram(vertexShaderSource, fragmentShaderSource, 'basic');
         this.shaderManager.createProgram(textureVertexShaderSource, textureFragmentShaderSource, 'texture');
         this.shaderManager.createProgram(particleVertexShaderSource, particleFragmentShaderSource, 'particleShader');
+        this.shaderManager.createProgram(waterVertexShaderSource, waterFragmentShaderSource, 'water');
     }
     
     setupGeometry() {

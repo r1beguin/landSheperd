@@ -24,6 +24,13 @@ class PlantManager {
     addPlant(gridX, gridY, speciesId = 'urtica_dioica', currentDay = 0) {
         const key = `${gridX},${gridY}`;
         
+        // Check if location is water tile (Milestone 2)
+        const soil = this.soilManager.getSoilAt(gridX, gridY);
+        if (soil && soil.isWater) {
+            console.warn(`Cannot place plant at (${gridX}, ${gridY}) - water tile`);
+            return null;
+        }
+        
         // Remove existing plant if any
         if (this.plants.has(key)) {
             this.plants.delete(key);
@@ -73,6 +80,13 @@ class PlantManager {
 
     addPlantAtPosition(gridX, gridY, exactWorldX, exactWorldY, speciesId = 'urtica_dioica', currentDay = 0) {
         const key = `${gridX},${gridY}`;
+        
+        // Check if location is water tile (Milestone 2)
+        const soil = this.soilManager.getSoilAt(gridX, gridY);
+        if (soil && soil.isWater) {
+            console.warn(`Cannot place plant at (${gridX}, ${gridY}) - water tile`);
+            return null;
+        }
         
         // Remove existing plant if any
         if (this.plants.has(key)) {
@@ -185,7 +199,7 @@ class PlantManager {
         // Filter to only empty, plantable cells with sufficient nutrients
         const validNeighbors = neighbors.filter(cell => {
             const soil = this.soilManager.getSoilAt(cell.x, cell.y);
-            if (!soil || !soil.isPlantable) return false;
+            if (!soil || !soil.isPlantable || soil.isWater) return false; // Skip water tiles
             if (this.getPlantAt(cell.x, cell.y)) return false;
             
             // Check nutrient-specific requirements for reproduction

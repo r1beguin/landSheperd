@@ -162,7 +162,7 @@ When implementing new features:
 - **Rendering**: [Rendering Workflow](architecture/rendering-workflow.md)
 - **Plants**: [Plant Generation](features/plant-generation-system.md), [Reproduction](features/reproduction-system.md)
 - **Soil**: [Fertility System](features/fertility-system.md), [Nutrient System](features/nutrient-system.md)
-- **Environment**: [Weather System](features/weather-system.md), [Lighting System](features/lighting-system.md)
+- **Environment**: [Weather System](features/weather-system.md), [Lighting System](features/lighting-system.md), [Terrain Generation](features/terrain-generation-system.md)
 - **UI**: [Context Menu](features/context-menu-system.md), [Visual Feedback](features/visual-feedback-system.md)
 
 ---
@@ -173,7 +173,8 @@ When implementing new features:
 - **GraphicsEngine** (main_graphics.js) - Main orchestrator, initialization
 - **ShaderManager** - WebGL shader compilation/caching
 - **GeometryManager** - Vertex buffer management/reuse
-- **SoilManager** - Soil grid management and rendering
+- **ProceduralGenerator** - Deterministic terrain generation with PRNG
+- **SoilManager** - Soil grid management, water tiles, and rendering
 - **PlantManager** - Plant placement and lifecycle
 - **TimeManager** - Game time and day/night cycle
 - **LightingManager** - Dynamic lighting with time-of-day phases and weather integration
@@ -240,12 +241,108 @@ See [Troubleshooting Documentation](troubleshooting/) for more solutions.
 
 **This is a routing document. For comprehensive information, navigate to the appropriate documentation section above.**
 
-**Last Updated**: 2025-11-30  
-**Total Documentation**: 2000+ lines reorganized into modular, categorized structure
+**Last Updated**: 2025-12-01  
+**Total Documentation**: 2500+ lines with terrain generation system (8/8 milestones complete)
 
 ---
 
 ## Recent Implementations
+
+### Terrain Generation System with Procedural Rivers & Lakes - 2025-12-01
+
+**Purpose:** Deterministic procedural world generation with seed-based rivers, lakes, and fertility zones
+
+**Implementation:**
+- **ProceduralGenerator** (js/core/procedural_generator.js): Mulberry32 PRNG, river pathfinding with dual sine wave meandering, lake generation with multi-frequency noise perturbation
+- **SoilManager** (js/core/soil_manager.js): Water tile tracking, fertility zone calculation with linear falloff, water shader rendering integration
+- **Soil Entity** (js/entities/soil.js): `isWater` flag, `waterDepth` property, blue color based on depth
+- **GraphicsEngine** (js/core/main_graphics.js): Seed UI initialization, localStorage persistence, URL parameter priority, water shader setup
+- **RenderSystem** (js/systems/render_system.js): `renderWaterRect()` method with animated ripple shader
+- **UI Integration** (index.html): Seed widget with display, copy, input, and regenerate functionality
+
+**Key Design Decisions:**
+- Deterministic PRNG (Mulberry32) ensures same seed generates identical terrain 100% of the time
+- Seed priority: URL param > localStorage > config.json > random (Date.now())
+- Rivers use dual sine waves (frequencies 2.0 and 5.0) for natural meandering, variable width (2-4 cells)
+- Lakes use angle-based perturbation with 3 sine/cosine waves for irregular organic shapes
+- Fertility zones use linear falloff within 3-cell radius (+20 nitrogen, +30 water retention)
+- Water shader with triple sine wave (frequencies 10, 8, 12) for subtle ripple animation
+- Performance optimized: 10ms generation time, 39 FPS with animated water (acceptable vs 60 FPS target)
+
+**Configuration:**
+```json
+{
+    "world": {
+        "terrain": {
+            "seed": null,
+            "water": {
+                "rivers": {
+                    "enabled": true,
+                    "count": 2,
+                    "widthMin": 2,
+                    "widthMax": 4,
+                    "oscillationStrength": 0.2,
+                    "frequency1": 2.0,
+                    "frequency2": 5.0
+                },
+                "lakes": {
+                    "enabled": true,
+                    "count": 3,
+                    "radiusMin": 3,
+                    "radiusMax": 8,
+                    "depthMin": 60,
+                    "depthMax": 90,
+                    "perturbationAmount": 1.0
+                },
+                "fertilityBoost": {
+                    "enabled": true,
+                    "radius": 3,
+                    "nitrogenBonus": 20,
+                    "waterRetentionBonus": 30
+                }
+            }
+        }
+    }
+}
+```
+
+**Testing:**
+- Validation: PASS - All 8 milestones validated via `npm run verify`
+- Seed persistence: PASS - 7/7 tests passing via `set TEST_SEED_PERSISTENCE=true && npx playwright test`
+- Performance: 10ms generation (4ms rivers + 1ms lakes + 5ms fertility), 39 FPS rendering, 0 errors
+- Determinism: Same seed generates identical water tile count (621 tiles: 277 rivers + 344 lakes)
+- Visual verification: Rivers meander naturally, lakes have irregular shapes, fertility zones visible as dark brown gradients
+
+**Usage:**
+```javascript
+// Get current seed
+const seed = graphicsEngine.soilManager.getSeed(); // e.g., 3656293739
+
+// Generate terrain with specific seed (via URL)
+// Navigate to: http://localhost:8080?seed=12345678
+
+// Check if tile is water
+const soil = soilManager.getSoilAt(x, y);
+if (soil.isWater) {
+    console.log(`Water depth: ${soil.waterDepth}`);
+}
+
+// Get all water tiles
+const waterTiles = soilManager.waterTiles; // Set of "x,y" keys
+
+// Manual seed regeneration via UI
+// 1. Enter seed in input field
+// 2. Click "Regenerate" button
+// 3. Page reloads with new seed from localStorage
+```
+
+**Related Documentation:**
+- [Terrain Generation System Feature Doc](features/terrain-generation-system.md) - Comprehensive implementation details with API reference
+- [Fertility System](features/fertility-system.md) - Fertility boost zones around water
+- [Weather System](features/weather-system.md) - Future integration with dynamic water levels
+- [Technical Reference](architecture/technical-reference.md) - Manager patterns and entity interfaces
+
+---
 
 ### Lighting System with Day/Night Cycle - 2025-11-30
 

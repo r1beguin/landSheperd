@@ -19,16 +19,25 @@ class SoilManager {
         this.textureGenerator = textureGenerator;
         this.config = config;
         
+        // Get seed from config or generate random
+        const configSeed = this.config.world?.terrain?.seed;
+        this.seed = configSeed !== undefined && configSeed !== null ? configSeed : this.generateRandomSeed();
+        
+        console.log(`Seed initialized: ${this.seed}`);
+        
         // Soil grid (Map for efficient access)
         this.soilGrid = new Map();
+        
+        // Water tiles tracking (Milestone 2)
+        this.waterTiles = new Set(); // Set of "x,y" keys for water tiles
         
         // Grid configuration from config.json
         this.cellSize = this.config.world.map.cellSize;
         this.gridWidth = this.config.world.map.gridWidth;
         this.gridHeight = this.config.world.map.gridHeight;
         
-        // Procedural generator
-        this.proceduralGenerator = new ProceduralGenerator(this.config.world.soil);
+        // Procedural generator with seed
+        this.proceduralGenerator = new ProceduralGenerator(this.config.world.soil, this.seed);
         
         // Rendering cache for optimization
         this.visibleCells = [];
@@ -54,6 +63,22 @@ class SoilManager {
         
         this.initializeSoilGrid();
         this.createSoilGeometry();
+    }
+    
+    /**
+     * Generate random seed based on timestamp
+     * @returns {number} Random seed (uint32)
+     */
+    generateRandomSeed() {
+        return Date.now() % 4294967296;
+    }
+    
+    /**
+     * Get current seed
+     * @returns {number} Current seed
+     */
+    getSeed() {
+        return this.seed;
     }
     
     // Initialize soil grid with procedural generation
@@ -90,6 +115,207 @@ class SoilManager {
         }
         
         const endTime = performance.now();
+        
+        // Generate rivers if enabled (Milestone 3)
+        this.generateRivers();
+        
+        // Generate lakes if enabled (Milestone 4)
+        this.generateLakes();
+        
+        // Apply fertility boosts around water bodies (Milestone 5)
+        this.applyFertilityBoostsAroundWater();
+    }
+    
+    /**
+     * Generate rivers using procedural generator (Milestone 3)
+     */
+    generateRivers() {
+        const waterConfig = this.config.world?.terrain?.water;
+        
+        if (!waterConfig || !waterConfig.rivers || !waterConfig.rivers.enabled) {
+            console.log('River generation disabled');
+            return;
+        }
+        
+        const riverConfig = waterConfig.rivers;
+        const startTime = performance.now();
+        
+        // Generate rivers
+        const rivers = this.proceduralGenerator.generateRivers(
+            this.gridWidth,
+            this.gridHeight,
+            riverConfig
+        );
+        
+        let totalWaterCells = 0;
+        
+        // Apply rivers to soil grid
+        rivers.forEach(riverCells => {
+            riverCells.forEach(cell => {
+                // Convert from map coordinates (0 to gridWidth) to grid coordinates (-gridWidth/2 to +gridWidth/2)
+                const gridX = cell.x - this.gridWidth / 2;
+                const gridY = cell.y - this.gridHeight / 2;
+                
+                // Check if within grid bounds
+                const minX = -this.gridWidth / 2;
+                const maxX = this.gridWidth / 2 - 1;
+                const minY = -this.gridHeight / 2;
+                const maxY = this.gridHeight / 2 - 1;
+                
+                if (gridX >= minX && gridX <= maxX && gridY >= minY && gridY <= maxY) {
+                    this.setWaterTile(gridX, gridY, cell.depth);
+                    totalWaterCells++;
+                }
+            });
+        });
+        
+        const endTime = performance.now();
+        const generationTime = (endTime - startTime).toFixed(0);
+        
+        console.log(`Rivers generated: ${rivers.length} rivers, ${totalWaterCells} total cells (${generationTime}ms)`);
+        
+        // Force visible cells refresh to pick up water tiles
+        this.needsRefresh = true;
+    }
+    
+    /**
+     * Generate lakes using procedural generator (Milestone 4)
+     */
+    generateLakes() {
+        const waterConfig = this.config.world?.terrain?.water;
+        
+        if (!waterConfig || !waterConfig.lakes || !waterConfig.lakes.enabled) {
+            console.log('Lake generation disabled');
+            return;
+        }
+        
+        const lakeConfig = waterConfig.lakes;
+        const startTime = performance.now();
+        
+        // Generate lakes
+        const lakes = this.proceduralGenerator.generateLakes(
+            this.gridWidth,
+            this.gridHeight,
+            lakeConfig
+        );
+        
+        let totalLakeCells = 0;
+        
+        // Grid bounds
+        const minX = -this.gridWidth / 2;
+        const maxX = this.gridWidth / 2 - 1;
+        const minY = -this.gridHeight / 2;
+        const maxY = this.gridHeight / 2 - 1;
+        
+        // Apply lakes to soil grid
+        lakes.forEach(lakeCells => {
+            lakeCells.forEach(cell => {
+                // Convert from map coordinates (0 to gridWidth) to grid coordinates (-gridWidth/2 to +gridWidth/2)
+                const gridX = cell.x - this.gridWidth / 2;
+                const gridY = cell.y - this.gridHeight / 2;
+                
+                // Check if within grid bounds
+                if (gridX >= minX && gridX <= maxX && gridY >= minY && gridY <= maxY) {
+                    this.setWaterTile(gridX, gridY, cell.depth);
+                    totalLakeCells++;
+                }
+            });
+        });
+        
+        const endTime = performance.now();
+        const generationTime = (endTime - startTime).toFixed(0);
+        
+        console.log(`Lakes generated: ${lakes.length} lakes, ${totalLakeCells} total cells (${generationTime}ms)`);
+        
+        // Force visible cells refresh to pick up water tiles
+        this.needsRefresh = true;
+    }
+    
+    /**
+     * Apply fertility boosts to soil cells around water bodies (Milestone 5)
+     * Creates gradients of increased fertility near rivers and lakes
+     */
+    applyFertilityBoostsAroundWater() {
+        const waterConfig = this.config.world?.terrain?.water;
+        const boostConfig = waterConfig?.fertilityBoost;
+        
+        if (!boostConfig || !boostConfig.enabled) {
+            console.log('Fertility boost around water disabled');
+            return;
+        }
+        
+        // Skip if no water tiles
+        if (this.waterTiles.size === 0) {
+            console.log('No water tiles found - skipping fertility boost');
+            return;
+        }
+        
+        const startTime = performance.now();
+        const radius = boostConfig.radius || 3;
+        const nitrogenBonus = boostConfig.nitrogenBonus || 20;
+        const waterRetentionBonus = boostConfig.waterRetentionBonus || 30;
+        
+        // Track cells affected (use Set to avoid duplicate processing)
+        const affectedCells = new Set();
+        
+        // For each water tile, boost surrounding cells
+        this.waterTiles.forEach(waterKey => {
+            const [waterX, waterY] = waterKey.split(',').map(Number);
+            
+            // Check cells in radius around this water tile
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dy = -radius; dy <= radius; dy++) {
+                    // Skip the water tile itself
+                    if (dx === 0 && dy === 0) continue;
+                    
+                    const targetX = waterX + dx;
+                    const targetY = waterY + dy;
+                    const targetKey = `${targetX},${targetY}`;
+                    
+                    // Skip if already processed
+                    if (affectedCells.has(targetKey)) continue;
+                    
+                    const soil = this.getSoilAt(targetX, targetY);
+                    
+                    // Skip if no soil, is water, or not plantable
+                    if (!soil || soil.isWater || !soil.isPlantable) continue;
+                    
+                    // Calculate distance from water
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Skip if outside radius (for circular falloff)
+                    if (distance > radius) continue;
+                    
+                    // Calculate linear falloff: 1.0 at water edge, 0.0 at radius
+                    const falloff = 1.0 - (distance / radius);
+                    
+                    // Apply bonuses with falloff
+                    const nitrogenIncrease = nitrogenBonus * falloff;
+                    const waterIncrease = waterRetentionBonus * falloff;
+                    
+                    // Update soil properties (clamped 0-100)
+                    soil.nitrogen = Math.min(100, soil.nitrogen + nitrogenIncrease);
+                    soil.waterRetention = Math.min(100, soil.waterRetention + waterIncrease);
+                    
+                    // Recalculate derived properties
+                    soil.fertility = soil.calculateFertility();
+                    soil.baseColor = soil.calculateBaseColor();
+                    soil.waterPixels = soil.generateWaterPixels();
+                    soil.needsUpdate = true;
+                    
+                    // Mark as affected
+                    affectedCells.add(targetKey);
+                }
+            }
+        });
+        
+        const endTime = performance.now();
+        const boostTime = (endTime - startTime).toFixed(0);
+        
+        console.log(`Fertility boost applied to ${affectedCells.size} cells near ${this.waterTiles.size} water tiles (${boostTime}ms)`);
+        
+        // Force texture refresh
+        this.needsRefresh = true;
     }
 
     // Check if this location should allow plant placement (more restrictive than soil existence)
@@ -362,8 +588,23 @@ class SoilManager {
                 viewMatrix,
                 lightingManager
             );
+        } else if (soil.isWater) {
+            // WATER TILES: Render with animated water shader
+            const timeManager = window.graphicsEngine?.timeManager;
+            const time = timeManager ? timeManager.getCurrentDayPrecise() : 0;
+            
+            renderSystem.renderWaterRect(
+                data.position.x,
+                data.position.y,
+                data.size,
+                data.size,
+                soil.baseColor,  // Blue color from calculateBaseColor()
+                viewMatrix,
+                lightingManager,
+                time  // Animation time
+            );
         } else {
-            // Normal rendering with procedural texture
+            // Normal soil rendering with procedural texture
             const texture = this.textureGenerator.getTextureForSoil(soil);
             
             renderSystem.renderTexturedRect(
@@ -726,6 +967,67 @@ class SoilManager {
     getSoilInfoAt(worldX, worldY) {
         const soil = this.getSoilAtWorld(worldX, worldY);
         return soil ? soil.getInfo() : null;
+    }
+    
+    /**
+     * Water tile helper methods (Milestone 2)
+     */
+    
+    /**
+     * Check if a tile is water
+     * @param {number} gridX - Grid X coordinate
+     * @param {number} gridY - Grid Y coordinate
+     * @returns {boolean} True if tile is water
+     */
+    isWaterAt(gridX, gridY) {
+        const soil = this.getSoilAt(gridX, gridY);
+        return soil ? soil.isWater : false;
+    }
+    
+    /**
+     * Get water depth at a tile
+     * @param {number} gridX - Grid X coordinate
+     * @param {number} gridY - Grid Y coordinate
+     * @returns {number} Water depth (0-100), or 0 if not water
+     */
+    getWaterDepthAt(gridX, gridY) {
+        const soil = this.getSoilAt(gridX, gridY);
+        return soil ? soil.waterDepth : 0;
+    }
+    
+    /**
+     * Set a tile as water with specified depth
+     * @param {number} gridX - Grid X coordinate
+     * @param {number} gridY - Grid Y coordinate
+     * @param {number} depth - Water depth (0-100)
+     */
+    setWaterTile(gridX, gridY, depth) {
+        const soil = this.getSoilAt(gridX, gridY);
+        if (!soil) {
+            console.warn(`Cannot set water tile at (${gridX}, ${gridY}) - soil not found`);
+            return;
+        }
+        
+        // Mark as water
+        soil.isWater = true;
+        soil.waterDepth = Math.max(0, Math.min(100, depth));
+        soil.isPlantable = false; // Water tiles are never plantable
+        
+        // Update visual appearance
+        soil.baseColor = soil.calculateBaseColor();
+        soil.needsUpdate = true;
+        
+        // Track in water tiles set
+        const key = this.getCellKey(gridX, gridY);
+        this.waterTiles.add(key);
+        
+        // Remove any existing plants on this cell
+        const plantManager = window.graphicsEngine?.plantManager;
+        if (plantManager) {
+            plantManager.removePlant(gridX, gridY);
+        }
+        
+        this.needsRefresh = true;
     }
     
     /**

@@ -33,8 +33,13 @@ class Soil {
         this.waterRetention = options.waterRetention ?? this.randomValue(0, 100);
         this.pollution = options.pollution ?? this.randomValue(0, 100);
         
+        // Water tile properties (Milestone 2)
+        this.isWater = options.isWater ?? false;
+        this.waterDepth = options.waterDepth ?? 0; // 0-100, 0 = no water
+        
         // Plant placement restrictions
-        this.isPlantable = options.isPlantable ?? true;
+        // Water tiles are never plantable
+        this.isPlantable = this.isWater ? false : (options.isPlantable ?? true);
         
         // Propriétés dérivées
         this.fertility = this.calculateFertility();
@@ -55,6 +60,21 @@ class Soil {
     
     // Calcul de la couleur de base selon la fertilité
     calculateBaseColor() {
+        // Water tiles have blue color based on depth
+        if (this.isWater) {
+            if (this.waterDepth <= 40) {
+                // Shallow water - lighter blue
+                return [0.4, 0.7, 1.0, 1.0];
+            } else if (this.waterDepth <= 70) {
+                // Medium water - medium blue
+                return [0.2, 0.5, 0.9, 1.0];
+            } else {
+                // Deep water - dark blue
+                return [0.1, 0.3, 0.6, 1.0];
+            }
+        }
+        
+        // Regular soil color based on fertility
         // Plus fertile = plus sombre (tend vers le noir)
         // Moins fertile = plus clair (brun/beige)
         const fertility = this.fertility / 100;

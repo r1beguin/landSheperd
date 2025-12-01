@@ -1,6 +1,6 @@
 # Land Shepherd Documentation Index
 
-**Last updated:** 2025-11-30
+**Last updated:** 2025-12-01
 
 Welcome to the Land Shepherd documentation. This index helps you find the information you need quickly.
 
@@ -45,6 +45,7 @@ Feature-specific documentation with implementation details.
 - [reproduction-system.md](features/reproduction-system.md) - Plant reproduction mechanics
 - [fertility-system.md](features/fertility-system.md) - Soil fertility system
 - [nutrient-system.md](features/nutrient-system.md) - Multi-nutrient system (N, P, K, OM)
+- [terrain-generation-system.md](features/terrain-generation-system.md) - Procedural rivers, lakes, and fertility zones
 - [context-menu-system.md](features/context-menu-system.md) - Context menu implementation
 - [visual-feedback-system.md](features/visual-feedback-system.md) - Visual feedback mechanics
 - [weather-system.md](features/weather-system.md) - Weather state management and effects

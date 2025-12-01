@@ -150,6 +150,13 @@ landSheperd/
   - Water retention and pollution with gradual intensity levels
   - Procedural generation with coherent zones and natural gradients
   - Optimization by culling and procedural textures (1 call/cell)
+- **Terrain generation system** with deterministic seed-based world creation
+  - Procedural rivers with natural meandering (dual sine wave algorithm)
+  - Irregular lakes with multi-frequency noise perturbation
+  - Fertility zones around water bodies (+20 nitrogen, +30 water retention)
+  - Animated water shader with triple sine wave ripples
+  - Seed UI with clipboard copy, manual input, and localStorage persistence
+  - URL parameter support for sharing worlds (`?seed=12345678`)
 - **Ultra-optimized procedural textures**
   - 72 pre-generated textures with variations
   - Toggleable water/pollution layers in real-time
@@ -174,7 +181,7 @@ landSheperd/
   - Visual toggles for layers
   - Real-time intensity levels
 - **Centralized JSON configuration** for all parameters
-- **Optimized performance**: 60+ FPS with 2500 cells
+- **Optimized performance**: 60+ FPS with 2500 cells (39 FPS with animated water)
 
 ### Interactive Controls
 

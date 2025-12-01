@@ -180,9 +180,93 @@ canvas {
     margin-top: 10px;
     padding-top: 10px;
     border-top: 1px solid #444;
+}
+
+/* Seed UI */
+#seed-ui {
+    position: fixed;
+    top: 280px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.85);
+    padding: 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    z-index: 1000;
+    min-width: 250px;
+    color: white;
+    font-family: 'Courier New', monospace;
+}
+
+#seed-ui h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #4CAF50;
+}
+
+#seed-ui .seed-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+#seed-ui .seed-label {
+    color: #aaa;
+    font-size: 12px;
+}
+
+#seed-ui .seed-value {
+    color: #4CAF50;
+    font-weight: bold;
+    font-family: monospace;
+    font-size: 14px;
+    flex: 1;
+}
+
+#seed-ui .seed-btn {
+    padding: 5px 10px;
+    background-color: #2a2a2a;
+    border: 1px solid #555;
+    border-radius: 3px;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+#seed-ui .seed-btn:hover {
+    background-color: #3a3a3a;
+    border-color: #777;
+}
+
+#seed-ui .seed-input-container {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+#seed-ui #seed-input {
+    flex: 1;
+    padding: 5px 8px;
+    background-color: #2a2a2a;
+    border: 1px solid #555;
+    border-radius: 3px;
+    color: white;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+}
+
+#seed-ui #seed-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+#seed-ui .seed-hint {
     font-size: 11px;
     color: #888;
+    margin-top: 5px;
 }
+
 
 /* Context Menu */
 #context-menu {

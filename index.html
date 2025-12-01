@@ -82,6 +82,21 @@
         <div class="weather-hint">Press W to cycle weather</div>
     </div>
     
+    <!-- Seed UI -->
+    <div id="seed-ui">
+        <h3>World Seed</h3>
+        <div class="seed-display">
+            <span class="seed-label">Current Seed:</span>
+            <span class="seed-value" id="current-seed">0</span>
+            <button id="copy-seed-btn" class="seed-btn" title="Copy seed to clipboard">📋</button>
+        </div>
+        <div class="seed-input-container">
+            <input type="number" id="seed-input" placeholder="Enter seed" min="0" max="4294967295">
+            <button id="regenerate-btn" class="seed-btn">Regenerate</button>
+        </div>
+        <div class="seed-hint">Enter a seed and click Regenerate to create a new world</div>
+    </div>
+    
     <!-- Charger les modules dans l'ordre correct -->
     <!-- Core systems -->
     <script src="js/core/debug_manager.js"></script>

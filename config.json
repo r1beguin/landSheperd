@@ -23,6 +23,37 @@
         }
     },
     "world": {
+        "terrain": {
+            "seed": null,
+            "generation": {
+                "logStats": true
+            },
+            "water": {
+                "rivers": {
+                    "enabled": true,
+                    "count": 2,
+                    "widthMin": 2,
+                    "widthMax": 4,
+                    "windiness": 0.3,
+                    "depthRange": [30, 50]
+                },
+                "lakes": {
+                    "enabled": true,
+                    "count": 3,
+                    "radiusMin": 3,
+                    "radiusMax": 8,
+                    "depthRange": [60, 90],
+                    "irregularity": 0.4,
+                    "minEdgeDistance": 5
+                },
+                "fertilityBoost": {
+                    "enabled": true,
+                    "radius": 3,
+                    "nitrogenBonus": 20,
+                    "waterRetentionBonus": 30
+                }
+            }
+        },
         "map": {
             "gridWidth": 50,
             "gridHeight": 50,
