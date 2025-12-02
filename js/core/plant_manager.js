@@ -399,10 +399,20 @@ class PlantManager {
      * @param {number} currentDay - Current game day
      */
     handleReproduction(event, currentDay) {
-        if (event.type !== 'rhizomeCloning') {
-            return;
+        if (event.type === 'rhizomeCloning') {
+            this._handleRhizomeCloning(event, currentDay);
+        } else if (event.type === 'seedProduction') {
+            this._handleSeedProduction(event, currentDay);
         }
-        
+    }
+    
+    /**
+     * Handle rhizome cloning reproduction (underground runners)
+     * @param {Object} event - Reproduction event data
+     * @param {number} currentDay - Current game day
+     * @private
+     */
+    _handleRhizomeCloning(event, currentDay) {
         // Convert world position to grid
         const parentGrid = this.soilManager.worldToGrid(event.parentX, event.parentY);
         
@@ -445,9 +455,66 @@ class PlantManager {
         // Pick a random valid neighbor
         const targetCell = validNeighbors[Math.floor(Math.random() * validNeighbors.length)];
         
-        // Spawn new plant at seedling stage
+        // Spawn new plant at first growth stage
         const newPlant = this.addPlant(targetCell.x, targetCell.y, event.species, currentDay);
+    }
+    
+    /**
+     * Handle seed production reproduction (seed dispersal)
+     * @param {Object} event - Reproduction event data
+     * @param {number} currentDay - Current game day
+     * @private
+     */
+    _handleSeedProduction(event, currentDay) {
+        // Roll for germination (some seeds don't germinate)
+        if (Math.random() > event.germinationChance) {
+            return; // Seed didn't germinate
+        }
         
+        // Convert world position to grid
+        const parentGrid = this.soilManager.worldToGrid(event.parentX, event.parentY);
+        
+        // Get neighboring cells within maxDistance
+        const neighbors = this.getNeighborCells(parentGrid.x, parentGrid.y, event.maxDistance);
+        
+        // Get species config for nutrient requirements check
+        const speciesConfig = this.speciesConfigs.get(event.species);
+        
+        // Get parent plant's layer so offspring goes in same layer
+        const parentLayer = speciesConfig?.layer || 'middle';
+        
+        // Filter to only empty, plantable cells with sufficient nutrients
+        const validNeighbors = neighbors.filter(cell => {
+            const soil = this.soilManager.getSoilAt(cell.x, cell.y);
+            if (!soil || !soil.isPlantable || soil.isWater) return false;
+            
+            // Check if this LAYER is occupied (allow reproduction if layer is empty)
+            const existingPlant = this.getPlantAt(cell.x, cell.y, parentLayer);
+            if (existingPlant) return false;
+            
+            // Check nutrient-specific requirements for reproduction
+            if (speciesConfig?.environment?.nutrientRequirements) {
+                const reqs = speciesConfig.environment.nutrientRequirements;
+                
+                // ALL nutrients must meet minimum for reproduction
+                if (soil.nitrogen < reqs.nitrogen.minimum) return false;
+                if (soil.phosphorus < reqs.phosphorus.minimum) return false;
+                if (soil.potassium < reqs.potassium.minimum) return false;
+                if (soil.organicMatter < reqs.organicMatter.minimum) return false;
+            }
+            
+            return true;
+        });
+        
+        if (validNeighbors.length === 0) {
+            return; // No valid locations for seed to germinate
+        }
+        
+        // Pick a random valid neighbor
+        const targetCell = validNeighbors[Math.floor(Math.random() * validNeighbors.length)];
+        
+        // Spawn new plant at first growth stage (seedling/sprout)
+        const newPlant = this.addPlant(targetCell.x, targetCell.y, event.species, currentDay);
     }
     
     /**

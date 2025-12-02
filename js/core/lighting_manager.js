@@ -39,10 +39,17 @@ class LightingManager {
         this.phases = this.config.timeOfDay || this._getDefaultPhases();
         this.transitionSpeed = this.config.transitionSpeed || 1.0;
         
+        // Smoothing configuration to prevent flickering in fast time mode
+        this.smoothingFactor = this.config.smoothingFactor || 0.15; // Higher = more responsive, lower = smoother
+        
         // Current lighting state
         this.currentAmbientColor = [1, 1, 1, 1]; // RGBA (0-1 range)
         this.currentBrightness = 1.0; // 0-1 range
         this.currentPhase = 'midday';
+        
+        // Target lighting state (for smooth transitions)
+        this.targetAmbientColor = [1, 1, 1];
+        this.targetBrightness = 1.0;
         
         // Manual override for testing
         this.timeOverride = null;
@@ -125,7 +132,8 @@ class LightingManager {
     
     /**
      * Update lighting based on current time
-     * @param {number} deltaTime - Time elapsed in milliseconds (unused for now, for future smooth transitions)
+     * Uses temporal smoothing to prevent flickering in fast time modes
+     * @param {number} deltaTime - Time elapsed in milliseconds (used for smooth transitions)
      */
     update(deltaTime) {
         if (!this.enabled) return;
@@ -154,14 +162,24 @@ class LightingManager {
         // Apply weather modifier
         const weatherMod = this._calculateWeatherModifier();
         
-        // Combine time-of-day + weather
-        this.currentAmbientColor = this._applyWeatherModifier(baseColor, weatherMod);
+        // Calculate target values (instant based on game time)
+        this.targetAmbientColor = this._applyWeatherModifier(baseColor, weatherMod);
+        this.targetBrightness = baseBrightness * weatherMod.brightnessMultiplier;
         
-        // Add alpha channel (always 1.0)
-        this.currentAmbientColor.push(1.0);
+        // Smooth transition from current to target (prevents flickering in fast time mode)
+        // Use exponential smoothing: newValue = current + (target - current) * smoothingFactor
+        const smoothing = this.smoothingFactor;
         
-        // Combine brightness
-        this.currentBrightness = baseBrightness * weatherMod.brightnessMultiplier;
+        // Smooth color transition
+        for (let i = 0; i < 3; i++) {
+            this.currentAmbientColor[i] += (this.targetAmbientColor[i] - this.currentAmbientColor[i]) * smoothing;
+        }
+        
+        // Smooth brightness transition
+        this.currentBrightness += (this.targetBrightness - this.currentBrightness) * smoothing;
+        
+        // Update alpha channel (always 1.0)
+        this.currentAmbientColor[3] = 1.0;
         
         this.currentPhase = currentPhase.name;
     }

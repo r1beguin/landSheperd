@@ -111,16 +111,35 @@ class Plant {
     }
     
     /**
-     * Check if plant should attempt reproduction (rhizome cloning)
+     * Check if plant should attempt reproduction (rhizome cloning or seed production)
      * @param {number} currentDay - Current game day
      * @returns {Object|null} Reproduction event data or null
      */
     checkReproduction(currentDay) {
-        // Check if species supports rhizome cloning
-        if (!this.species.reproduction || !this.species.reproduction.rhizomeCloning) {
+        if (!this.species.reproduction) {
             return null;
         }
         
+        // Check for rhizome cloning (e.g., nettles)
+        if (this.species.reproduction.rhizomeCloning) {
+            return this._checkRhizomeCloning(currentDay);
+        }
+        
+        // Check for seed production (e.g., clover)
+        if (this.species.reproduction.seedProduction) {
+            return this._checkSeedProduction(currentDay);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Check rhizome cloning reproduction (spreads via underground runners)
+     * @param {number} currentDay - Current game day
+     * @returns {Object|null} Reproduction event data or null
+     * @private
+     */
+    _checkRhizomeCloning(currentDay) {
         const rhizomeConfig = this.species.reproduction.rhizomeCloning;
         
         // Check if reproduction is enabled
@@ -154,6 +173,50 @@ class Plant {
             parentX: this.x,
             parentY: this.y,
             maxDistance: rhizomeConfig.maxDistance,
+            species: this.species.id
+        };
+    }
+    
+    /**
+     * Check seed production reproduction (spreads via seeds/dispersal)
+     * @param {number} currentDay - Current game day
+     * @returns {Object|null} Reproduction event data or null
+     * @private
+     */
+    _checkSeedProduction(currentDay) {
+        const seedConfig = this.species.reproduction.seedProduction;
+        
+        // Check if reproduction is enabled
+        if (!seedConfig.enabled) {
+            return null;
+        }
+        
+        // Check if current stage is active for reproduction
+        if (!seedConfig.activeStages.includes(this.stage)) {
+            return null;
+        }
+        
+        // Check if enough time has passed since last reproduction attempt
+        const daysSinceLastReproduction = currentDay - this.lastReproductionDay;
+        if (daysSinceLastReproduction < seedConfig.checkIntervalDays) {
+            return null;
+        }
+        
+        // Update last reproduction day BEFORE rolling for success
+        this.lastReproductionDay = currentDay;
+        
+        // Roll for success (plant produces seeds)
+        if (Math.random() > seedConfig.successChance) {
+            return null;
+        }
+        
+        // Success! Return reproduction event data for PlantManager to handle
+        return {
+            type: 'seedProduction',
+            parentX: this.x,
+            parentY: this.y,
+            maxDistance: seedConfig.maxDistance,
+            germinationChance: seedConfig.germinationChance || 1.0, // Chance seed germinates after dispersal
             species: this.species.id
         };
     }
