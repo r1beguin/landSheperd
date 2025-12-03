@@ -8,7 +8,19 @@ module.exports = defineConfig({
   testDir: './tests',
   
   // Use different test files based on mode
-  testMatch: process.env.TEST_CLOVER === 'true'
+  testMatch: process.env.TEST_GENERATOR_REFACTOR === 'true'
+    ? '**/generator-refactor-validation.spec.js'
+    : process.env.TEST_MILESTONE1 === 'true'
+    ? '**/milestone1-comparison.spec.js'
+    : process.env.TEST_GENETICS === 'true'
+    ? '**/genetics-initialization.spec.js'
+    : process.env.TEST_GENETICS_NUTRIENT === 'true'
+    ? '**/genetics-nutrient-expression.spec.js'
+    : process.env.TEST_GENETICS_VISUAL === 'true'
+    ? '**/genetics-visual-validation.spec.js'
+    : process.env.TEST_GENETICS_INHERITANCE === 'true'
+    ? '**/genetics-inheritance.spec.js'
+    : process.env.TEST_CLOVER === 'true'
     ? '**/clover-species.spec.js'
     : process.env.TEST_DECOMP_OM === 'true'
     ? '**/decomposition-om.spec.js'
@@ -34,9 +46,13 @@ module.exports = defineConfig({
     ? '**/seed-persistence.spec.js'
     : process.env.TEST_OAK_CANOPY === 'true'
     ? '**/oak-canopy-cropping.spec.js'
+    : process.env.TEST_OAK_PROXIMITY === 'true'
+    ? '**/oak-proximity-reproduction.spec.js'
+    : process.env.TEST_OAK_ECOSYSTEM === 'true'
+    ? '**/oak-genetics-ecosystem.spec.js'
     : process.env.TEST_MULTI_LAYER === 'true'
     ? '**/multi-layer-simple.spec.js'
-    : process.env.TEST_INTERACTIVE === 'true' || 
+    : process.env.TEST_INTERACTIVE === 'true' ||
       process.env.TEST_SCREENSHOT_ONLY === 'true' || 
       process.env.TEST_LOG_ONLY === 'true'
     ? '**/interactive.spec.js'

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetics Visual Test - Land Shepherd</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: monospace;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 500px;
+            z-index: 1000;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        .test-result {
+            margin: 5px 0;
+            padding: 5px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #FFC107; }
+        canvas {
+            border: 2px solid #333;
+        }
+        .gene-display {
+            font-size: 11px;
+            padding: 3px;
+            background: rgba(255,255,255,0.05);
+            margin: 2px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>Genetic Expression Visual Test</h1>
+        <div id="test-output">Initializing...</div>
+    </div>
+    <canvas id="gameCanvas" width="1280" height="720"></canvas>
+
+    <!-- Load game scripts in correct order -->
+    <script src="../../js/core/debug_manager.js"></script>
+    <script src="../../js/core/geometry_manager.js"></script>
+    <script src="../../js/core/shader_manager.js"></script>
+    <script src="../../js/core/texture_generator.js"></script>
+    <script src="../../js/entities/soil.js"></script>
+    <script src="../../js/core/soil_manager.js"></script>
+    <script src="../../js/core/procedural_generator.js"></script>
+    <script src="../../js/procedural/plant_generator.js"></script>
+    <script src="../../js/entities/plant.js"></script>
+    <script src="../../js/core/plant_manager.js"></script>
+    <script src="../../js/core/time_manager.js"></script>
+    <script src="../../js/core/lighting_manager.js"></script>
+    <script src="../../js/core/weather_manager.js"></script>
+    <script src="../../js/systems/camera_manager.js"></script>
+    <script src="../../js/systems/input_manager.js"></script>
+    <script src="../../js/systems/overlay_manager.js"></script>
+    <script src="../../js/systems/render_system.js"></script>
+    <script src="../../js/systems/context_menu_manager.js"></script>
+    <script src="../../js/entities/character.js"></script>
+    <script src="../../js/core/main_graphics.js"></script>
+
+    <!-- Load test script -->
+    <script>
+        const testGeneticExpression = async () => {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<div class="test-result">Waiting for initialization...</div>';
+            
+            // Wait for game to fully initialize
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            if (!window.graphicsEngine) {
+                output.innerHTML = '<div class="test-result error">✗ GraphicsEngine not initialized</div>';
+                return;
+            }
+            
+            const plantManager = window.graphicsEngine.plantManager;
+            
+            if (!plantManager) {
+                output.innerHTML = '<div class="test-result error">✗ PlantManager not initialized</div>';
+                return;
+            }
+            
+            let html = '<div class="test-result success">✓ PlantManager loaded</div>';
+            
+            // Create 6 mature oak trees with different genetics
+            const geneticProfiles = [
+                { name: 'Tall & Narrow', heightFactor: 255, widthFactor: 0, foliageDensity: 128, colorTint: 0 },
+                { name: 'Short & Wide', heightFactor: 0, widthFactor: 255, foliageDensity: 128, colorTint: 0 },
+                { name: 'Sparse Foliage', heightFactor: 128, widthFactor: 128, foliageDensity: 0, colorTint: 0 },
+                { name: 'Dense Foliage', heightFactor: 128, widthFactor: 128, foliageDensity: 255, colorTint: 0 },
+                { name: 'Cool Tint', heightFactor: 128, widthFactor: 128, foliageDensity: 128, colorTint: 0 },
+                { name: 'Warm Tint', heightFactor: 128, widthFactor: 128, foliageDensity: 128, colorTint: 255 }
+            ];
+            
+            const trees = [];
+            const startX = 5;
+            const startY = 5;
+            
+            for (let i = 0; i < geneticProfiles.length; i++) {
+                const profile = geneticProfiles[i];
+                const x = startX + (i * 4);
+                const y = startY;
+                
+                // Create plant with custom genetics
+                const tree = plantManager.addPlant(x, y, 'quercus_robur', 'MatureTree');
+                
+                if (tree) {
+                    // Override genetics
+                    tree.genetics = profile;
+                    
+                    // Force regenerate sprite with new genetics
+                    const speciesConfig = plantManager.speciesConfigs['quercus_robur'];
+                    const stage = tree.growthStage;
+                    tree.sprite = window.PlantGenerator.generatePlantSprite(speciesConfig, stage, profile);
+                    
+                    trees.push({ tree, profile });
+                    
+                    html += `<div class="test-result success">✓ Tree ${i + 1}: ${profile.name}</div>`;
+                    html += `<div class="gene-display">  H:${profile.heightFactor} W:${profile.widthFactor} F:${profile.foliageDensity} C:${profile.colorTint}</div>`;
+                } else {
+                    html += `<div class="test-result error">✗ Tree ${i + 1} failed</div>`;
+                }
+            }
+            
+            // Analysis
+            if (trees.length === 6) {
+                html += '<hr>';
+                html += '<div class="test-result success">✓ All 6 trees planted successfully</div>';
+                
+                // Check sprite dimensions vary
+                const widths = trees.map(t => t.tree.sprite.width);
+                const heights = trees.map(t => t.tree.sprite.height);
+                
+                const minWidth = Math.min(...widths);
+                const maxWidth = Math.max(...widths);
+                const minHeight = Math.min(...heights);
+                const maxHeight = Math.max(...heights);
+                
+                html += `<div class="test-result">Width range: ${minWidth}px - ${maxWidth}px</div>`;
+                html += `<div class="test-result">Height range: ${minHeight}px - ${maxHeight}px</div>`;
+                
+                // Validate expected variance (0.7-1.3x multiplier)
+                const widthVariance = ((maxWidth - minWidth) / minWidth * 100).toFixed(1);
+                const heightVariance = ((maxHeight - minHeight) / minHeight * 100).toFixed(1);
+                
+                html += `<div class="test-result">Width variance: ${widthVariance}%</div>`;
+                html += `<div class="test-result">Height variance: ${heightVariance}%</div>`;
+                
+                // Check if variance meets expectations (should be ~85% based on 0.7-1.3 multiplier)
+                const minExpectedVariance = 40; // At least 40% difference
+                if (parseFloat(widthVariance) >= minExpectedVariance) {
+                    html += '<div class="test-result success">✓ Width diversity confirmed</div>';
+                } else {
+                    html += `<div class="test-result warning">⚠ Width diversity low (expected >${minExpectedVariance}%)</div>`;
+                }
+                
+                if (parseFloat(heightVariance) >= minExpectedVariance) {
+                    html += '<div class="test-result success">✓ Height diversity confirmed</div>';
+                } else {
+                    html += `<div class="test-result warning">⚠ Height diversity low (expected >${minExpectedVariance}%)</div>`;
+                }
+                
+                html += '<hr>';
+                html += '<div class="test-result">VISUAL CHECKS:</div>';
+                html += '<div class="test-result">1. Tree 1 (left) taller & narrower?</div>';
+                html += '<div class="test-result">2. Tree 2 shorter & wider?</div>';
+                html += '<div class="test-result">3. Tree 3 sparse canopy (fewer circles)?</div>';
+                html += '<div class="test-result">4. Tree 4 dense canopy (more circles)?</div>';
+                html += '<div class="test-result">5. Tree 5 cooler green tint?</div>';
+                html += '<div class="test-result">6. Tree 6 warmer green tint?</div>';
+            } else {
+                html += `<div class="test-result error">✗ Only ${trees.length}/6 trees planted</div>`;
+            }
+            
+            output.innerHTML = html;
+        };
+        
+        // Auto-run when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', testGeneticExpression);
+        } else {
+            testGeneticExpression();
+        }
+    </script>
+</body>
+</html>

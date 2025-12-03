@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetics Nutrient Expression Test - Milestone 3</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+        
+        #controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 30, 30, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #4CAF50;
+            z-index: 100;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        #output {
+            background: #252526;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.6;
+            border: 1px solid #3e3e42;
+        }
+        
+        .pass { color: #4EC9B0; }
+        .fail { color: #F48771; }
+        .info { color: #DCDCAA; }
+        .section-title { 
+            color: #569CD6; 
+            font-weight: bold; 
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            margin: 0 0 15px 0;
+            color: #4CAF50;
+            font-size: 18px;
+        }
+        
+        .instructions {
+            background: rgba(86, 156, 214, 0.1);
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border-left: 3px solid #569CD6;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Land Shepherd Canvas -->
+    <canvas id="canvas"></canvas>
+    
+    <!-- Test Controls -->
+    <div id="controls">
+        <h2>🧬 Genetics Nutrient Expression Test</h2>
+        <div class="instructions">
+            <strong>Milestone 3:</strong> Genetic traits affect nutrient consumption and resistance to deficiency.
+        </div>
+        
+        <button id="runTest" onclick="runMilestone3Test()">Run Test</button>
+        <button id="clearOutput" onclick="clearOutput()">Clear Output</button>
+        
+        <div id="output"></div>
+    </div>
+
+    <!-- Load Land Shepherd -->
+    <script src="../js/core/shader_manager.js"></script>
+    <script src="../js/core/texture_generator.js"></script>
+    <script src="../js/core/geometry_manager.js"></script>
+    <script src="../js/core/lighting_manager.js"></script>
+    <script src="../js/core/weather_manager.js"></script>
+    <script src="../js/procedural/plant_generator.js"></script>
+    <script src="../js/core/procedural_generator.js"></script>
+    <script src="../js/core/debug_manager.js"></script>
+    <script src="../js/core/time_manager.js"></script>
+    <script src="../js/core/soil_manager.js"></script>
+    <script src="../js/core/plant_manager.js"></script>
+    <script src="../js/systems/camera_manager.js"></script>
+    <script src="../js/systems/input_manager.js"></script>
+    <script src="../js/systems/overlay_manager.js"></script>
+    <script src="../js/systems/context_menu_manager.js"></script>
+    <script src="../js/systems/render_system.js"></script>
+    <script src="../js/entities/soil.js"></script>
+    <script src="../js/entities/plant.js"></script>
+    <script src="../js/entities/character.js"></script>
+    <script src="../js/core/main_graphics.js"></script>
+    
+    <!-- Test Script -->
+    <script src="../tests/manual/test-genetics-nutrient-milestone3.js"></script>
+    
+    <script>
+        // Redirect console.log to output panel
+        const originalLog = console.log;
+        const outputDiv = document.getElementById('output');
+        
+        function log(message, className = '') {
+            const line = document.createElement('div');
+            line.textContent = message;
+            if (className) line.className = className;
+            outputDiv.appendChild(line);
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+            originalLog(message);
+        }
+        
+        console.log = function(...args) {
+            const message = args.join(' ');
+            
+            // Style based on content
+            if (message.includes('PASS') || message.includes('✓')) {
+                log(message, 'pass');
+            } else if (message.includes('FAIL') || message.includes('✗')) {
+                log(message, 'fail');
+            } else if (message.includes('===') || message.includes('TEST')) {
+                log(message, 'section-title');
+            } else {
+                log(message, 'info');
+            }
+        };
+        
+        function clearOutput() {
+            outputDiv.innerHTML = '';
+        }
+        
+        function runMilestone3Test() {
+            clearOutput();
+            console.log('Starting Milestone 3 Test...\n');
+            
+            // The test script is already loaded and will run automatically
+            // Just trigger it again
+            const script = document.createElement('script');
+            script.src = '../tests/manual/test-genetics-nutrient-milestone3.js?t=' + Date.now();
+            document.body.appendChild(script);
+        }
+        
+        // Wait for game to load before enabling test button
+        setTimeout(() => {
+            if (window.graphicsEngine) {
+                console.log('✓ Land Shepherd loaded successfully');
+                console.log('Click "Run Test" to validate genetic nutrient expression\n');
+            } else {
+                console.log('✗ Failed to load Land Shepherd');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

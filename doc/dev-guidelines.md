@@ -91,6 +91,165 @@ landSheperd/
 
 ---
 
+## Adding New Plant Species
+
+### 1. Determine Species Category
+- **herb**: Stem with leaves, vertical growth (e.g., nettles, wildflowers)
+- **tree**: Trunk with canopy, multi-stage growth (e.g., oak, pine)
+- **groundcover**: Low-growing, spreading pattern (e.g., clover, grass, moss)
+
+### 2. Create Species JSON
+Create `species/your_species.json` with:
+```json
+{
+  "id": "your_species_identifier",
+  "commonName": "Display Name",
+  "category": "herb",  // IMPORTANT: Must be exactly "herb", "tree", or "groundcover" (no custom names!)
+  "layer": "middle",
+  "growthStages": [
+    {
+      "name": "Seedling",
+      "generator": "seedlingGeneration",  // Must be in PlantGenerator.stageMethodMap
+      "daysToNext": 3
+    }
+  ],
+  "appearance": {
+    "colorPalette": {
+      "stem": ["#4a7c3c", "#3d6730"],
+      "leaf": ["#5a9948", "#4a7c3c"]
+    },
+    "dimensions": {"width": 20, "height": 20}
+  },
+  "proceduralModules": {
+    "stem": {"baseWidth": 1, "colorVariation": 0.2},
+    "leaf": {"pairCount": 3, "width": 4, "height": 3}
+  }
+}
+```
+
+**Valid Categories:**
+- `"herb"` - Stem with leaves, vertical growth (nettles, wildflowers)
+- `"tree"` - Trunk with canopy, multi-stage growth (oak, pine)
+- `"groundcover"` - Low-growing, spreading (clover, grass, moss)
+
+**Note:** Custom category names like `"wild_herb"` or `"flower"` will cause plants to render as green rectangles (fallback sprite). Always use the exact category names listed above.
+
+### 3. Add Generator Method
+In appropriate generator file (`herb_generator.js`, `tree_generator.js`, or `groundcover_generator.js`):
+
+```javascript
+/**
+ * Generate your stage sprite
+ * @param {object} speciesConfig - Species configuration from JSON
+ * @param {object} genetics - Optional genetics object (for trees)
+ * @returns {HTMLCanvasElement} Generated sprite canvas
+ */
+static generateYourStage(speciesConfig, genetics = null) {
+    const dims = speciesConfig.appearance.dimensions;
+    const { canvas, ctx } = BaseGenerator.createCanvas(dims.width, dims.height);
+    
+    // Use utilities for color
+    const colors = BaseGenerator.applyGeneticColors(
+        speciesConfig.appearance.colorPalette.leaf,
+        genetics
+    );
+    
+    // Draw your sprite using CanvasUtils
+    CanvasUtils.drawEllipse(ctx, 10, 10, 5, 8, colors[0]);
+    
+    return canvas;
+}
+```
+
+### 4. Register Stage Mapping
+In `plant_generator.js`, add to `stageMethodMap`:
+```javascript
+static stageMethodMap = {
+    // ... existing mappings
+    yourStageGeneration: 'generateYourStage'
+};
+```
+
+### 5. Load Species Configuration
+In `plant_manager.js`, add species loading:
+```javascript
+async loadSpecies() {
+    const species = [
+        'nettles',
+        'oak',
+        'clover',
+        'your_species'  // Add here
+    ];
+    
+    for (const speciesName of species) {
+        const config = await fetch(`species/${speciesName}.json`).then(r => r.json());
+        this.speciesConfigs.set(config.id, config);
+    }
+}
+```
+
+### 6. Test Your Species
+Create manual test file `tests/manual/test-your-species.js`:
+```javascript
+const config = await fetch('species/your_species.json').then(r => r.json());
+const canvas = PlantGenerator.generatePlantSprite(config, 'Seedling', null);
+document.body.appendChild(canvas);
+```
+
+Or use interactive testing:
+```javascript
+// In browser console after planting:
+const plant = plantManager.getPlantAt(gridX, gridY, 'middle');
+console.log(plant.species, plant.stage);
+```
+
+### 7. Verify Changes
+```bash
+npm run verify
+```
+
+**Checklist:**
+- ✅ Category field in species JSON matches generator type
+- ✅ Generator name added to stageMethodMap
+- ✅ Generator method implemented with JSDoc
+- ✅ Colors and dimensions specified in species JSON
+- ✅ Species loaded in PlantManager
+- ✅ Visual appearance acceptable
+- ✅ npm run verify passes (0 errors, FPS 30+)
+
+### Available Utilities
+
+**Color Manipulation:**
+```javascript
+ColorUtils.shiftHue('#4a7c3c', 20);  // Shift green by 20 degrees
+```
+
+**Drawing Primitives:**
+```javascript
+CanvasUtils.drawEllipse(ctx, x, y, radiusX, radiusY, fillStyle);
+CanvasUtils.drawLine(ctx, x1, y1, x2, y2, strokeStyle, lineWidth);
+CanvasUtils.drawCurvedLine(ctx, x1, y1, cpx, cpy, x2, y2, strokeStyle, lineWidth);
+```
+
+**Genetic Modifiers:**
+```javascript
+const heightMult = GeneticsUtils.getDimensionMultiplier(genetics.heightFactor);  // 0.7-1.3
+const foliageMult = GeneticsUtils.getFoliageMultiplier(genetics.foliageDensity); // 0.6-1.4
+const hueTint = GeneticsUtils.getHueTint(genetics.colorTint);  // -20 to +20 degrees
+const dims = GeneticsUtils.applyGeneticDimensions(baseDims, genetics, 1.0);
+```
+
+**Base Generator Helpers:**
+```javascript
+const { canvas, ctx } = BaseGenerator.createCanvas(width, height);
+const stem = BaseGenerator.generateStem(ctx, x, y, w, h, colors, 3);  // 3 attachment points
+const shiftedColors = BaseGenerator.applyGeneticColors(colors, genetics);
+```
+
+---
+
+---
+
 ## Verification Workflow
 
 ### After Every Change
@@ -241,12 +400,73 @@ See [Troubleshooting Documentation](troubleshooting/) for more solutions.
 
 **This is a routing document. For comprehensive information, navigate to the appropriate documentation section above.**
 
-**Last Updated**: 2025-12-01  
-**Total Documentation**: 2500+ lines with terrain generation system (8/8 milestones complete)
+**Last Updated**: 2025-12-03  
+**Total Documentation**: 3000+ lines with PlantGenerator refactor (modular architecture complete)
 
 ---
 
 ## Recent Implementations
+
+### PlantGenerator Refactor - Modular Architecture - 2025-12-03
+
+**Purpose:** Refactor monolithic PlantGenerator to modular plugin architecture for improved maintainability
+
+**Implementation:**
+- **PlantGenerator** (js/procedural/plant_generator.js): Registry pattern coordinator (937 → 162 lines, 83% reduction)
+- **ColorUtils** (js/procedural/utils/color_utils.js): Hue shifting utilities
+- **CanvasUtils** (js/procedural/utils/canvas_utils.js): Drawing primitives (ellipse, line, curved line)
+- **GeneticsUtils** (js/procedural/utils/genetics_utils.js): Genetic modifiers (dimension, foliage, hue)
+- **BaseGenerator** (js/procedural/generators/base_generator.js): Shared base class for all generators
+- **HerbGenerator** (js/procedural/generators/herb_generator.js): Nettles sprite generation (374 lines)
+- **TreeGenerator** (js/procedural/generators/tree_generator.js): Oak sprite generation with genetics (266 lines)
+- **GroundcoverGenerator** (js/procedural/generators/groundcover_generator.js): Clover sprite generation (162 lines)
+- **index.html**: Script loading order updated (utilities → base → generators → registry)
+
+**Key Design Decisions:**
+- Registry pattern routes by species category: herb → HerbGenerator, tree → TreeGenerator, groundcover → GroundcoverGenerator
+- Category inference fallback if not specified in species JSON (checks stage names)
+- Utilities extracted for reusability: ColorUtils, CanvasUtils, GeneticsUtils
+- BaseGenerator provides shared functionality (canvas creation, stem generation, genetic colors)
+- Legacy compatibility maintained with wrapper methods for existing calls
+- Each generator is self-contained, no cross-dependencies
+
+**Benefits:**
+- 83% reduction in main file (937 → 162 lines)
+- Adding new species: create generator method in appropriate file, register in stageMethodMap
+- Improved testability: utilities and generators testable in isolation
+- Better organization: utilities (190 lines), generators (880 lines), registry (162 lines)
+
+**Configuration:**
+No configuration changes - system remains transparent to existing config.
+
+**Testing:**
+- Validation: PASS - All 6 milestones via `npm run verify`
+- All species generation: Nettles (4 stages), Oak (4 stages), Clover (3 stages)
+- Oak genetic diversity: 7+ width variants, 10+ height variants
+- Performance: FPS 50 (improved from 46), load time <1.5s
+- Registry routing: 0 warnings, 0 errors
+
+**Usage:**
+```javascript
+// Unchanged API - registry handles routing
+const canvas = PlantGenerator.generatePlantSprite(speciesConfig, 'Seedling', null);
+
+// Direct generator access (new capability)
+const herbCanvas = HerbGenerator.generateSeedling(nettlesConfig);
+const treeCanvas = TreeGenerator.generateSapling(oakConfig, genetics);
+
+// Utilities available globally
+const shiftedColor = ColorUtils.shiftHue('#4a7c3c', 20);
+const multiplier = GeneticsUtils.getDimensionMultiplier(127);  // 1.0 (mid-range)
+CanvasUtils.drawEllipse(ctx, 10, 10, 5, 8, '#4a7c3c');
+```
+
+**Related Documentation:**
+- [PlantGenerator Refactor Devlog](devlogs/2025-12/2025-12-03-generator-refactor.md) - Complete implementation history
+- [Plant Generation System](features/plant-generation-system.md) - Updated with modular architecture
+- [Adding New Plant Species](#adding-new-plant-species) - Developer guide above
+
+---
 
 ### Terrain Generation System with Procedural Rivers & Lakes - 2025-12-01
 

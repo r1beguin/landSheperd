@@ -374,6 +374,13 @@ class ContextMenuManager {
                 
                 html += `<div class="layer-age">Growth: ${ratePercent}% (${rateStatus})</div>`;
                 
+                // Add genetics panel if plant has genetics
+                if (plant.genetics) {
+                    html += '<div class="genetics-section-inline">';
+                    html += this._buildGeneticsPanel(plant.genetics);
+                    html += '</div>';
+                }
+                
                 // Action buttons for this layer
                 html += '<div class="layer-actions">';
                 html += `<button class="context-menu-btn-small" data-action="advance-layer" data-layer="${layerName}">Advance</button>`;
@@ -565,6 +572,88 @@ class ContextMenuManager {
         return html;
     }
     
+    /**
+     * Build genetics panel HTML
+     * @param {Object} genetics - Plant genetics object
+     * @returns {string} HTML string
+     * @private
+     */
+    _buildGeneticsPanel(genetics) {
+        const traitLabels = {
+            heightFactor: 'Height',
+            widthFactor: 'Width',
+            foliageDensity: 'Foliage',
+            trunkShape: 'Trunk Shape',
+            colorTint: 'Color Tint',
+            nitrogenEfficiency: 'N Efficiency',
+            phosphorusEfficiency: 'P Efficiency',
+            potassiumEfficiency: 'K Efficiency',
+            organicMatterEfficiency: 'OM Efficiency'
+        };
+        
+        let html = '<div class="genetics-grid">';
+        
+        // Generation header
+        html += `<div class="genetics-gen">Generation: ${genetics.generation}</div>`;
+        
+        // Visual traits section
+        html += '<div class="genetics-section">Visual Traits</div>';
+        for (const trait of ['heightFactor', 'widthFactor', 'foliageDensity', 'trunkShape', 'colorTint']) {
+            html += this._buildTraitBar(trait, genetics[trait], traitLabels[trait]);
+        }
+        
+        // Nutrient traits section
+        html += '<div class="genetics-section">Nutrient Traits</div>';
+        for (const trait of ['nitrogenEfficiency', 'phosphorusEfficiency', 'potassiumEfficiency', 'organicMatterEfficiency']) {
+            html += this._buildTraitBar(trait, genetics[trait], traitLabels[trait]);
+        }
+        
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Build individual trait bar HTML
+     * @param {string} trait - Trait name
+     * @param {number} value - Trait value (0-255)
+     * @param {string} label - Display label
+     * @returns {string} HTML string
+     * @private
+     */
+    _buildTraitBar(trait, value, label) {
+        // Calculate percentage (128 = 100% baseline)
+        const percent = Math.round((value / 128) * 100);
+        const barWidth = (value / 255) * 100;
+        
+        // Color code based on value
+        // Exceptional high (>200): bright green
+        // High (>160): green
+        // Normal (100-160): yellow-green
+        // Low (60-100): yellow
+        // Very low (<60): red
+        let barColor = '#6b8e23'; // Default yellow-green
+        
+        if (value > 200) {
+            barColor = '#2e7d32'; // Bright green (exceptional)
+        } else if (value > 160) {
+            barColor = '#4a7c59'; // Green (high)
+        } else if (value < 60) {
+            barColor = '#a0522d'; // Brown-red (very low)
+        } else if (value < 100) {
+            barColor = '#d4a017'; // Yellow (low)
+        }
+        
+        return `
+            <div class="genetics-trait">
+                <span class="trait-label">${label}</span>
+                <div class="trait-bar">
+                    <div class="trait-fill" style="width: ${barWidth}%; background-color: ${barColor};"></div>
+                </div>
+                <span class="trait-value">${percent}%</span>
+            </div>
+        `;
+    }
+
     getNetterRequirements() {
         // Get nettle requirements from species config
         const nettleConfig = this.plantManager.speciesConfigs.get('urtica_dioica');

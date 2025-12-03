@@ -28,8 +28,136 @@ class Plant {
         this.daysStunted = 0;
         this.isStunted = false;
         
+        // Initialize genetics for species that support it
+        if (speciesConfig.genetics?.enabled) {
+            this.genetics = Plant.generateRandomGenetics();
+        } else {
+            this.genetics = null;
+        }
+        
+        // Log genetics initialization
+        if (this.genetics && speciesConfig.commonName) {
+            console.log(`${speciesConfig.commonName} genetics initialized: Gen ${this.genetics.generation}`);
+        }
+        
         // Generate initial sprite
         this.generateSprite();
+    }
+
+    /**
+     * Generate random genetics for manually planted tree
+     * @returns {Object} Genetics object with 9 traits (0-255) + generation
+     */
+    static generateRandomGenetics() {
+        const config = window.config?.world?.plants?.genetics;
+        const genetics = {};
+        
+        // Visual traits: baseline 128 ± 20% variation (102-154)
+        const visualTraits = ['heightFactor', 'widthFactor', 'foliageDensity', 'trunkShape', 'colorTint'];
+        for (const trait of visualTraits) {
+            const variation = 128 * 0.2; // 25.6
+            const min = 128 - variation; // 102.4
+            const max = 128 + variation; // 153.6
+            genetics[trait] = Math.round(min + Math.random() * (max - min));
+        }
+        
+        // Nutrient traits: baseline 128 ± 15% variation (108-148)
+        const nutrientTraits = ['nitrogenEfficiency', 'phosphorusEfficiency', 'potassiumEfficiency', 'organicMatterEfficiency'];
+        for (const trait of nutrientTraits) {
+            const variation = 128 * 0.15; // 19.2
+            const min = 128 - variation; // 108.8
+            const max = 128 + variation; // 147.2
+            genetics[trait] = Math.round(min + Math.random() * (max - min));
+        }
+        
+        genetics.generation = 0;
+        
+        return genetics;
+    }
+
+    /**
+     * Create offspring genetics from two parents with mutation
+     * Uses Mendelian inheritance (simple average) with random mutations
+     * @param {Object} parent1Genetics - First parent's genetics
+     * @param {Object} parent2Genetics - Second parent's genetics
+     * @returns {Object} Offspring genetics with inherited and mutated traits
+     */
+    static crossoverGenetics(parent1Genetics, parent2Genetics) {
+        const config = window.config?.world?.plants?.genetics;
+        const mutationChance = config?.inheritance?.mutationChance || 0.1;
+        const mutationStrength = config?.inheritance?.mutationStrength || 0.15;
+        
+        const offspring = {};
+        
+        // All genetic traits (9 total)
+        const traits = [
+            'heightFactor', 'widthFactor', 'foliageDensity', 'trunkShape', 'colorTint',
+            'nitrogenEfficiency', 'phosphorusEfficiency', 'potassiumEfficiency', 'organicMatterEfficiency'
+        ];
+        
+        for (const trait of traits) {
+            // Step 1: Mendelian inheritance - average parents
+            let value = (parent1Genetics[trait] + parent2Genetics[trait]) / 2;
+            
+            // Step 2: Mutation - chance to shift value by ±mutationStrength
+            if (Math.random() < mutationChance) {
+                const maxDelta = 255 * mutationStrength; // ±15% of full range
+                const delta = (Math.random() * 2 - 1) * maxDelta; // -38 to +38
+                value += delta;
+                
+                // Step 3: Outlier mutation - rare chance for extreme shifts
+                if (Math.random() < 0.05) { // 5% of mutations are outliers
+                    value += delta * 2; // Total 3x mutation strength
+                }
+            }
+            
+            // Clamp to 0-255 range
+            offspring[trait] = Math.max(0, Math.min(255, Math.round(value)));
+        }
+        
+        // Metadata handled by caller
+        offspring.generation = 0; // Placeholder, set by caller
+        
+        return offspring;
+    }
+
+    /**
+     * Convert genetic value (0-255) to trait multiplier
+     * @param {number} geneticValue - 0-255
+     * @returns {number} Multiplier (0.5-1.5)
+     */
+    geneticToMultiplier(geneticValue) {
+        return 0.5 + (geneticValue / 255) * 1.0;
+    }
+
+    /**
+     * Get visual multiplier for procedural generation
+     * @param {string} trait - Trait name
+     * @returns {number} Multiplier or hue shift value
+     */
+    getVisualMultiplier(trait) {
+        if (!this.genetics) return trait === 'colorTint' ? 0 : 1.0;
+        
+        const config = window.config?.world?.plants?.genetics?.visualVariation;
+        const ranges = {
+            heightFactor: config?.heightRange || [0.7, 1.3],
+            widthFactor: config?.widthRange || [0.7, 1.3],
+            foliageDensity: config?.foliageRange || [0.6, 1.4],
+            trunkShape: [0.7, 1.3],
+            colorTint: config?.colorTintRange || [-20, 20]
+        };
+        
+        const range = ranges[trait];
+        if (!range) return trait === 'colorTint' ? 0 : 1.0;
+        
+        const normalized = this.genetics[trait] / 255; // 0.0-1.0
+        
+        // Color tint is additive (hue shift in degrees), not multiplicative
+        if (trait === 'colorTint') {
+            return range[0] + normalized * (range[1] - range[0]);
+        }
+        
+        return range[0] + normalized * (range[1] - range[0]);
     }
 
     generateSprite() {
@@ -40,7 +168,12 @@ class Plant {
         
         // Use the global PlantGenerator to create the sprite with current growth stage
         if (window.PlantGenerator) {
-            this.texture = window.PlantGenerator.generatePlantSprite(this.species, this.stage);
+            // Pass genetics to generator if species supports it
+            this.texture = window.PlantGenerator.generatePlantSprite(
+                this.species, 
+                this.stage,
+                this.genetics  // NEW: Pass genetics (null for non-genetic species)
+            );
             
             // Update dimensions from generated sprite
             if (this.texture) {
@@ -130,6 +263,11 @@ class Plant {
             return this._checkSeedProduction(currentDay);
         }
         
+        // Check for proximity reproduction (NEW - oak)
+        if (this.species.reproduction.proximityReproduction) {
+            return this._checkProximityReproduction(currentDay);
+        }
+        
         return null;
     }
     
@@ -217,6 +355,38 @@ class Plant {
             parentY: this.y,
             maxDistance: seedConfig.maxDistance,
             germinationChance: seedConfig.germinationChance || 1.0, // Chance seed germinates after dispersal
+            species: this.species.id
+        };
+    }
+    
+    /**
+     * Check proximity reproduction (requires partner within distance)
+     * @param {number} currentDay - Current game day
+     * @returns {Object|null} Reproduction event data or null
+     * @private
+     */
+    _checkProximityReproduction(currentDay) {
+        const proximityConfig = this.species.reproduction.proximityReproduction;
+        
+        if (!proximityConfig.enabled) return null;
+        if (!proximityConfig.activeStages.includes(this.stage)) return null;
+        
+        const daysSinceLast = currentDay - this.lastReproductionDay;
+        if (daysSinceLast < proximityConfig.checkIntervalDays) return null;
+        
+        // Update last reproduction day BEFORE rolling for success
+        this.lastReproductionDay = currentDay;
+        
+        if (Math.random() > proximityConfig.successChance) return null;
+        
+        // Return event for PlantManager to find partner
+        return {
+            type: 'proximityReproduction',
+            parentX: this.x,
+            parentY: this.y,
+            parentGenetics: this.genetics,
+            proximityDistance: proximityConfig.proximityDistance,
+            maxOffspringDistance: proximityConfig.maxOffspringDistance,
             species: this.species.id
         };
     }
@@ -339,10 +509,10 @@ class Plant {
         
         // Calculate weighted growth rate
         let totalScore = 0;
-        totalScore += this.nutrientScore(soil.nitrogen, reqs.nitrogen) * modifiers.nitrogen.weight;
-        totalScore += this.nutrientScore(soil.phosphorus, reqs.phosphorus) * modifiers.phosphorus.weight;
-        totalScore += this.nutrientScore(soil.potassium, reqs.potassium) * modifiers.potassium.weight;
-        totalScore += this.nutrientScore(soil.organicMatter, reqs.organicMatter) * modifiers.organicMatter.weight;
+        totalScore += this.nutrientScore(soil.nitrogen, reqs.nitrogen, 'nitrogen') * modifiers.nitrogen.weight;
+        totalScore += this.nutrientScore(soil.phosphorus, reqs.phosphorus, 'phosphorus') * modifiers.phosphorus.weight;
+        totalScore += this.nutrientScore(soil.potassium, reqs.potassium, 'potassium') * modifiers.potassium.weight;
+        totalScore += this.nutrientScore(soil.organicMatter, reqs.organicMatter, 'organicMatter') * modifiers.organicMatter.weight;
         
         return totalScore;
     }
@@ -351,15 +521,38 @@ class Plant {
      * Calculate individual nutrient score (0.0 to 1.0)
      * @param {number} currentValue - Current nutrient level in soil
      * @param {Object} requirement - Requirement object with minimum and optimal
+     * @param {string} nutrientType - Nutrient type for genetic modifiers (optional)
      * @returns {number} Score from 0.0 (below minimum) to 1.0 (optimal or above)
      */
-    nutrientScore(currentValue, requirement) {
-        if (currentValue < requirement.minimum) return 0.0; // Below minimum
-        if (currentValue >= requirement.optimal) return 1.0; // At or above optimal
+    nutrientScore(currentValue, requirement, nutrientType = null) {
+        let effectiveMinimum = requirement.minimum;
+        let effectiveOptimal = requirement.optimal;
         
-        // Linear interpolation between minimum and optimal
-        const range = requirement.optimal - requirement.minimum;
-        const progress = (currentValue - requirement.minimum) / range;
+        // Trees with better genetics tolerate lower nutrient levels
+        if (this.genetics && nutrientType) {
+            const geneticMap = {
+                'nitrogen': this.genetics.nitrogenEfficiency,
+                'phosphorus': this.genetics.phosphorusEfficiency,
+                'potassium': this.genetics.potassiumEfficiency,
+                'organicMatter': this.genetics.organicMatterEfficiency
+            };
+            
+            const geneticValue = geneticMap[nutrientType];
+            if (geneticValue !== undefined) {
+                // Efficiency: 0.8-1.2 range
+                // Higher genetic value = more efficient = lower requirements (0.8x)
+                // Lower genetic value = less efficient = higher requirements (1.2x)
+                const efficiencyMultiplier = 2.0 - this.geneticToMultiplier(geneticValue);
+                effectiveMinimum *= efficiencyMultiplier;
+                effectiveOptimal *= efficiencyMultiplier;
+            }
+        }
+        
+        if (currentValue < effectiveMinimum) return 0.0;
+        if (currentValue >= effectiveOptimal) return 1.0;
+        
+        const range = effectiveOptimal - effectiveMinimum;
+        const progress = (currentValue - effectiveMinimum) / range;
         return progress;
     }
 
@@ -594,11 +787,33 @@ class Plant {
                 if (soil) {
                     const consumption = newStage.nutrientConsumption;
                     
-                    // Calculate new nutrient levels after consumption
-                    const newNitrogen = soil.nitrogen - consumption.nitrogen;
-                    const newPhosphorus = soil.phosphorus - consumption.phosphorus;
-                    const newPotassium = soil.potassium - consumption.potassium;
-                    const newOrganicMatter = soil.organicMatter - consumption.organicMatter;
+                    // Apply genetic efficiency modifiers (better genes = less consumption)
+                    let nConsumption = consumption.nitrogen;
+                    let pConsumption = consumption.phosphorus;
+                    let kConsumption = consumption.potassium;
+                    let omConsumption = consumption.organicMatter;
+                    
+                    if (this.genetics) {
+                        // Efficiency: 0.8-1.2 range
+                        // Higher genetic value (200+) = more efficient = consumes less (0.8x)
+                        // Lower genetic value (60-) = less efficient = consumes more (1.2x)
+                        // Formula: 2.0 - geneticToMultiplier gives inverse (high gene = low multiplier)
+                        const nEff = 2.0 - this.geneticToMultiplier(this.genetics.nitrogenEfficiency);
+                        const pEff = 2.0 - this.geneticToMultiplier(this.genetics.phosphorusEfficiency);
+                        const kEff = 2.0 - this.geneticToMultiplier(this.genetics.potassiumEfficiency);
+                        const omEff = 2.0 - this.geneticToMultiplier(this.genetics.organicMatterEfficiency);
+                        
+                        nConsumption *= nEff;
+                        pConsumption *= pEff;
+                        kConsumption *= kEff;
+                        omConsumption *= omEff;
+                    }
+                    
+                    // Calculate new nutrient levels after modified consumption
+                    const newNitrogen = soil.nitrogen - nConsumption;
+                    const newPhosphorus = soil.phosphorus - pConsumption;
+                    const newPotassium = soil.potassium - kConsumption;
+                    const newOrganicMatter = soil.organicMatter - omConsumption;
                     
                     // Update soil nutrients
                     soil.updateNutrients(newNitrogen, newPhosphorus, newPotassium, newOrganicMatter);

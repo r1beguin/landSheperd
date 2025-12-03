@@ -1,7 +1,7 @@
 {
   "id": "trifolium_repens",
   "displayName": "Clover",
-  "category": "herb",
+  "category": "groundcover",
   "layer": "bottom",
   "appearance": {
     "dimensions": {

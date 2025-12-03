@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetics Context Menu Test</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Courier New', monospace;
+        }
+        #test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            border: 2px solid #4CAF50;
+        }
+        .test-button {
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        .test-button:hover {
+            background-color: #66BB6A;
+        }
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            border: 2px solid #4CAF50;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .instructions {
+            padding: 10px;
+            background-color: rgba(76, 175, 80, 0.2);
+            border-left: 4px solid #4CAF50;
+            margin: 10px 0;
+        }
+        .expected {
+            padding: 10px;
+            background-color: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #FFC107;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="test-container">
+        <h1>Milestone 6: Genetics Context Menu Display Test</h1>
+        
+        <div class="test-section">
+            <h2>Test 1: Oak with Baseline Genetics</h2>
+            <div class="instructions">
+                <strong>Instructions:</strong>
+                <ol>
+                    <li>Click "Plant Oak (Baseline)" button</li>
+                    <li>Right-click on the oak tree</li>
+                    <li>Context menu should appear with genetics panel</li>
+                </ol>
+            </div>
+            <div class="expected">
+                <strong>Expected:</strong>
+                <ul>
+                    <li>Genetics panel appears after plant info</li>
+                    <li>Generation: 0</li>
+                    <li>9 traits displayed (5 visual + 4 nutrient)</li>
+                    <li>All bars ~50% filled (baseline 128/255)</li>
+                    <li>All bars yellow-green color (#6b8e23)</li>
+                    <li>All percentages ~100%</li>
+                </ul>
+            </div>
+            <button class="test-button" onclick="testBaselineOak()">Plant Oak (Baseline)</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: Oak with High-Efficiency Traits</h2>
+            <div class="instructions">
+                <strong>Instructions:</strong>
+                <ol>
+                    <li>Click "Plant High-Efficiency Oak" button</li>
+                    <li>Right-click on the oak tree</li>
+                    <li>Check trait colors and values</li>
+                </ol>
+            </div>
+            <div class="expected">
+                <strong>Expected:</strong>
+                <ul>
+                    <li>Height Factor: ~164%, bright green (#2e7d32)</li>
+                    <li>N Efficiency: ~172%, bright green (#2e7d32)</li>
+                    <li>Bars ~82% filled (210/255)</li>
+                </ul>
+            </div>
+            <button class="test-button" onclick="testHighEfficiencyOak()">Plant High-Efficiency Oak</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: Oak with Low-Efficiency Traits</h2>
+            <div class="instructions">
+                <strong>Instructions:</strong>
+                <ol>
+                    <li>Click "Plant Low-Efficiency Oak" button</li>
+                    <li>Right-click on the oak tree</li>
+                    <li>Check trait colors and values</li>
+                </ol>
+            </div>
+            <div class="expected">
+                <strong>Expected:</strong>
+                <ul>
+                    <li>P Efficiency: ~39%, brown-red (#a0522d)</li>
+                    <li>Width Factor: ~31%, brown-red (#a0522d)</li>
+                    <li>Bars ~20% filled (50/255)</li>
+                </ul>
+            </div>
+            <button class="test-button" onclick="testLowEfficiencyOak()">Plant Low-Efficiency Oak</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 4: Nettles (No Genetics)</h2>
+            <div class="instructions">
+                <strong>Instructions:</strong>
+                <ol>
+                    <li>Click "Plant Nettles" button</li>
+                    <li>Right-click on the nettles</li>
+                    <li>Confirm NO genetics panel appears</li>
+                </ol>
+            </div>
+            <div class="expected">
+                <strong>Expected:</strong>
+                <ul>
+                    <li>Context menu appears normally</li>
+                    <li>NO genetics panel (nettles don't have genetics)</li>
+                    <li>Plant info and soil info only</li>
+                </ul>
+            </div>
+            <button class="test-button" onclick="testNettles()">Plant Nettles</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 5: Clear Plants</h2>
+            <button class="test-button" onclick="clearPlants()">Clear All Plants</button>
+        </div>
+
+        <div id="game-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <div class="test-section">
+            <h2>Console Output</h2>
+            <div id="console-output" style="background-color: #000; padding: 10px; font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <script src="../../js/core/shader_manager.js"></script>
+    <script src="../../js/core/geometry_manager.js"></script>
+    <script src="../../js/core/lighting_manager.js"></script>
+    <script src="../../js/entities/soil.js"></script>
+    <script src="../../js/entities/plant.js"></script>
+    <script src="../../js/procedural/plant_generator.js"></script>
+    <script src="../../js/core/procedural_generator.js"></script>
+    <script src="../../js/core/soil_manager.js"></script>
+    <script src="../../js/core/plant_manager.js"></script>
+    <script src="../../js/core/time_manager.js"></script>
+    <script src="../../js/core/weather_manager.js"></script>
+    <script src="../../js/core/debug_manager.js"></script>
+    <script src="../../js/systems/camera_manager.js"></script>
+    <script src="../../js/systems/input_manager.js"></script>
+    <script src="../../js/systems/render_system.js"></script>
+    <script src="../../js/systems/overlay_manager.js"></script>
+    <script src="../../js/systems/context_menu_manager.js"></script>
+    <script src="../../js/core/main_graphics.js"></script>
+
+    <script>
+        // Capture console output
+        const consoleDiv = document.getElementById('console-output');
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+            consoleDiv.innerHTML += `<div>${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        // Test functions
+        function testBaselineOak() {
+            clearPlants();
+            const plantManager = window.graphicsEngine.plantManager;
+            plantManager.addPlantAtPosition(25, 25, 500, 500, 'quercus_robur', 0);
+            console.log('[TEST 1] Planted baseline oak at (25, 25)');
+            console.log('Right-click on the oak to see genetics panel');
+        }
+
+        function testHighEfficiencyOak() {
+            clearPlants();
+            const plantManager = window.graphicsEngine.plantManager;
+            plantManager.addPlantAtPosition(25, 25, 500, 500, 'quercus_robur', 0);
+            
+            // Modify genetics
+            const plants = plantManager.getPlantAt(25, 25);
+            if (plants.length > 0) {
+                const oak = plants[0];
+                if (oak.genetics) {
+                    oak.genetics.heightFactor = 210;
+                    oak.genetics.nitrogenEfficiency = 220;
+                    console.log('[TEST 2] Planted high-efficiency oak');
+                    console.log('Height Factor: 210 (~164%)');
+                    console.log('N Efficiency: 220 (~172%)');
+                }
+            }
+        }
+
+        function testLowEfficiencyOak() {
+            clearPlants();
+            const plantManager = window.graphicsEngine.plantManager;
+            plantManager.addPlantAtPosition(25, 25, 500, 500, 'quercus_robur', 0);
+            
+            // Modify genetics
+            const plants = plantManager.getPlantAt(25, 25);
+            if (plants.length > 0) {
+                const oak = plants[0];
+                if (oak.genetics) {
+                    oak.genetics.phosphorusEfficiency = 50;
+                    oak.genetics.widthFactor = 40;
+                    console.log('[TEST 3] Planted low-efficiency oak');
+                    console.log('P Efficiency: 50 (~39%)');
+                    console.log('Width Factor: 40 (~31%)');
+                }
+            }
+        }
+
+        function testNettles() {
+            clearPlants();
+            const plantManager = window.graphicsEngine.plantManager;
+            plantManager.addPlantAtPosition(25, 25, 500, 500, 'urtica_dioica', 0);
+            console.log('[TEST 4] Planted nettles at (25, 25)');
+            console.log('Right-click on nettles - should NOT show genetics panel');
+        }
+
+        function clearPlants() {
+            const plantManager = window.graphicsEngine.plantManager;
+            plantManager.plants.clear();
+            console.log('--- Cleared all plants ---');
+        }
+    </script>
+</body>
+</html>

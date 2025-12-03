@@ -1,5 +1,19 @@
 {
   "id": "quercus_robur",
+  "genetics": {
+    "enabled": true
+  },
+  "reproduction": {
+    "proximityReproduction": {
+      "enabled": true,
+      "activeStages": ["MatureTree"],
+      "checkIntervalDays": 10,
+      "proximityDistance": 3,
+      "successChance": 0.25,
+      "maxOffspringDistance": 2,
+      "requiresPartner": true
+    }
+  },
   "commonName": "Oak Tree",
   "category": "tree",
   "layer": "top",

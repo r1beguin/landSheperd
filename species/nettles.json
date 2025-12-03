@@ -1,7 +1,7 @@
 {
   "id": "urtica_dioica",
   "commonName": "Stinging Nettle",
-  "category": "wild_herb",
+  "category": "herb",
   "layer": "middle",
   "appearance": {
     "colorPalette": {

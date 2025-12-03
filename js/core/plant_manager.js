@@ -403,6 +403,8 @@ class PlantManager {
             this._handleRhizomeCloning(event, currentDay);
         } else if (event.type === 'seedProduction') {
             this._handleSeedProduction(event, currentDay);
+        } else if (event.type === 'proximityReproduction') {
+            this._handleProximityReproduction(event, currentDay);
         }
     }
     
@@ -515,6 +517,147 @@ class PlantManager {
         
         // Spawn new plant at first growth stage (seedling/sprout)
         const newPlant = this.addPlant(targetCell.x, targetCell.y, event.species, currentDay);
+    }
+    
+    /**
+     * Handle proximity reproduction (requires partner within distance)
+     * @param {Object} event - Reproduction event data
+     * @param {number} currentDay - Current game day
+     * @private
+     */
+    _handleProximityReproduction(event, currentDay) {
+        const parentGrid = this.soilManager.worldToGrid(event.parentX, event.parentY);
+        const speciesConfig = this.speciesConfigs.get(event.species);
+        const parentLayer = speciesConfig?.layer || 'top';
+        
+        // Find any mature partner within proximity (unisex - any partner works)
+        const partner = this._findProximityPartner(
+            parentGrid.x, 
+            parentGrid.y, 
+            event.proximityDistance,
+            event.species,
+            parentLayer
+        );
+        
+        if (!partner) {
+            return; // No valid partner found
+        }
+        
+        // Both parents found - create offspring genetics
+        const offspringGenetics = Plant.crossoverGenetics(
+            event.parentGenetics,
+            partner.genetics
+        );
+        
+        offspringGenetics.generation = Math.max(
+            event.parentGenetics.generation, 
+            partner.genetics.generation
+        ) + 1;
+        
+        // Find valid spawn location within maxOffspringDistance of either parent
+        const partnerGrid = this.soilManager.worldToGrid(partner.x, partner.y);
+        const spawnLocation = this._findOffspringSpawnLocation(
+            parentGrid,
+            partnerGrid,
+            event.maxOffspringDistance,
+            speciesConfig,
+            parentLayer
+        );
+        
+        if (!spawnLocation) {
+            return; // No valid spawn location
+        }
+        
+        // Spawn offspring with genetics
+        const offspring = this.addPlant(spawnLocation.x, spawnLocation.y, event.species, currentDay);
+        if (offspring) {
+            offspring.genetics = offspringGenetics;
+            offspring.generateSprite(); // Regenerate with new genetics
+            
+            const config = window.config?.world?.plants?.reproduction;
+            if (config?.enableLogging) {
+                console.log(`Oak reproduction: Gen ${offspringGenetics.generation} sapling at (${spawnLocation.x}, ${spawnLocation.y})`);
+            }
+        }
+    }
+    
+    /**
+     * Find reproduction partner within proximity (any mature oak)
+     * @param {number} gridX - Origin grid X
+     * @param {number} gridY - Origin grid Y
+     * @param {number} distance - Search radius in cells
+     * @param {string} speciesId - Species to match
+     * @param {string} layer - Layer to search
+     * @returns {Plant|null} Partner plant or null
+     * @private
+     */
+    _findProximityPartner(gridX, gridY, distance, speciesId, layer) {
+        const neighbors = this.getNeighborCells(gridX, gridY, distance);
+        
+        // Exclude center cell (can't reproduce with self)
+        for (const cell of neighbors) {
+            const plant = this.getPlantAt(cell.x, cell.y, layer);
+            if (!plant) continue;
+            if (plant.species.id !== speciesId) continue;
+            
+            // Check if partner is in active reproduction stage
+            const reproConfig = plant.species.reproduction?.proximityReproduction;
+            if (!reproConfig) continue;
+            if (!reproConfig.activeStages.includes(plant.stage)) continue;
+            
+            return plant; // Found valid partner
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Find valid spawn location for offspring within distance of either parent
+     * @param {Object} parent1Grid - First parent grid coords {x, y}
+     * @param {Object} parent2Grid - Second parent grid coords {x, y}
+     * @param {number} maxDistance - Maximum distance from either parent
+     * @param {Object} speciesConfig - Species configuration
+     * @param {string} layer - Layer to spawn in
+     * @returns {Object|null} Grid location {x, y} or null
+     * @private
+     */
+    _findOffspringSpawnLocation(parent1Grid, parent2Grid, maxDistance, speciesConfig, layer) {
+        // Combine neighbors from both parents
+        const neighbors1 = this.getNeighborCells(parent1Grid.x, parent1Grid.y, maxDistance);
+        const neighbors2 = this.getNeighborCells(parent2Grid.x, parent2Grid.y, maxDistance);
+        
+        // Union of both sets (remove duplicates)
+        const candidateMap = new Map();
+        for (const cell of [...neighbors1, ...neighbors2]) {
+            const key = `${cell.x},${cell.y}`;
+            candidateMap.set(key, cell);
+        }
+        
+        // Filter to valid locations
+        const validCandidates = Array.from(candidateMap.values()).filter(cell => {
+            const soil = this.soilManager.getSoilAt(cell.x, cell.y);
+            if (!soil || !soil.isPlantable || soil.isWater) return false;
+            
+            // Check layer availability
+            const existingPlant = this.getPlantAt(cell.x, cell.y, layer);
+            if (existingPlant) return false;
+            
+            // Check nutrient minimums for sapling
+            if (speciesConfig?.environment?.nutrientRequirements) {
+                const reqs = speciesConfig.environment.nutrientRequirements;
+                if (soil.nitrogen < reqs.nitrogen.minimum) return false;
+                if (soil.phosphorus < reqs.phosphorus.minimum) return false;
+                if (soil.potassium < reqs.potassium.minimum) return false;
+                if (soil.organicMatter < reqs.organicMatter.minimum) return false;
+            }
+            
+            return true;
+        });
+        
+        if (validCandidates.length === 0) return null;
+        
+        // Pick random valid location
+        return validCandidates[Math.floor(Math.random() * validCandidates.length)];
     }
     
     /**

@@ -68,6 +68,22 @@
             "decomposition": {
                 "enableLogging": false
             },
+            "genetics": {
+                "enabled": true,
+                "visualVariation": {
+                    "heightRange": [0.7, 1.3],
+                    "widthRange": [0.7, 1.3],
+                    "foliageRange": [0.6, 1.4],
+                    "colorTintRange": [-20, 20]
+                },
+                "nutrientVariation": {
+                    "efficiencyRange": [0.8, 1.2]
+                },
+                "inheritance": {
+                    "mutationChance": 0.1,
+                    "mutationStrength": 0.15
+                }
+            },
             "ui": {
                 "speciesPalette": {
                     "enabled": true,

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milestone 5: Genetic Inheritance Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        h1 {
+            color: #00ffff;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #ffff00;
+            margin-bottom: 30px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section {
+            background: #2a2a2a;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .section h2 {
+            color: #00ffff;
+            margin-top: 0;
+            border-bottom: 1px solid #00ff00;
+            padding-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .stat-box {
+            background: #1a1a1a;
+            border: 1px solid #00ff00;
+            padding: 15px;
+            border-radius: 3px;
+        }
+        
+        .stat-label {
+            color: #ffff00;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 1.2em;
+            color: #00ff00;
+        }
+        
+        .stat-expected {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .offspring-sample {
+            background: #1a1a1a;
+            border: 1px solid #ffff00;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        
+        .offspring-sample h3 {
+            margin-top: 0;
+            color: #ffff00;
+        }
+        
+        .trait-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .trait {
+            background: #2a2a2a;
+            padding: 8px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        
+        .trait-mutated {
+            border: 1px solid #ff9900;
+            background: #332200;
+        }
+        
+        .trait-outlier {
+            border: 2px solid #ff0000;
+            background: #330000;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .validation {
+            background: #1a1a1a;
+            border: 2px solid #ffff00;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .validation h3 {
+            margin-top: 0;
+            color: #ffff00;
+        }
+        
+        .check-item {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+        
+        .check-pass {
+            background: #003300;
+            border-left: 4px solid #00ff00;
+        }
+        
+        .check-fail {
+            background: #330000;
+            border-left: 4px solid #ff0000;
+        }
+        
+        .overall-result {
+            text-align: center;
+            font-size: 1.5em;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        
+        .overall-pass {
+            background: #003300;
+            color: #00ff00;
+            border: 2px solid #00ff00;
+        }
+        
+        .overall-fail {
+            background: #330000;
+            color: #ff0000;
+            border: 2px solid #ff0000;
+        }
+        
+        button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1em;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            border-radius: 3px;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            background: #00cc00;
+        }
+        
+        button:active {
+            background: #009900;
+        }
+        
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧬 Milestone 5: Genetic Inheritance and Mutation</h1>
+        <p class="subtitle">Testing Mendelian inheritance with mutation system</p>
+        
+        <div class="controls">
+            <button onclick="runTest()">Run Test (100 offspring)</button>
+            <button onclick="runTest(1000)">Run Large Test (1000 offspring)</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+    
+    <script src="../../js/entities/plant.js"></script>
+    <script>
+        function runTest(sampleSize = 100) {
+            console.log(`Running test with ${sampleSize} offspring...`);
+            
+            // Test parent genetics
+            const parent1 = {
+                heightFactor: 100, widthFactor: 100, foliageDensity: 100,
+                trunkShape: 100, colorTint: 100,
+                nitrogenEfficiency: 100, phosphorusEfficiency: 100,
+                potassiumEfficiency: 100, organicMatterEfficiency: 100,
+                generation: 0
+            };
+
+            const parent2 = {
+                heightFactor: 150, widthFactor: 150, foliageDensity: 150,
+                trunkShape: 150, colorTint: 150,
+                nitrogenEfficiency: 150, phosphorusEfficiency: 150,
+                potassiumEfficiency: 150, organicMatterEfficiency: 150,
+                generation: 1
+            };
+            
+            // Generate offspring and analyze
+            const mutations = { standard: 0, outlier: 0, none: 0 };
+            const offspring = [];
+            const traitMutations = {
+                total: 0,
+                outliers: 0
+            };
+            
+            let sampleNoMutation = null;
+            let sampleStandardMutation = null;
+            let sampleOutlierMutation = null;
+
+            for (let i = 0; i < sampleSize; i++) {
+                const child = Plant.crossoverGenetics(parent1, parent2);
+                offspring.push(child);
+                
+                // Count mutations
+                let mutationCount = 0;
+                let outlierCount = 0;
+                
+                Object.keys(child).forEach(trait => {
+                    if (trait === 'generation') return;
+                    const expected = 125;
+                    const diff = Math.abs(child[trait] - expected);
+                    
+                    if (diff > 5) {
+                        mutationCount++;
+                        traitMutations.total++;
+                    }
+                    if (child[trait] < 50 || child[trait] > 200) {
+                        outlierCount++;
+                        traitMutations.outliers++;
+                    }
+                });
+                
+                if (outlierCount > 0) {
+                    mutations.outlier++;
+                    if (!sampleOutlierMutation) sampleOutlierMutation = child;
+                }
+                else if (mutationCount > 0) {
+                    mutations.standard++;
+                    if (!sampleStandardMutation) sampleStandardMutation = child;
+                }
+                else {
+                    mutations.none++;
+                    if (!sampleNoMutation) sampleNoMutation = child;
+                }
+            }
+            
+            // Calculate statistics
+            const nonePercent = (mutations.none / sampleSize * 100).toFixed(1);
+            const standardPercent = (mutations.standard / sampleSize * 100).toFixed(1);
+            const outlierPercent = (mutations.outlier / sampleSize * 100).toFixed(1);
+            const traitMutationRate = (traitMutations.total / (sampleSize * 9) * 100).toFixed(1);
+            const outlierRate = (traitMutations.outliers / (sampleSize * 9) * 100).toFixed(2);
+            
+            // Validation checks
+            const checks = {
+                noMutations: mutations.none / sampleSize >= 0.35 && mutations.none / sampleSize <= 0.45,
+                standardMutations: mutations.standard / sampleSize >= 0.50 && mutations.standard / sampleSize <= 0.60,
+                outlierMutations: mutations.outlier / sampleSize >= 0.03 && mutations.outlier / sampleSize <= 0.08,
+                traitMutationRate: (traitMutations.total / (sampleSize * 9)) >= 0.08 && (traitMutations.total / (sampleSize * 9)) <= 0.12,
+                outlierRate: (traitMutations.outliers / (sampleSize * 9)) >= 0.003 && (traitMutations.outliers / (sampleSize * 9)) <= 0.01
+            };
+            
+            const allPassed = Object.values(checks).every(v => v);
+            
+            // Render results
+            renderResults({
+                sampleSize,
+                mutations,
+                traitMutations,
+                nonePercent,
+                standardPercent,
+                outlierPercent,
+                traitMutationRate,
+                outlierRate,
+                sampleNoMutation,
+                sampleStandardMutation,
+                sampleOutlierMutation,
+                checks,
+                allPassed
+            });
+        }
+        
+        function renderResults(data) {
+            const resultsDiv = document.getElementById('results');
+            
+            resultsDiv.innerHTML = `
+                <div class="section">
+                    <h2>📊 Offspring Distribution (${data.sampleSize} samples)</h2>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">No Mutations</div>
+                            <div class="stat-value">${data.mutations.none} (${data.nonePercent}%)</div>
+                            <div class="stat-expected">Expected: ~40%</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Standard Mutations</div>
+                            <div class="stat-value">${data.mutations.standard} (${data.standardPercent}%)</div>
+                            <div class="stat-expected">Expected: ~55%</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Outlier Mutations</div>
+                            <div class="stat-value">${data.mutations.outlier} (${data.outlierPercent}%)</div>
+                            <div class="stat-expected">Expected: ~5%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>🧬 Trait-Level Statistics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Total Trait Mutations</div>
+                            <div class="stat-value">${data.traitMutations.total} / ${data.sampleSize * 9} (${data.traitMutationRate}%)</div>
+                            <div class="stat-expected">Expected: ~10%</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Outlier Traits</div>
+                            <div class="stat-value">${data.traitMutations.outliers} / ${data.sampleSize * 9} (${data.outlierRate}%)</div>
+                            <div class="stat-expected">Expected: ~0.5%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>🔬 Sample Offspring</h2>
+                    ${renderOffspringSample('Pure Average (No Mutations)', data.sampleNoMutation, 125)}
+                    ${renderOffspringSample('Standard Mutation', data.sampleStandardMutation, 125)}
+                    ${renderOffspringSample('Outlier Mutation', data.sampleOutlierMutation, 125)}
+                </div>
+                
+                <div class="validation">
+                    <h3>✓ Validation Results</h3>
+                    <div class="check-item ${data.checks.noMutations ? 'check-pass' : 'check-fail'}">
+                        ${data.checks.noMutations ? '✓' : '✗'} No mutations (35-45%): ${data.nonePercent}%
+                    </div>
+                    <div class="check-item ${data.checks.standardMutations ? 'check-pass' : 'check-fail'}">
+                        ${data.checks.standardMutations ? '✓' : '✗'} Standard mutations (50-60%): ${data.standardPercent}%
+                    </div>
+                    <div class="check-item ${data.checks.outlierMutations ? 'check-pass' : 'check-fail'}">
+                        ${data.checks.outlierMutations ? '✓' : '✗'} Outlier mutations (3-8%): ${data.outlierPercent}%
+                    </div>
+                    <div class="check-item ${data.checks.traitMutationRate ? 'check-pass' : 'check-fail'}">
+                        ${data.checks.traitMutationRate ? '✓' : '✗'} Trait mutation rate (8-12%): ${data.traitMutationRate}%
+                    </div>
+                    <div class="check-item ${data.checks.outlierRate ? 'check-pass' : 'check-fail'}">
+                        ${data.checks.outlierRate ? '✓' : '✗'} Outlier rate (0.3-1.0%): ${data.outlierRate}%
+                    </div>
+                    
+                    <div class="overall-result ${data.allPassed ? 'overall-pass' : 'overall-fail'}">
+                        ${data.allPassed ? '✓ ALL TESTS PASSED' : '✗ SOME TESTS FAILED'}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderOffspringSample(title, offspring, expected) {
+            if (!offspring) {
+                return `<div class="offspring-sample">
+                    <h3>${title}</h3>
+                    <p>No sample found</p>
+                </div>`;
+            }
+            
+            const traits = [
+                'heightFactor', 'widthFactor', 'foliageDensity', 'trunkShape', 'colorTint',
+                'nitrogenEfficiency', 'phosphorusEfficiency', 'potassiumEfficiency', 'organicMatterEfficiency'
+            ];
+            
+            const traitHtml = traits.map(trait => {
+                const value = offspring[trait];
+                const diff = Math.abs(value - expected);
+                const isOutlier = value < 50 || value > 200;
+                const isMutated = diff > 5;
+                
+                let className = 'trait';
+                if (isOutlier) className += ' trait-outlier';
+                else if (isMutated) className += ' trait-mutated';
+                
+                return `<div class="${className}">
+                    <strong>${trait}:</strong> ${value}
+                    ${isOutlier ? ' 🔥' : isMutated ? ' ⚠️' : ''}
+                </div>`;
+            }).join('');
+            
+            return `<div class="offspring-sample">
+                <h3>${title}</h3>
+                <div class="trait-grid">
+                    ${traitHtml}
+                </div>
+            </div>`;
+        }
+        
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            runTest();
+        });
+    </script>
+</body>
+</html>

@@ -20,12 +20,23 @@ The plant system consists of four main components:
 ```
 species/
 ├── nettles.json              # Nettle species configuration
+├── oak.json                  # Oak species configuration
+├── clover.json               # Clover species configuration
 
 js/entities/
 ├── plant.js                  # Plant entity class
 
 js/procedural/
-├── plant_generator.js        # Procedural sprite generation
+├── plant_generator.js        # Registry coordinator
+├── utils/                    # Shared utilities
+│   ├── color_utils.js       # Color manipulation
+│   ├── canvas_utils.js      # Drawing primitives
+│   └── genetics_utils.js    # Genetic calculations
+└── generators/               # Species-specific generators
+    ├── base_generator.js    # Base class
+    ├── herb_generator.js    # Herb sprites
+    ├── tree_generator.js    # Tree sprites
+    └── groundcover_generator.js  # Groundcover sprites
 
 js/core/
 ├── plant_manager.js          # Plant world management
@@ -34,6 +45,111 @@ js/core/
 js/systems/
 └── render_system.js          # Extended for plant rendering
 ```
+
+## Architecture (Updated 2025-12-03)
+
+### Modular Generator System
+
+PlantGenerator uses a plugin architecture with species-specific generators:
+
+**Structure:**
+```
+js/procedural/
+├── plant_generator.js - Registry coordinator
+├── utils/ - Shared utilities
+│   ├── color_utils.js - Color manipulation
+│   ├── canvas_utils.js - Drawing primitives
+│   └── genetics_utils.js - Genetic modifiers
+└── generators/ - Species-specific logic
+    ├── base_generator.js - Base class
+    ├── herb_generator.js - Herbs (nettles)
+    ├── tree_generator.js - Trees (oaks)
+    └── groundcover_generator.js - Ground cover (clover)
+```
+
+**Registry Pattern:**
+PlantGenerator.generatePlantSprite routes to appropriate generator:
+1. Reads species category (herb, tree, groundcover)
+2. Maps growth stage to generator method
+3. Delegates to species-specific generator
+4. Returns generated canvas
+
+**Adding New Species:**
+1. Determine category (herb, tree, groundcover)
+2. Add generator method to appropriate generator class
+3. Add stage-to-method mapping in PlantGenerator.stageMethodMap
+4. Update species JSON with correct category
+
+### Utilities
+
+**ColorUtils:**
+- `shiftHue(hexColor, hueDegrees)` - Shift hue for genetic variation
+
+**CanvasUtils:**
+- `drawEllipse(ctx, x, y, radiusX, radiusY, fillStyle)` - Draw leaf shapes
+- `drawLine(ctx, x1, y1, x2, y2, strokeStyle, lineWidth)` - Draw stems
+- `drawCurvedLine(ctx, x1, y1, cpx, cpy, x2, y2, strokeStyle, lineWidth)` - Draw drooping leaves
+
+**GeneticsUtils:**
+- `getDimensionMultiplier(geneticValue)` - Returns 0.7-1.3x multiplier
+- `getFoliageMultiplier(geneticValue)` - Returns 0.6-1.4x multiplier
+- `getHueTint(geneticValue)` - Returns -20 to +20 degree hue shift
+- `applyGeneticDimensions(baseDimensions, genetics, sizeModifier)` - Apply genetics to dimensions
+
+### Base Generator
+
+**BaseGenerator** provides shared functionality:
+- `createCanvas(width, height)` - Create canvas with context
+- `generateStem(ctx, x, y, width, height, colors, attachmentPointCount)` - Generate stem with attachment points
+- `applyGeneticColors(colors, genetics, hueMultiplier)` - Apply genetic hue shift to color palette
+
+All species generators extend BaseGenerator.
+
+### Species Generators
+
+**HerbGenerator:**
+- Stages: Seedling, Vegetative, Flowering, Withered
+- Species: Nettles (urtica_dioica)
+- Features: Stem with leaves, flower clusters, serrated edges
+
+**TreeGenerator:**
+- Stages: Sapling, YoungTree, MatureTree, Withered
+- Species: Oak (quercus_robur)
+- Features: Trunk with canopy, genetic diversity support, bare branches when withered
+
+**GroundcoverGenerator:**
+- Stages: Sprout, Spreading, Flowering
+- Species: Clover (trifolium_repens)
+- Features: 3-leaf pattern, heart-shaped leaves, flower clusters
+
+## Implementation Files
+
+### Core Files
+- `js/procedural/plant_generator.js` - Registry coordinator (162 lines)
+
+### Utilities
+- `js/procedural/utils/color_utils.js` - Color manipulation (69 lines)
+- `js/procedural/utils/canvas_utils.js` - Drawing helpers (63 lines)
+- `js/procedural/utils/genetics_utils.js` - Genetic calculations (58 lines)
+
+### Generators
+- `js/procedural/generators/base_generator.js` - Base class (78 lines)
+- `js/procedural/generators/herb_generator.js` - Herb sprites (374 lines)
+- `js/procedural/generators/tree_generator.js` - Tree sprites (266 lines)
+- `js/procedural/generators/groundcover_generator.js` - Groundcover sprites (162 lines)
+
+### Species Configuration
+- `species/nettles.json` - Nettle config (category: herb)
+- `species/oak.json` - Oak config (category: tree)
+- `species/clover.json` - Clover config (category: groundcover)
+
+## Testing
+- `tests/generator-refactor-validation.spec.js` - Generator validation test
+
+## Performance
+- Sprite generation: <10ms per sprite
+- FPS: 50+ maintained with genetic diversity
+- Load time: <1.5s for all generators
 
 ## Species Configuration
 
@@ -315,6 +431,29 @@ The system is optimized for larger plant populations:
 - ES6+ JavaScript features
 
 ## Usage Examples
+
+### Category Validation
+
+**IMPORTANT:** Species JSON must use exactly one of these three categories:
+- `herb`
+- `tree`
+- `groundcover`
+
+**Invalid categories** (e.g., `wild_herb`, `flower`, `bush`) will cause the plant to render as a green rectangle fallback sprite. The PlantGenerator router will fail silently and log a warning to console.
+
+**Example of common mistake:**
+```json
+// ✗ WRONG - Custom category
+"category": "wild_herb"
+
+// ✓ CORRECT - Standard category
+"category": "herb"
+```
+
+**To add support for new categories:**
+1. Create a new generator class (e.g., BushGenerator extends BaseGenerator)
+2. Register it in PlantGenerator.generators: `bush: BushGenerator`
+3. Update species JSON to use the new category: `"category": "bush"`
 
 ### Adding a New Species
 
