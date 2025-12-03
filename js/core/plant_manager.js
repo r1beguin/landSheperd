@@ -9,29 +9,68 @@ class PlantManager {
         this.speciesConfigs = new Map();
         this.selectedSpecies = 'urtica_dioica'; // Default selection
         
+        // Initialize schema loader and cache for species validation
+        this.schemaLoader = null;
+        this.speciesSchema = null;
+        
         this.loadSpeciesConfigs();
     }
     
     async loadSpeciesConfigs() {
         try {
-            // Load nettles
-            const nettleResponse = await fetch('./species/nettles.json');
-            const nettleConfig = await nettleResponse.json();
-            this.speciesConfigs.set('urtica_dioica', nettleConfig);
+            // Initialize schema loader
+            this.schemaLoader = new SchemaLoader();
+            this.speciesSchema = await this.schemaLoader.loadSchema('schemas/species.schema.json');
             
-            // Load oak
-            const oakResponse = await fetch('./species/oak.json');
-            const oakConfig = await oakResponse.json();
-            this.speciesConfigs.set('quercus_robur', oakConfig);
-            
-            // Load clover
-            const cloverResponse = await fetch('./species/clover.json');
-            const cloverConfig = await cloverResponse.json();
-            this.speciesConfigs.set('trifolium_repens', cloverConfig);
+            // Load and validate each species
+            await this.loadSpecies('./species/nettles.json', 'urtica_dioica');
+            await this.loadSpecies('./species/oak.json', 'quercus_robur');
+            await this.loadSpecies('./species/clover.json', 'trifolium_repens');
             
             console.log(`PlantManager loaded ${this.speciesConfigs.size} species: ${Array.from(this.speciesConfigs.keys()).join(', ')}`);
         } catch (error) {
             console.error('Failed to load species configs:', error);
+            throw error; // Re-throw to halt initialization
+        }
+    }
+    
+    /**
+     * Load and validate a species file
+     * @param {string} speciesPath - Path to species JSON file
+     * @param {string} expectedId - Expected species ID for validation
+     * @throws {Error} If species fails validation
+     * @private
+     */
+    async loadSpecies(speciesPath, expectedId) {
+        try {
+            // Fetch species file
+            const response = await fetch(speciesPath);
+            if (!response.ok) {
+                throw new Error(`Failed to load species: ${speciesPath} (status ${response.status})`);
+            }
+            const speciesData = await response.json();
+            
+            // Validate species against schema
+            const validator = new ConfigValidator();
+            const result = validator.validateSpecies(speciesData, this.speciesSchema);
+            
+            if (!result.valid) {
+                const errorMsg = validator.formatErrorMessage(result.errors);
+                console.error(`Species validation failed (${speciesPath}):`, errorMsg);
+                throw new Error(`Invalid species file ${speciesPath}:\n${errorMsg}`);
+            }
+            
+            // Verify species ID matches expected
+            if (speciesData.id !== expectedId) {
+                console.warn(`Species ID mismatch: expected '${expectedId}', got '${speciesData.id}' in ${speciesPath}`);
+            }
+            
+            // Store validated species config
+            this.speciesConfigs.set(speciesData.id, speciesData);
+            
+        } catch (error) {
+            console.error(`Error loading species from ${speciesPath}:`, error);
+            throw error;
         }
     }
     

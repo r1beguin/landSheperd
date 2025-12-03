@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "2D sprite-based plant growing simulation with procedural generation",
   "scripts": {
+    "validate:config": "node scripts/validate-config.js",
     "verify": "node scripts/verify-changes.js",
     "verify:baseline": "node scripts/verify-changes.js --baseline",
     "verify:verbose": "node scripts/verify-changes.js --verbose",
@@ -11,6 +12,7 @@
     "verify:log-only": "node scripts/verify-changes.js --log-only",
     "test": "playwright test",
     "test:interactive": "playwright test tests/interactive.spec.js",
+    "test:config-validator": "cross-env TEST_CONFIG_VALIDATOR=true playwright test",
     "test:genetics": "cross-env TEST_GENETICS=true playwright test",
     "test:genetics-nutrient": "cross-env TEST_GENETICS_NUTRIENT=true playwright test",
     "test:genetics-visual": "cross-env TEST_GENETICS_VISUAL=true playwright test",

@@ -44,6 +44,10 @@ class GraphicsEngine {
         try {
             this.initWebGL();
             await this.initManagers();
+            
+            // Validate config.json AFTER config is loaded by DebugManager
+            await this.validateConfig();
+            
             this.setupShaders();
             this.setupGeometry();
             this.setupViewport();
@@ -59,6 +63,29 @@ class GraphicsEngine {
             this.render(0);
         } catch (error) {
             console.error('[ERROR] Error during engine initialization:', error);
+            throw error;
+        }
+    }
+    
+    async validateConfig() {
+        try {
+            // Load config schema
+            const schemaLoader = new SchemaLoader();
+            const configSchema = await schemaLoader.loadSchema('schemas/config.schema.json');
+            
+            // Validate config
+            const validator = new ConfigValidator();
+            const configResult = validator.validateConfig(this.config, configSchema);
+            
+            if (!configResult.valid) {
+                const errorMsg = validator.formatErrorMessage(configResult.errors);
+                console.error('Config validation failed:', errorMsg);
+                throw new Error(`Invalid config.json:\n${errorMsg}`);
+            }
+            
+            console.log('Config validated successfully');
+        } catch (error) {
+            // Re-throw to halt initialization
             throw error;
         }
     }

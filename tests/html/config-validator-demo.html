@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConfigValidator Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .result {
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .config-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>ConfigValidator Demo</h1>
+    <p>Demonstrating JSON Schema validation with error messages</p>
+
+    <div id="results"></div>
+
+    <script src="../js/utils/config_validator.js"></script>
+    <script>
+        const resultsDiv = document.getElementById('results');
+        const validator = new ConfigValidator();
+
+        function displayTest(title, config, schema, description) {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            
+            const heading = document.createElement('h2');
+            heading.textContent = title;
+            section.appendChild(heading);
+
+            const desc = document.createElement('p');
+            desc.textContent = description;
+            section.appendChild(desc);
+
+            const configPreview = document.createElement('div');
+            configPreview.className = 'config-preview';
+            configPreview.textContent = JSON.stringify(config, null, 2);
+            section.appendChild(configPreview);
+
+            const result = validator.validateConfig(config, schema);
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = result.valid ? 'result pass' : 'result fail';
+            
+            if (result.valid) {
+                resultDiv.textContent = '✅ VALID - No errors found';
+            } else {
+                resultDiv.textContent = validator.formatErrorMessage(result.errors);
+            }
+            
+            section.appendChild(resultDiv);
+            resultsDiv.appendChild(section);
+        }
+
+        // Test 1: Missing required field
+        displayTest(
+            'Test 1: Missing Required Field',
+            {
+                debug: {
+                    enabled: true,
+                    showFPS: true,
+                    showGeometryCount: true,
+                    showPlayerPosition: true
+                    // Missing refreshRate - REQUIRED FIELD
+                }
+            },
+            {
+                type: 'object',
+                required: ['debug'],
+                properties: {
+                    debug: {
+                        type: 'object',
+                        required: ['enabled', 'showFPS', 'showGeometryCount', 'showPlayerPosition', 'refreshRate'],
+                        properties: {
+                            enabled: { type: 'boolean' },
+                            showFPS: { type: 'boolean' },
+                            showGeometryCount: { type: 'boolean' },
+                            showPlayerPosition: { type: 'boolean' },
+                            refreshRate: { type: 'integer', minimum: 30, maximum: 240 }
+                        }
+                    }
+                }
+            },
+            'The debug.refreshRate field is required but missing'
+        );
+
+        // Test 2: Value out of range
+        displayTest(
+            'Test 2: Values Out of Range',
+            {
+                world: {
+                    map: {
+                        gridWidth: 5,    // Below minimum of 10
+                        gridHeight: 250,  // Above maximum of 200
+                        cellSize: 16
+                    }
+                }
+            },
+            {
+                type: 'object',
+                properties: {
+                    world: {
+                        type: 'object',
+                        properties: {
+                            map: {
+                                type: 'object',
+                                properties: {
+                                    gridWidth: { type: 'integer', minimum: 10, maximum: 200 },
+                                    gridHeight: { type: 'integer', minimum: 10, maximum: 200 },
+                                    cellSize: { type: 'integer', minimum: 8, maximum: 64 }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            'Grid dimensions must be within specified ranges'
+        );
+
+        // Test 3: Invalid enum value
+        displayTest(
+            'Test 3: Invalid Enum Value',
+            {
+                category: 'shrub',  // Not in enum [herb, tree, groundcover]
+                layer: 'middle'
+            },
+            {
+                type: 'object',
+                properties: {
+                    category: {
+                        type: 'string',
+                        enum: ['herb', 'tree', 'groundcover']
+                    },
+                    layer: {
+                        type: 'string',
+                        enum: ['bottom', 'middle', 'top']
+                    }
+                }
+            },
+            'Category must be one of the predefined values'
+        );
+
+        // Test 4: Wrong type
+        displayTest(
+            'Test 4: Type Mismatch',
+            {
+                settings: {
+                    enabled: 'yes',  // Should be boolean
+                    count: 'five',   // Should be integer
+                    ratio: [0.5]     // Should be number
+                }
+            },
+            {
+                type: 'object',
+                properties: {
+                    settings: {
+                        type: 'object',
+                        properties: {
+                            enabled: { type: 'boolean' },
+                            count: { type: 'integer', minimum: 0 },
+                            ratio: { type: 'number', minimum: 0, maximum: 1 }
+                        }
+                    }
+                }
+            },
+            'Values have incorrect types'
+        );
+
+        // Test 5: Array constraints
+        displayTest(
+            'Test 5: Array Validation',
+            {
+                color: [0.5, 0.5, 1.2]  // Too few items (needs 4), and value 1.2 exceeds max
+            },
+            {
+                type: 'object',
+                properties: {
+                    color: {
+                        type: 'array',
+                        items: {
+                            type: 'number',
+                            minimum: 0,
+                            maximum: 1
+                        },
+                        minItems: 4,
+                        maxItems: 4
+                    }
+                }
+            },
+            'RGBA color array must have exactly 4 items with values 0-1'
+        );
+
+        // Test 6: Pattern validation
+        displayTest(
+            'Test 6: Regex Pattern Validation',
+            {
+                id: 'Invalid-Species-123',  // Contains invalid characters
+                validId: 'urtica_dioica'     // Valid snake_case
+            },
+            {
+                type: 'object',
+                properties: {
+                    id: {
+                        type: 'string',
+                        pattern: '^[a-z][a-z0-9_]*$'
+                    },
+                    validId: {
+                        type: 'string',
+                        pattern: '^[a-z][a-z0-9_]*$'
+                    }
+                }
+            },
+            'ID must be in snake_case format (lowercase letters, numbers, underscores)'
+        );
+
+        // Test 7: Valid configuration
+        displayTest(
+            'Test 7: Valid Configuration',
+            {
+                debug: {
+                    enabled: true,
+                    showFPS: true,
+                    showGeometryCount: true,
+                    showPlayerPosition: true,
+                    refreshRate: 60
+                },
+                world: {
+                    map: {
+                        gridWidth: 50,
+                        gridHeight: 50,
+                        cellSize: 16
+                    }
+                }
+            },
+            {
+                type: 'object',
+                required: ['debug', 'world'],
+                properties: {
+                    debug: {
+                        type: 'object',
+                        required: ['enabled', 'showFPS', 'showGeometryCount', 'showPlayerPosition', 'refreshRate'],
+                        properties: {
+                            enabled: { type: 'boolean' },
+                            showFPS: { type: 'boolean' },
+                            showGeometryCount: { type: 'boolean' },
+                            showPlayerPosition: { type: 'boolean' },
+                            refreshRate: { type: 'integer', minimum: 30, maximum: 240 }
+                        }
+                    },
+                    world: {
+                        type: 'object',
+                        properties: {
+                            map: {
+                                type: 'object',
+                                properties: {
+                                    gridWidth: { type: 'integer', minimum: 10, maximum: 200 },
+                                    gridHeight: { type: 'integer', minimum: 10, maximum: 200 },
+                                    cellSize: { type: 'integer', minimum: 8, maximum: 64 }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            'All fields are valid and within constraints'
+        );
+
+        console.log('ConfigValidator demo loaded successfully!');
+        console.log('ConfigValidator is accessible:', typeof ConfigValidator !== 'undefined');
+    </script>
+</body>
+</html>

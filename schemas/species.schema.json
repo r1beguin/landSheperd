@@ -1,0 +1,382 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://landshepherd.dev/schemas/species.schema.json",
+  "title": "Land Shepherd Species Configuration Schema",
+  "description": "JSON schema for validating plant species configuration files",
+  "type": "object",
+  "required": ["id", "commonName", "category", "layer", "appearance", "growthStages", "environment"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique species identifier (snake_case)",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "examples": ["urtica_dioica", "quercus_robur", "trifolium_repens"]
+    },
+    "commonName": {
+      "type": "string",
+      "description": "Human-readable species name",
+      "minLength": 1
+    },
+    "displayName": {
+      "type": "string",
+      "description": "Optional display name override"
+    },
+    "category": {
+      "type": "string",
+      "description": "Plant category for generator routing",
+      "enum": ["herb", "tree", "groundcover"],
+      "errorMessage": "Invalid category. Must be one of: herb, tree, groundcover"
+    },
+    "layer": {
+      "type": "string",
+      "description": "Vertical render layer",
+      "enum": ["bottom", "middle", "top"]
+    },
+    "appearance": {
+      "type": "object",
+      "required": ["colorPalette"],
+      "properties": {
+        "dimensions": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 8,
+              "maximum": 64,
+              "description": "Sprite width in pixels"
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 8,
+              "maximum": 64,
+              "description": "Sprite height in pixels"
+            }
+          },
+          "required": ["width", "height"]
+        },
+        "colorPalette": {
+          "type": "object",
+          "description": "Color palettes for plant organs",
+          "minProperties": 1,
+          "patternProperties": {
+            "^[a-z]+[A-Za-z]*$": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^#[0-9A-Fa-f]{6}$"
+              },
+              "minItems": 1,
+              "description": "Array of hex color codes"
+            }
+          }
+        }
+      }
+    },
+    "growthStages": {
+      "type": "array",
+      "description": "Ordered list of growth stages",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["name", "daysToGrow", "generator", "visibleOrgans"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Growth stage name (PascalCase)",
+            "pattern": "^[A-Z][a-zA-Z]+$"
+          },
+          "daysToGrow": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "description": "Days to reach next stage, or null for final stage"
+          },
+          "generator": {
+            "type": "string",
+            "description": "Generator function name (camelCase)",
+            "pattern": "^[a-z][a-zA-Z]+Generation$"
+          },
+          "visibleOrgans": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Plant organs visible in this stage"
+          },
+          "nutrientConsumption": {
+            "type": "object",
+            "properties": {
+              "nitrogen": {
+                "type": "number",
+                "minimum": 0
+              },
+              "phosphorus": {
+                "type": "number",
+                "minimum": 0
+              },
+              "potassium": {
+                "type": "number",
+                "minimum": 0
+              },
+              "organicMatter": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": ["nitrogen", "phosphorus", "potassium", "organicMatter"]
+          },
+          "growthModifiers": {
+            "type": "object",
+            "description": "Nutrient growth modifier weights",
+            "patternProperties": {
+              "^(nitrogen|phosphorus|potassium|organicMatter)$": {
+                "type": "object",
+                "required": ["weight", "description"],
+                "properties": {
+                  "weight": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "nutrientReturn": {
+            "type": "object",
+            "description": "Nutrients returned to soil (for Withered stage)",
+            "properties": {
+              "nitrogen": {
+                "type": "number",
+                "minimum": 0
+              },
+              "phosphorus": {
+                "type": "number",
+                "minimum": 0
+              },
+              "potassium": {
+                "type": "number",
+                "minimum": 0
+              },
+              "organicMatter": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": ["nitrogen", "phosphorus", "potassium", "organicMatter"]
+          }
+        }
+      }
+    },
+    "reproduction": {
+      "type": "object",
+      "description": "Reproduction strategies",
+      "properties": {
+        "rhizomeCloning": {
+          "type": "object",
+          "required": ["enabled"],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "activeStages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "checkIntervalDays": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "successChance": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "maxDistance": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "proximityReproduction": {
+          "type": "object",
+          "required": ["enabled"],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "activeStages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "checkIntervalDays": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "proximityDistance": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "successChance": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "maxOffspringDistance": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "requiresPartner": {
+              "type": "boolean"
+            }
+          }
+        },
+        "seedProduction": {
+          "type": "object",
+          "required": ["enabled"],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "activeStages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "checkIntervalDays": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "successChance": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "maxDistance": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "germinationChance": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      }
+    },
+    "genetics": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable genetic variation for this species"
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "required": ["nutrientRequirements", "lightRequirement", "rootDepth"],
+      "properties": {
+        "nutrientRequirements": {
+          "type": "object",
+          "required": ["nitrogen", "phosphorus", "potassium", "organicMatter"],
+          "properties": {
+            "nitrogen": {
+              "$ref": "#/definitions/nutrientRequirement"
+            },
+            "phosphorus": {
+              "$ref": "#/definitions/nutrientRequirement"
+            },
+            "potassium": {
+              "$ref": "#/definitions/nutrientRequirement"
+            },
+            "organicMatter": {
+              "$ref": "#/definitions/nutrientRequirement"
+            }
+          }
+        },
+        "lightRequirement": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Light requirement (0=full shade, 1=full sun)"
+        },
+        "rootDepth": {
+          "type": "string",
+          "enum": ["shallow", "medium", "deep"]
+        },
+        "shadeStrength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "How much shade this plant casts"
+        },
+        "lightCasting": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "activeStages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "shadeStrength": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "radius": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "Ecological description"
+        }
+      }
+    },
+    "proceduralModules": {
+      "type": "object",
+      "description": "Parameters for procedural generation",
+      "additionalProperties": true
+    }
+  },
+  "definitions": {
+    "nutrientRequirement": {
+      "type": "object",
+      "required": ["minimum", "optimal", "description"],
+      "properties": {
+        "minimum": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Minimum nutrient level for survival"
+        },
+        "optimal": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Optimal nutrient level for growth"
+        },
+        "description": {
+          "type": "string",
+          "description": "Ecological explanation"
+        }
+      }
+    }
+  }
+}

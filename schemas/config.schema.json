@@ -1,0 +1,914 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://landshepherd.dev/schemas/config.schema.json",
+  "title": "Land Shepherd Configuration Schema",
+  "description": "JSON schema for validating the main config.json file",
+  "type": "object",
+  "required": ["debug", "graphics", "time", "world"],
+  "properties": {
+    "debug": {
+      "type": "object",
+      "required": ["enabled", "showFPS", "showGeometryCount", "showPlayerPosition", "refreshRate"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable debug interface"
+        },
+        "showFPS": {
+          "type": "boolean"
+        },
+        "showGeometryCount": {
+          "type": "boolean"
+        },
+        "showPlayerPosition": {
+          "type": "boolean"
+        },
+        "refreshRate": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 240,
+          "description": "Target display refresh rate"
+        }
+      }
+    },
+    "graphics": {
+      "type": "object",
+      "required": ["vsync", "backgroundColor"],
+      "properties": {
+        "vsync": {
+          "type": "boolean"
+        },
+        "backgroundColor": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 4,
+          "maxItems": 4,
+          "description": "RGBA background color [0-1]"
+        }
+      }
+    },
+    "time": {
+      "type": "object",
+      "required": ["initialTimeScale", "realSecondsPerGameDay", "timeScalePresets"],
+      "properties": {
+        "initialTimeScale": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "realSecondsPerGameDay": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 120
+        },
+        "timeScalePresets": {
+          "type": "object",
+          "required": ["pause", "normal"],
+          "properties": {
+            "pause": {
+              "type": "number",
+              "const": 0
+            },
+            "verySlow": {
+              "type": "number",
+              "minimum": 0
+            },
+            "slow": {
+              "type": "number",
+              "minimum": 0
+            },
+            "normal": {
+              "type": "number",
+              "minimum": 0
+            },
+            "fast": {
+              "type": "number",
+              "minimum": 0
+            },
+            "veryFast": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "world": {
+      "type": "object",
+      "required": ["map", "soil", "textures"],
+      "properties": {
+        "terrain": {
+          "type": "object",
+          "properties": {
+            "seed": {
+              "type": ["integer", "null"],
+              "description": "Terrain generation seed (null = random)"
+            },
+            "generation": {
+              "type": "object",
+              "properties": {
+                "logStats": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "water": {
+              "type": "object",
+              "properties": {
+                "rivers": {
+                  "$ref": "#/definitions/riverConfig"
+                },
+                "lakes": {
+                  "$ref": "#/definitions/lakeConfig"
+                },
+                "fertilityBoost": {
+                  "$ref": "#/definitions/fertilityBoostConfig"
+                }
+              }
+            }
+          }
+        },
+        "map": {
+          "type": "object",
+          "required": ["gridWidth", "gridHeight", "cellSize"],
+          "properties": {
+            "gridWidth": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 200
+            },
+            "gridHeight": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 200
+            },
+            "cellSize": {
+              "type": "integer",
+              "minimum": 8,
+              "maximum": 64
+            }
+          }
+        },
+        "plants": {
+          "type": "object",
+          "properties": {
+            "stuntGracePeriod": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "starvationReturnMultiplier": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "reproduction": {
+              "type": "object",
+              "properties": {
+                "enableLogging": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "decomposition": {
+              "type": "object",
+              "properties": {
+                "enableLogging": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "genetics": {
+              "$ref": "#/definitions/geneticsConfig"
+            },
+            "ui": {
+              "type": "object",
+              "properties": {
+                "speciesPalette": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "position": {
+                      "type": "string",
+                      "enum": ["bottom-left", "bottom-right", "top-left", "top-right"]
+                    },
+                    "showLayerInfo": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            },
+            "layers": {
+              "$ref": "#/definitions/layerConfig"
+            }
+          }
+        },
+        "soil": {
+          "type": "object",
+          "required": ["fertility", "water", "pollution"],
+          "properties": {
+            "decomposition": {
+              "$ref": "#/definitions/decompositionConfig"
+            },
+            "fertility": {
+              "$ref": "#/definitions/proceduralProperty"
+            },
+            "water": {
+              "$ref": "#/definitions/proceduralProperty"
+            },
+            "pollution": {
+              "$ref": "#/definitions/proceduralProperty"
+            }
+          }
+        },
+        "textures": {
+          "type": "object",
+          "required": ["soilTextureSize", "generateVariations"],
+          "properties": {
+            "soilTextureSize": {
+              "type": "integer",
+              "minimum": 8,
+              "maximum": 64
+            },
+            "generateVariations": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "waterPixelThreshold": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "pollutionPixelThreshold": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "waterMaxCoverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "pollutionMaxCoverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "waterIntensityLevels": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/intensityLevel"
+              }
+            },
+            "pollutionIntensityLevels": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/intensityLevel"
+              }
+            }
+          }
+        },
+        "weather": {
+          "$ref": "#/definitions/weatherConfig"
+        },
+        "lighting": {
+          "$ref": "#/definitions/lightingConfig"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "proceduralProperty": {
+      "type": "object",
+      "required": ["hotspots", "baseValue", "maxIntensity", "falloffRate"],
+      "properties": {
+        "hotspots": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50
+        },
+        "baseValue": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "maxIntensity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "falloffRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "noiseIntensity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 50
+        },
+        "radiusMin": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "radiusMax": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "nutrientVariation": {
+          "type": "object",
+          "properties": {
+            "nitrogen": {
+              "type": "number"
+            },
+            "phosphorus": {
+              "type": "number"
+            },
+            "potassium": {
+              "type": "number"
+            },
+            "organicMatter": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "intensityLevel": {
+      "type": "object",
+      "required": ["threshold", "coverage", "color"],
+      "properties": {
+        "threshold": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 3,
+          "maxItems": 3
+        }
+      }
+    },
+    "riverConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "widthMin": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "widthMax": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "windiness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "depthRange": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "lakeConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "radiusMin": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "radiusMax": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "depthRange": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "irregularity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minEdgeDistance": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "fertilityBoostConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "radius": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "nitrogenBonus": {
+          "type": "number",
+          "minimum": 0
+        },
+        "waterRetentionBonus": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "geneticsConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "visualVariation": {
+          "type": "object",
+          "properties": {
+            "heightRange": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "widthRange": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "foliageRange": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "colorTintRange": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        "nutrientVariation": {
+          "type": "object",
+          "properties": {
+            "efficiencyRange": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        "inheritance": {
+          "type": "object",
+          "properties": {
+            "mutationChance": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "mutationStrength": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      }
+    },
+    "layerConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "renderOffsets": {
+          "type": "object",
+          "properties": {
+            "bottom": {
+              "type": "number"
+            },
+            "middle": {
+              "type": "number"
+            },
+            "top": {
+              "type": "number"
+            }
+          }
+        },
+        "renderLogging": {
+          "type": "boolean"
+        },
+        "lightFiltering": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "treeShadeStrength": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "shadeRadius": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "nutrientPriority": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "decompositionConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "organicMatterDecayPerDay": {
+          "type": "number",
+          "minimum": 0
+        },
+        "nitrogenReleaseRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "phosphorusReleaseRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimumOMForBreakdown": {
+          "type": "number",
+          "minimum": 0
+        },
+        "enableLogging": {
+          "type": "boolean"
+        },
+        "loggingInterval": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "radius": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "activityWindowDays": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "weatherModifiers": {
+          "type": "object",
+          "properties": {
+            "rainy": {
+              "type": "object",
+              "properties": {
+                "base": {
+                  "type": "number"
+                },
+                "intensityScale": {
+                  "type": "number"
+                }
+              }
+            },
+            "cloudy": {
+              "type": "number"
+            },
+            "sunny": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "weatherConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "initialState": {
+          "type": "string",
+          "enum": ["sunny", "cloudy", "rainy"]
+        },
+        "transitionLogging": {
+          "type": "boolean"
+        },
+        "states": {
+          "type": "object",
+          "properties": {
+            "sunny": {
+              "$ref": "#/definitions/weatherState"
+            },
+            "cloudy": {
+              "$ref": "#/definitions/weatherState"
+            },
+            "rainy": {
+              "$ref": "#/definitions/weatherState"
+            }
+          }
+        },
+        "particles": {
+          "type": "object",
+          "properties": {
+            "maxParticles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "particleSizeMin": {
+              "type": "number"
+            },
+            "particleSizeMax": {
+              "type": "number"
+            },
+            "fallSpeedMin": {
+              "type": "number"
+            },
+            "fallSpeedMax": {
+              "type": "number"
+            },
+            "color": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 255
+              },
+              "minItems": 4,
+              "maxItems": 4
+            },
+            "spawnHeightOffset": {
+              "type": "number"
+            }
+          }
+        },
+        "splashes": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "spawnProbability": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "particleCountMin": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "particleCountMax": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "lifetimeMin": {
+              "type": "number",
+              "minimum": 0
+            },
+            "lifetimeMax": {
+              "type": "number",
+              "minimum": 0
+            },
+            "speedMin": {
+              "type": "number"
+            },
+            "speedMax": {
+              "type": "number"
+            },
+            "color": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 255
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          }
+        },
+        "soilEffects": {
+          "type": "object",
+          "properties": {
+            "rainWaterIncreasePerDay": {
+              "type": "number"
+            },
+            "sunEvaporationPerDay": {
+              "type": "number"
+            },
+            "cloudyEvaporationPerDay": {
+              "type": "number"
+            },
+            "rainNitrogenRestorePerDay": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "weatherState": {
+      "type": "object",
+      "properties": {
+        "minDuration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxDuration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "nextStates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rainIntensityMin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rainIntensityMax": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "lightingConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "transitionSpeed": {
+          "type": "number",
+          "minimum": 0
+        },
+        "timeOfDay": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z]+[A-Za-z]*$": {
+              "type": "object",
+              "required": ["hours", "color", "brightness"],
+              "properties": {
+                "hours": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 23
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "color": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "brightness": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          }
+        },
+        "weatherModifiers": {
+          "type": "object",
+          "properties": {
+            "sunny": {
+              "type": "object",
+              "properties": {
+                "brightnessMultiplier": {
+                  "type": "number"
+                },
+                "colorTint": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            },
+            "cloudy": {
+              "type": "object",
+              "properties": {
+                "brightnessMultiplier": {
+                  "type": "number"
+                },
+                "colorTint": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            },
+            "rainy": {
+              "type": "object",
+              "properties": {
+                "brightnessMultiplier": {
+                  "type": "number"
+                },
+                "brightnessIntensityScale": {
+                  "type": "number"
+                },
+                "colorTint": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

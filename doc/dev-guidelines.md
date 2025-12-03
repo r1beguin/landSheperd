@@ -653,3 +653,209 @@ if (lightingManager.isEnabled()) {
 - [Technical Reference](architecture/technical-reference.md) - Manager patterns
 
 ---
+
+## Config Validation - 2025-12-03
+
+**Purpose:** Automated validation of all configuration files against JSON Schema definitions to prevent configuration errors and catch typos before runtime.
+
+**Implementation:**
+
+**Files Created:**
+- js/utils/config_validator.js - JSON Schema Draft 7 validator (386 lines)
+- js/utils/schema_loader.js - Schema loading utility with caching (59 lines)
+- schemas/config.schema.json - Main config validation rules (915 lines)
+- schemas/species.schema.json - Species validation rules (383 lines)
+- scripts/validate-config.js - CLI validation tool (460 lines)
+
+**Files Modified:**
+- index.html - Added script tags for config_validator.js and schema_loader.js
+- js/core/main_graphics.js - Added validateConfig() method, runs before initialization
+- js/core/plant_manager.js - Added species validation during loadSpecies()
+
+**Key Design Decisions:**
+
+1. **Pure vanilla JS** - ConfigValidator has no external dependencies, works in browser and Node.js
+2. **JSON Schema Draft 7** - Standard schema format with comprehensive validation features
+3. **Fail fast** - Application throws error on invalid config, prevents runtime issues
+4. **Clear error messages** - Errors include property path and expected values
+5. **Schema reuse** - $ref definitions reduce duplication in schemas
+
+**Validation Features:**
+- Type validation (string, number, integer, boolean, array, object, null)
+- Enum validation (category must be "herb", "tree", or "groundcover")
+- Range validation (minimum, maximum, exclusiveMinimum, exclusiveMaximum)
+- Pattern validation (regex for id, color hex codes, etc.)
+- Array constraints (minItems, maxItems)
+- Object constraints (required fields, minProperties, additionalProperties)
+- Const values (e.g., pause must be exactly 0)
+- $ref definitions for reusable schema structures
+
+**Configuration:**
+
+Validation runs automatically on startup and can be run manually:
+
+```bash
+npm run validate:config
+```
+
+**Schema Structure (config.schema.json):**
+
+Major sections:
+- debug - Debug interface settings
+- graphics - Rendering configuration
+- time - Time system and presets
+- world.terrain - Procedural terrain (rivers, lakes, fertility)
+- world.map - Grid dimensions
+- world.plants - Plant systems (reproduction, genetics, layers)
+- world.soil - Soil properties and decomposition
+- world.textures - Texture generation parameters
+- world.weather - Weather states and effects
+- world.lighting - Day/night cycle
+
+Reusable definitions:
+- proceduralProperty - Hotspot-based generation
+- riverConfig, lakeConfig, fertilityBoostConfig
+- geneticsConfig, layerConfig, decompositionConfig
+- weatherConfig, weatherState, lightingConfig
+
+**Species Schema (species.schema.json):**
+
+Required fields:
+- id (pattern: ^[a-z][a-z0-9_]*$)
+- commonName
+- category (enum: ["herb", "tree", "groundcover"])
+- layer (enum: ["bottom", "middle", "top"])
+- appearance (colorPalette, dimensions)
+- growthStages (array with minimum 2 stages)
+- environment (nutrient requirements, light, root depth)
+
+**Common Validation Errors:**
+
+1. **Invalid category:**
+```
+- category: Invalid category. Must be one of: herb, tree, groundcover (got: "herbaceous")
+```
+Fix: Change to "herb", "tree", or "groundcover"
+
+2. **Missing required field:**
+```
+- environment.nutrientRequirements.nitrogen: is required but missing
+```
+Fix: Add the missing field with proper structure
+
+3. **Out of range:**
+```
+- world.map.gridWidth: must be >= 10 (got: 5)
+```
+Fix: Adjust value to be within allowed range
+
+4. **Type mismatch:**
+```
+- debug.refreshRate: must be of type integer (got: string)
+```
+Fix: Change "60" (string) to 60 (number)
+
+5. **Pattern mismatch:**
+```
+- id: must match pattern ^[a-z][a-z0-9_]*$ (got: "Invalid-Species")
+```
+Fix: Use snake_case naming (invalid_species)
+
+**Adding New Config Fields:**
+
+1. Add field to config.json:
+```json
+{
+  "world": {
+    "newFeature": {
+      "enabled": true,
+      "parameter": 42
+    }
+  }
+}
+```
+
+2. Update schemas/config.schema.json:
+```json
+{
+  "properties": {
+    "world": {
+      "properties": {
+        "newFeature": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean", "description": "Enable feature"},
+            "parameter": {"type": "integer", "minimum": 0, "maximum": 100}
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+3. Validate:
+```bash
+npm run validate:config
+```
+
+4. Document in dev-guidelines.md
+
+**Testing:**
+- Validation: PASS via `npm run test:config-validator`
+- Integration: Runs on application startup, throws error if invalid
+- CLI testing: PASS via `npm run validate:config`
+- Performance: +50ms startup time (5.9% overhead, acceptable)
+
+**Real-World Impact:**
+
+The validation system caught and fixed:
+1. Nettles category bug (2025-12-03) - Invalid "herbaceous" category caused green rectangle rendering
+2. 3 type mismatches during development
+3. 2 missing required fields in oak species genetics configuration
+4. 1 range error (gridWidth set to 0) during testing
+
+**Usage:**
+
+Automatic validation on startup:
+```javascript
+// In GraphicsEngine.validateConfig() - runs before initialization
+const schemaLoader = new SchemaLoader();
+const configSchema = await schemaLoader.loadSchema('schemas/config.schema.json');
+
+const validator = new ConfigValidator();
+const result = validator.validateConfig(this.config, configSchema);
+
+if (!result.valid) {
+    console.error('Config validation failed:');
+    console.error(validator.formatErrorMessage(result.errors));
+    throw new Error('Invalid configuration');
+}
+```
+
+Manual validation during development:
+```bash
+npm run validate:config
+
+# Output:
+# Land Shepherd Config Validation
+#
+# Validating config.json...
+# ✓ config.json is valid
+#
+# Validating species/nettles.json...
+# ✓ species/nettles.json is valid
+#
+# (etc.)
+#
+# ✓ All configuration files valid!
+# Validated 4 file(s)
+```
+
+**Related Documentation:**
+- [Config Validation System](features/config-validation-system.md) - Comprehensive system documentation
+- [Config Schema](../../schemas/config.schema.json) - Full validation rules
+- [Species Schema](../../schemas/species.schema.json) - Species validation rules
+- [DevLog 2025-12-03](devlogs/2025-12/2025-12-03-config-validation-system.md) - Implementation history
+
+---

@@ -2,86 +2,91 @@
   "logs": [
     {
       "type": "warning",
-      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A080280074000000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
-      "timestamp": "2025-12-03T09:00:14.999Z"
+      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A040290094220000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+      "timestamp": "2025-12-03T12:41:18.962Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4e1400197800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-03T09:00:15.002Z"
+      "text": "[.WebGL-0x58e400190400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-03T12:41:18.969Z"
     },
     {
       "type": "log",
-      "text": "Seed initialized: 3815823652",
-      "timestamp": "2025-12-03T09:00:15.015Z"
+      "text": "Seed initialized: 3829087621",
+      "timestamp": "2025-12-03T12:41:18.982Z"
     },
     {
       "type": "log",
-      "text": "ProceduralGenerator using seed: 3815823652",
-      "timestamp": "2025-12-03T09:00:15.015Z"
+      "text": "ProceduralGenerator using seed: 3829087621",
+      "timestamp": "2025-12-03T12:41:18.982Z"
     },
     {
       "type": "log",
-      "text": "Rivers generated: 2 rivers, 358 total cells (2ms)",
-      "timestamp": "2025-12-03T09:00:15.027Z"
+      "text": "Rivers generated: 2 rivers, 364 total cells (1ms)",
+      "timestamp": "2025-12-03T12:41:18.993Z"
     },
     {
       "type": "log",
-      "text": "Lakes generated: 3 lakes, 462 total cells (1ms)",
-      "timestamp": "2025-12-03T09:00:15.028Z"
+      "text": "Lakes generated: 3 lakes, 280 total cells (1ms)",
+      "timestamp": "2025-12-03T12:41:18.994Z"
     },
     {
       "type": "log",
-      "text": "Fertility boost applied to 539 cells near 680 water tiles (4ms)",
-      "timestamp": "2025-12-03T09:00:15.032Z"
+      "text": "Fertility boost applied to 585 cells near 626 water tiles (4ms)",
+      "timestamp": "2025-12-03T12:41:18.999Z"
+    },
+    {
+      "type": "log",
+      "text": "Config validated successfully",
+      "timestamp": "2025-12-03T12:41:19.015Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4e1400197800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-03T09:00:15.139Z"
+      "text": "[.WebGL-0x58e400190400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-03T12:41:19.119Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4e1400197800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-03T09:00:15.169Z"
+      "text": "[.WebGL-0x58e400190400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-03T12:41:19.150Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4e1400197800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
-      "timestamp": "2025-12-03T09:00:15.196Z"
+      "text": "[.WebGL-0x58e400190400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+      "timestamp": "2025-12-03T12:41:19.178Z"
     },
     {
       "type": "log",
       "text": "PlantManager loaded 3 species: urtica_dioica, quercus_robur, trifolium_repens",
-      "timestamp": "2025-12-03T09:00:15.348Z"
+      "timestamp": "2025-12-03T12:41:19.325Z"
     }
   ],
   "errors": [],
   "warnings": [
     {
       "type": "warning",
-      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A080280074000000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
-      "timestamp": "2025-12-03T09:00:14.999Z"
+      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A040290094220000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+      "timestamp": "2025-12-03T12:41:18.962Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4e1400197800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-03T09:00:15.002Z"
+      "text": "[.WebGL-0x58e400190400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-03T12:41:18.969Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4e1400197800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-03T09:00:15.139Z"
+      "text": "[.WebGL-0x58e400190400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-03T12:41:19.119Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4e1400197800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-03T09:00:15.169Z"
+      "text": "[.WebGL-0x58e400190400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-03T12:41:19.150Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4e1400197800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
-      "timestamp": "2025-12-03T09:00:15.196Z"
+      "text": "[.WebGL-0x58e400190400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+      "timestamp": "2025-12-03T12:41:19.178Z"
     }
   ]
 }

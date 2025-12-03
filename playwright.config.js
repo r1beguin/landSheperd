@@ -8,7 +8,9 @@ module.exports = defineConfig({
   testDir: './tests',
   
   // Use different test files based on mode
-  testMatch: process.env.TEST_GENERATOR_REFACTOR === 'true'
+  testMatch: process.env.TEST_CONFIG_VALIDATOR === 'true'
+    ? '**/config-validator.spec.js'
+    : process.env.TEST_GENERATOR_REFACTOR === 'true'
     ? '**/generator-refactor-validation.spec.js'
     : process.env.TEST_MILESTONE1 === 'true'
     ? '**/milestone1-comparison.spec.js'
