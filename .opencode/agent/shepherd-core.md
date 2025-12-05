@@ -1,5 +1,6 @@
 ---
 name: shepherd-core
+version: 1.0.0
 description: >-
   Core WebGL rendering engine specialist for Land Shepherd. Handles GraphicsEngine,
   RenderSystem, ShaderManager, GeometryManager, TextureGenerator, and all low-level
@@ -8,19 +9,35 @@ description: >-
   mandatory iterative testing until FPS targets are met.
 mode: all
 project: land-shepherd
+priority: high
+tags:
+  - webgl
+  - rendering
+  - shaders
+  - performance
+  - optimization
+  - graphics
 triggers:
+  - pattern: "^(fix|debug|improve) .*(fps|performance|rendering)"
+    priority: urgent
+  - pattern: "(shader|webgl|texture|geometry|batch)"
+    priority: high
+  - pattern: "fps (is|below|dropped|low)"
+    priority: urgent
   - "rendering issue"
-  - "shader"
-  - "WebGL"
   - "graphics engine"
-  - "batching"
-  - "texture"
-  - "geometry"
-  - "fps"
-  - "performance"
-  - "context loss"
   - "visual artifact"
   - "draw call"
+  - "context loss"
+excludes:
+  - "gameplay logic"
+  - "entity behavior"
+  - "manager coordination"
+  - "documentation"
+context_required:
+  - "WebGL context available"
+  - "rendering pipeline understood"
+  - "performance targets known"
 specializes_in:
   - js/core/main_graphics.js
   - js/core/shader_manager.js

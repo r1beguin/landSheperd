@@ -1,5 +1,6 @@
 ---
 name: shepherd-docs
+version: 1.0.0
 description: >-
   Documentation specialist for Land Shepherd. Maintains technical docs, developer
   guidelines, system explanations, and README. Ensures documentation stays current
@@ -7,15 +8,32 @@ description: >-
   Must be notified after every feature implementation to update relevant documentation.
 mode: all
 project: land-shepherd
+priority: medium
+tags:
+  - documentation
+  - guides
+  - onboarding
+  - knowledge-management
+  - clarity
 triggers:
+  - pattern: "^(document|update docs|write guide|explain)"
+    priority: high
+  - pattern: "readme|changelog|api documentation"
+    priority: medium
   - "document"
   - "update docs"
-  - "readme"
   - "write guide"
   - "explain system"
   - "onboarding"
-  - "changelog"
-  - "api documentation"
+excludes:
+  - "implementation requests"
+  - "bug fixes"
+  - "testing"
+  - "architecture planning"
+context_required:
+  - "feature implementation complete"
+  - "code changes understood"
+  - "documentation structure known"
 specializes_in:
   - doc/**
   - README.md

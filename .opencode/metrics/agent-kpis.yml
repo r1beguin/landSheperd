@@ -1,0 +1,336 @@
+---
+version: 1.0.0
+last_updated: 2025-12-05
+description: Key Performance Indicators for Land Shepherd agents
+---
+
+# Land Shepherd Agent KPIs
+
+Performance metrics and success criteria for each specialized agent.
+
+## shepherd-architect
+
+### Success Metrics
+
+**Milestone Pass Rate:**
+- Target: >90%
+- Measurement: (Milestones passed on first validation / Total milestones) × 100
+- Frequency: Per feature
+
+**Feature Completion Rate:**
+- Target: 100% (all features validated before claiming complete)
+- Measurement: Features with all milestones passed / Total features started
+- Frequency: Monthly
+
+**Escalation Resolution Rate:**
+- Target: >80%
+- Measurement: Escalations resolved successfully / Total escalations received
+- Frequency: Per quarter
+
+**Planning Accuracy:**
+- Target: <2 milestone redesigns per feature
+- Measurement: Number of milestone plan changes mid-feature
+- Frequency: Per feature
+
+### Quality Gates
+
+- All features must have 2-5 milestones defined
+- Each milestone must have explicit validation criteria
+- Agent assignments must be clear before implementation starts
+- Performance targets must be specified for performance-critical features
+
+---
+
+## shepherd-core
+
+### Success Metrics
+
+**FPS Maintenance/Improvement:**
+- Target: 60+ FPS (minimum 30 FPS)
+- Measurement: FPS after changes vs before changes
+- Frequency: Per milestone
+
+**Render Call Reduction:**
+- Target: <100 render calls per frame
+- Measurement: Draw calls per frame via npm run verify
+- Frequency: Per rendering milestone
+
+**Zero WebGL Errors:**
+- Target: 100%
+- Measurement: Console errors === 0 after implementation
+- Frequency: Per change
+
+**First-Attempt Pass Rate:**
+- Target: >60%
+- Measurement: Milestones passed on iteration 1 / Total milestones
+- Frequency: Per quarter
+
+**Batch Efficiency:**
+- Target: >90%
+- Measurement: (Batched entities / Total entities) × 100
+- Frequency: Per rendering optimization
+
+### Quality Gates
+
+- npm run verify:interactive must PASS before claiming complete
+- FPS must be >= 30 (target 60)
+- Visual validation required for all rendering changes
+- Baseline created if intentional visual changes
+- Zero console errors mandatory
+
+---
+
+## shepherd-feature
+
+### Success Metrics
+
+**First-Attempt Test Pass Rate:**
+- Target: >70%
+- Measurement: Milestones passed on iteration 1 / Total milestones
+- Frequency: Per quarter
+
+**Functional Validation Pass Rate:**
+- Target: 95%
+- Measurement: Functional tests passed / Total functional tests
+- Frequency: Per feature
+
+**Entity Interface Compliance:**
+- Target: 100%
+- Measurement: Entities implementing getRenderData, update, getRenderType correctly
+- Frequency: Per entity created/modified
+
+**Integration Success Rate:**
+- Target: >90%
+- Measurement: Features integrated without breaking existing systems
+- Frequency: Per feature
+
+**Config Coverage:**
+- Target: 100%
+- Measurement: New parameters added to config.json / Total parameters needed
+- Frequency: Per feature
+
+### Quality Gates
+
+- npm run verify must PASS before claiming complete
+- Entity interfaces must be correctly implemented
+- System integration must be tested
+- Config.json updated with new parameters
+- Functional validation passed
+
+---
+
+## shepherd-verify
+
+### Success Metrics
+
+**Test Execution Time:**
+- Target: <30 seconds
+- Measurement: Time for npm run verify to complete
+- Frequency: Per test run
+
+**False Positive Rate:**
+- Target: <5%
+- Measurement: Tests that FAIL but shouldn't / Total tests run
+- Frequency: Per month
+
+**Test Coverage:**
+- Target: >80%
+- Measurement: Features with custom tests / Total features
+- Frequency: Per quarter
+
+**Failure Analysis Accuracy:**
+- Target: >90%
+- Measurement: Root causes correctly identified / Total failures analyzed
+- Frequency: Per month
+
+**Baseline Integrity:**
+- Target: 100%
+- Measurement: Baselines created only for intentional changes
+- Frequency: Continuous
+
+### Quality Gates
+
+- All tests must be run after significant changes
+- Test results must be parsed and reported
+- Iteration logs must be documented
+- Quality gates must be enforced (no shortcuts)
+- Baselines only created after validation passes
+
+---
+
+## shepherd-docs
+
+### Success Metrics
+
+**Documentation Lag:**
+- Target: <1 day
+- Measurement: Time between feature complete and docs updated
+- Frequency: Per feature
+
+**Documentation Coverage:**
+- Target: 100%
+- Measurement: Features documented / Total features implemented
+- Frequency: Per quarter
+
+**JSDoc Coverage:**
+- Target: 100% on public APIs
+- Measurement: Public methods with JSDoc / Total public methods
+- Frequency: Per code review
+
+**Config Documentation:**
+- Target: 100%
+- Measurement: Config parameters documented / Total config parameters
+- Frequency: Per feature
+
+**Update Accuracy:**
+- Target: 100%
+- Measurement: Documentation matches implementation
+- Frequency: Continuous (checked during reviews)
+
+### Quality Gates
+
+- doc/dev-guidelines.md must be updated after every feature
+- Feature documentation created/updated for major features
+- README.md updated if user-facing change
+- Configuration parameters documented
+- "Last updated" dates must be current
+
+---
+
+## Overall Project KPIs
+
+### Velocity Metrics
+
+**Features Completed per Month:**
+- Target: Variable (based on complexity)
+- Measurement: Features fully validated and documented
+- Tracking: Monthly trend
+
+**Average Time per Feature:**
+- Target: <5 days for medium features
+- Measurement: Planning start to documentation complete
+- Tracking: Per feature
+
+**Iteration Efficiency:**
+- Target: <2 iterations per milestone average
+- Measurement: Total iterations / Total milestones
+- Tracking: Per quarter
+
+### Quality Metrics
+
+**Zero-Defect Rate:**
+- Target: >95%
+- Measurement: Features without post-release bugs / Total features
+- Tracking: Per quarter
+
+**Performance Regression Rate:**
+- Target: <5%
+- Measurement: Features causing FPS drop / Total features
+- Tracking: Per quarter
+
+**Documentation Currency:**
+- Target: 100%
+- Measurement: Docs updated within 1 day of feature complete
+- Tracking: Continuous
+
+### Collaboration Metrics
+
+**Escalation Rate:**
+- Target: <10%
+- Measurement: Milestones escalated to architect / Total milestones
+- Tracking: Per quarter
+
+**Cross-Agent Coordination:**
+- Target: Clear handoffs 100% of time
+- Measurement: Features with explicit coordination messages
+- Tracking: Per feature
+
+---
+
+## Reporting Frequency
+
+### Real-Time Metrics
+- FPS (per test run)
+- Console errors (per test run)
+- Test pass/fail (per test run)
+
+### Per-Feature Metrics
+- Iteration count
+- Time to complete
+- Agent coordination quality
+- Documentation lag
+
+### Monthly Metrics
+- Features completed
+- Average iterations per milestone
+- Test pass rates
+- Documentation coverage
+
+### Quarterly Metrics
+- Overall velocity trends
+- Quality regression analysis
+- Agent efficiency comparison
+- Process improvement opportunities
+
+---
+
+## Dashboard View (Ideal)
+
+```
+┌─────────────────────────────────────────────────┐
+│ LAND SHEPHERD AGENT METRICS                     │
+│ Quarter: Q4 2025                                │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│ shepherd-architect                              │
+│   Milestone Pass Rate:     92% ✓ (target >90%) │
+│   Escalations Resolved:    85% ✓ (target >80%) │
+│   Planning Accuracy:       1.5 redesigns ✓      │
+│                                                 │
+│ shepherd-core                                   │
+│   FPS Average:             58 ✓ (target 60)     │
+│   Render Calls/Frame:      82 ✓ (target <100)  │
+│   First-Attempt Pass:      65% ⚠ (target >60%) │
+│                                                 │
+│ shepherd-feature                                │
+│   First-Attempt Pass:      72% ✓ (target >70%) │
+│   Integration Success:     94% ✓ (target >90%) │
+│   Config Coverage:         100% ✓               │
+│                                                 │
+│ shepherd-verify                                 │
+│   Test Execution Time:     28s ✓ (target <30s) │
+│   False Positive Rate:     3% ✓ (target <5%)   │
+│   Test Coverage:           85% ✓ (target >80%) │
+│                                                 │
+│ shepherd-docs                                   │
+│   Documentation Lag:       0.5 days ✓ (<1 day) │
+│   Documentation Coverage:  100% ✓               │
+│                                                 │
+│ OVERALL:                                        │
+│   Features This Month:     6                    │
+│   Avg Time per Feature:    4.2 days ✓          │
+│   Zero-Defect Rate:        96% ✓ (target >95%) │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## Using These Metrics
+
+### For Agents
+- Reference KPIs when reporting completion
+- Include metrics in milestone reports
+- Identify areas for improvement
+- Celebrate successes (>= target)
+
+### For Project Review
+- Track trends over time
+- Identify bottlenecks
+- Adjust processes based on data
+- Set new stretch goals
+
+### For Continuous Improvement
+- If metric below target: Analyze root cause
+- If metric above target: Document what's working well
+- Share learnings across agents
+- Update processes to improve weak areas

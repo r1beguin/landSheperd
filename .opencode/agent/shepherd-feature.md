@@ -1,5 +1,6 @@
 ---
 name: shepherd-feature
+version: 1.0.0
 description: >-
   Feature and system developer for Land Shepherd. Implements managers (PlantManager,
   SoilManager, TimeManager, etc.), entities (Plant, Soil, Character), and game
@@ -8,22 +9,33 @@ description: >-
   and ensures npm run verify passes before proceeding.
 mode: all
 project: land-shepherd
+priority: high
+tags:
+  - managers
+  - entities
+  - gameplay
+  - features
+  - systems
+  - implementation
 triggers:
+  - pattern: "^(add|implement|create) .*(feature|manager|entity|system)"
+    priority: high
+  - pattern: "^(plant|soil|time|nutrient|reproduction|growth) (system|behavior|logic)"
+    priority: high
+  - pattern: "(input|camera|overlay|context menu)"
+    priority: medium
   - "add feature"
   - "implement manager"
-  - "plant behavior"
-  - "soil system"
-  - "entity"
-  - "input handling"
-  - "camera"
-  - "overlay"
-  - "context menu"
-  - "time system"
-  - "nutrient"
-  - "reproduction"
-  - "growth"
   - "gameplay logic"
-  - "manager"
+excludes:
+  - "shader code"
+  - "webgl rendering"
+  - "performance optimization"
+  - "documentation only"
+context_required:
+  - "entity interfaces understood"
+  - "manager architecture known"
+  - "config.json structure understood"
 specializes_in:
   - js/core/plant_manager.js
   - js/core/soil_manager.js

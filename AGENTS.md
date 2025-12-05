@@ -1,5 +1,44 @@
 # Agent Guidelines for Land Shepherd
 
+## OpenCode Agentic Workflow
+
+Land Shepherd uses **OpenCode's specialized agent system** for efficient development. Agents automatically route requests based on keywords, or you can use slash commands for explicit workflows.
+
+### Quick Actions (Slash Commands)
+
+Use these commands for common workflows:
+
+```
+/add-feature [name]         - Plan and implement new feature with milestone testing
+/verify-changes [mode]      - Run verification (quick/full/visual/logs)
+/review-code [path]         - Architectural code review for quality and performance
+```
+
+**Examples:**
+```
+/add-feature weather-system
+/verify-changes full
+/review-code js/core/plant_manager.js
+```
+
+### Agent Auto-Selection
+
+Agents are automatically selected based on your request keywords:
+
+| Your Request | Auto-Selected Agent | Capability |
+|--------------|---------------------|------------|
+| "Add rain particles" | shepherd-core | WebGL rendering, shaders |
+| "Implement reproduction system" | shepherd-feature | Managers, entities, gameplay |
+| "Plan terrain generation" | shepherd-architect | Feature planning, milestones |
+| "Test current changes" | shepherd-verify | Testing, verification |
+| "Document the lighting system" | shepherd-docs | Documentation updates |
+
+**Need help choosing?** Ask shepherd-architect: "How should I implement X?"
+
+See [.opencode/capabilities.md](.opencode/capabilities.md) for complete agent responsibility matrix.
+
+---
+
 ## Starting a New Session
 
 When beginning work on Land Shepherd, follow this workflow:

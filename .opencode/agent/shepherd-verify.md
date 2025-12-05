@@ -1,5 +1,6 @@
 ---
 name: shepherd-verify
+version: 1.0.0
 description: >-
   Testing and verification specialist for Land Shepherd. Implements Playwright tests,
   runs npm run verify workflow, analyzes test results, creates baselines, and ensures
@@ -8,19 +9,35 @@ description: >-
   and performance benchmarks.
 mode: all
 project: land-shepherd
+priority: high
+tags:
+  - testing
+  - verification
+  - quality-gates
+  - benchmarks
+  - regression
+  - validation
 triggers:
+  - pattern: "^(test|verify|validate|check) .*(changes|feature|system)"
+    priority: high
+  - pattern: "(broken|failing|not working|bug|regression)"
+    priority: urgent
+  - pattern: "performance (issue|problem|degradation)"
+    priority: high
   - "test"
   - "verify"
-  - "broken"
-  - "not working"
-  - "bug"
-  - "regression"
   - "benchmark"
   - "baseline"
   - "screenshot"
   - "console error"
-  - "failing"
-  - "performance issue"
+excludes:
+  - "documentation"
+  - "architecture planning"
+  - "simple questions"
+context_required:
+  - "test infrastructure available"
+  - "npm run verify accessible"
+  - "baseline exists or can be created"
 specializes_in:
   - tests/**
   - scripts/verify-changes.js
