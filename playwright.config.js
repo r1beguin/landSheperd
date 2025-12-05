@@ -54,6 +54,8 @@ module.exports = defineConfig({
     ? '**/oak-genetics-ecosystem.spec.js'
     : process.env.TEST_MULTI_LAYER === 'true'
     ? '**/multi-layer-simple.spec.js'
+    : process.env.TEST_DAILY_CONSUMPTION === 'true'
+    ? '**/daily-consumption.spec.js'
     : process.env.TEST_INTERACTIVE === 'true' ||
       process.env.TEST_SCREENSHOT_ONLY === 'true' || 
       process.env.TEST_LOG_ONLY === 'true'

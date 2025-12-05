@@ -47,19 +47,9 @@ class SoilManager {
         this.totalCells = 0;
         this.visibleCellsCount = 0;
         
-        // Weather effects tracking
-        this.weatherEffectsConfig = this.config.world.weather?.soilEffects || null;
-        
-        // OM decomposition tracking (Milestone 2)
-        this.decompositionConfig = this.config.world.soil?.decomposition || null;
-        this.decompositionLogCounter = 0;
-        this.decompositionLogInterval = this.decompositionConfig?.loggingInterval || 5;
-        
-        // Localized decomposition tracking (Milestone 4 - Phase 2)
-        this.activeCells = new Set();  // Set of "x,y" keys for cells with active decomposition
-        this.cellLastPlantActivity = new Map();  // "x,y" → timestamp (game day)
-        this.decompositionRadius = this.config.world.soil?.decomposition?.radius || 1;  // Radius around plants
-        this.decompositionActivityWindow = this.config.world.soil?.decomposition?.activityWindowDays || 30;  // Days after death
+        // Initialize specialized managers
+        this.terrainGenerator = new TerrainGenerator(this.config, this.proceduralGenerator);
+        this.soilEffectsManager = new SoilEffectsManager(this.config.world);
         
         this.initializeSoilGrid();
         this.createSoilGeometry();
@@ -116,206 +106,11 @@ class SoilManager {
         
         const endTime = performance.now();
         
-        // Generate rivers if enabled (Milestone 3)
-        this.generateRivers();
+        // Generate terrain features using TerrainGenerator
+        this.terrainGenerator.generateTerrain(this);
         
-        // Generate lakes if enabled (Milestone 4)
-        this.generateLakes();
-        
-        // Apply fertility boosts around water bodies (Milestone 5)
-        this.applyFertilityBoostsAroundWater();
-    }
-    
-    /**
-     * Generate rivers using procedural generator (Milestone 3)
-     */
-    generateRivers() {
-        const waterConfig = this.config.world?.terrain?.water;
-        
-        if (!waterConfig || !waterConfig.rivers || !waterConfig.rivers.enabled) {
-            console.log('River generation disabled');
-            return;
-        }
-        
-        const riverConfig = waterConfig.rivers;
-        const startTime = performance.now();
-        
-        // Generate rivers
-        const rivers = this.proceduralGenerator.generateRivers(
-            this.gridWidth,
-            this.gridHeight,
-            riverConfig
-        );
-        
-        let totalWaterCells = 0;
-        
-        // Apply rivers to soil grid
-        rivers.forEach(riverCells => {
-            riverCells.forEach(cell => {
-                // Convert from map coordinates (0 to gridWidth) to grid coordinates (-gridWidth/2 to +gridWidth/2)
-                const gridX = cell.x - this.gridWidth / 2;
-                const gridY = cell.y - this.gridHeight / 2;
-                
-                // Check if within grid bounds
-                const minX = -this.gridWidth / 2;
-                const maxX = this.gridWidth / 2 - 1;
-                const minY = -this.gridHeight / 2;
-                const maxY = this.gridHeight / 2 - 1;
-                
-                if (gridX >= minX && gridX <= maxX && gridY >= minY && gridY <= maxY) {
-                    this.setWaterTile(gridX, gridY, cell.depth);
-                    totalWaterCells++;
-                }
-            });
-        });
-        
-        const endTime = performance.now();
-        const generationTime = (endTime - startTime).toFixed(0);
-        
-        console.log(`Rivers generated: ${rivers.length} rivers, ${totalWaterCells} total cells (${generationTime}ms)`);
-        
-        // Force visible cells refresh to pick up water tiles
-        this.needsRefresh = true;
-    }
-    
-    /**
-     * Generate lakes using procedural generator (Milestone 4)
-     */
-    generateLakes() {
-        const waterConfig = this.config.world?.terrain?.water;
-        
-        if (!waterConfig || !waterConfig.lakes || !waterConfig.lakes.enabled) {
-            console.log('Lake generation disabled');
-            return;
-        }
-        
-        const lakeConfig = waterConfig.lakes;
-        const startTime = performance.now();
-        
-        // Generate lakes
-        const lakes = this.proceduralGenerator.generateLakes(
-            this.gridWidth,
-            this.gridHeight,
-            lakeConfig
-        );
-        
-        let totalLakeCells = 0;
-        
-        // Grid bounds
-        const minX = -this.gridWidth / 2;
-        const maxX = this.gridWidth / 2 - 1;
-        const minY = -this.gridHeight / 2;
-        const maxY = this.gridHeight / 2 - 1;
-        
-        // Apply lakes to soil grid
-        lakes.forEach(lakeCells => {
-            lakeCells.forEach(cell => {
-                // Convert from map coordinates (0 to gridWidth) to grid coordinates (-gridWidth/2 to +gridWidth/2)
-                const gridX = cell.x - this.gridWidth / 2;
-                const gridY = cell.y - this.gridHeight / 2;
-                
-                // Check if within grid bounds
-                if (gridX >= minX && gridX <= maxX && gridY >= minY && gridY <= maxY) {
-                    this.setWaterTile(gridX, gridY, cell.depth);
-                    totalLakeCells++;
-                }
-            });
-        });
-        
-        const endTime = performance.now();
-        const generationTime = (endTime - startTime).toFixed(0);
-        
-        console.log(`Lakes generated: ${lakes.length} lakes, ${totalLakeCells} total cells (${generationTime}ms)`);
-        
-        // Force visible cells refresh to pick up water tiles
-        this.needsRefresh = true;
-    }
-    
-    /**
-     * Apply fertility boosts to soil cells around water bodies (Milestone 5)
-     * Creates gradients of increased fertility near rivers and lakes
-     */
-    applyFertilityBoostsAroundWater() {
-        const waterConfig = this.config.world?.terrain?.water;
-        const boostConfig = waterConfig?.fertilityBoost;
-        
-        if (!boostConfig || !boostConfig.enabled) {
-            console.log('Fertility boost around water disabled');
-            return;
-        }
-        
-        // Skip if no water tiles
-        if (this.waterTiles.size === 0) {
-            console.log('No water tiles found - skipping fertility boost');
-            return;
-        }
-        
-        const startTime = performance.now();
-        const radius = boostConfig.radius || 3;
-        const nitrogenBonus = boostConfig.nitrogenBonus || 20;
-        const waterRetentionBonus = boostConfig.waterRetentionBonus || 30;
-        
-        // Track cells affected (use Set to avoid duplicate processing)
-        const affectedCells = new Set();
-        
-        // For each water tile, boost surrounding cells
-        this.waterTiles.forEach(waterKey => {
-            const [waterX, waterY] = waterKey.split(',').map(Number);
-            
-            // Check cells in radius around this water tile
-            for (let dx = -radius; dx <= radius; dx++) {
-                for (let dy = -radius; dy <= radius; dy++) {
-                    // Skip the water tile itself
-                    if (dx === 0 && dy === 0) continue;
-                    
-                    const targetX = waterX + dx;
-                    const targetY = waterY + dy;
-                    const targetKey = `${targetX},${targetY}`;
-                    
-                    // Skip if already processed
-                    if (affectedCells.has(targetKey)) continue;
-                    
-                    const soil = this.getSoilAt(targetX, targetY);
-                    
-                    // Skip if no soil, is water, or not plantable
-                    if (!soil || soil.isWater || !soil.isPlantable) continue;
-                    
-                    // Calculate distance from water
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    // Skip if outside radius (for circular falloff)
-                    if (distance > radius) continue;
-                    
-                    // Calculate linear falloff: 1.0 at water edge, 0.0 at radius
-                    const falloff = 1.0 - (distance / radius);
-                    
-                    // Apply bonuses with falloff
-                    const nitrogenIncrease = nitrogenBonus * falloff;
-                    const waterIncrease = waterRetentionBonus * falloff;
-                    
-                    // Update soil properties (clamped 0-100)
-                    soil.nitrogen = Math.min(100, soil.nitrogen + nitrogenIncrease);
-                    soil.waterRetention = Math.min(100, soil.waterRetention + waterIncrease);
-                    
-                    // Recalculate derived properties
-                    soil.fertility = soil.calculateFertility();
-                    soil.baseColor = soil.calculateBaseColor();
-                    soil.waterPixels = soil.generateWaterPixels();
-                    soil.needsUpdate = true;
-                    
-                    // Mark as affected
-                    affectedCells.add(targetKey);
-                }
-            }
-        });
-        
-        const endTime = performance.now();
-        const boostTime = (endTime - startTime).toFixed(0);
-        
-        console.log(`Fertility boost applied to ${affectedCells.size} cells near ${this.waterTiles.size} water tiles (${boostTime}ms)`);
-        
-        // Force texture refresh
-        this.needsRefresh = true;
+        // Get water tiles from terrain generator
+        this.waterTiles = this.terrainGenerator.getWaterTiles();
     }
 
     // Check if this location should allow plant placement (more restrictive than soil existence)
@@ -626,270 +421,20 @@ class SoilManager {
             soil.update(deltaTime);
         });
         
-        // Apply weather effects to soil water
-        this.applyWeatherEffects(deltaTime);
-        
-        // Apply organic matter decomposition (Milestone 2)
-        this.applyOrganicMatterDecomposition(deltaTime);
-    }
-    
-    /**
-     * Apply weather effects to soil water and nitrogen levels
-     * @param {number} deltaTime - Time since last frame (seconds)
-     */
-    applyWeatherEffects(deltaTime) {
-        // Check if weather system is available and configured
-        if (!this.weatherEffectsConfig) {
-            return;
-        }
-        
-        const weatherManager = window.graphicsEngine?.weatherManager;
-        if (!weatherManager || !weatherManager.initialized) {
-            return;
-        }
-        
-        const currentWeather = weatherManager.getCurrentWeather();
-        if (!currentWeather) {
-            return;
-        }
-        
-        // Calculate water change rate based on weather
-        let waterChangePerDay = 0;
-        let nitrogenChangePerDay = 0;
-        
-        if (currentWeather === 'rainy') {
-            const rainIntensity = weatherManager.getRainIntensity();
-            waterChangePerDay = this.weatherEffectsConfig.rainWaterIncreasePerDay * rainIntensity;
-            
-            // Nitrogen regeneration during rain (atmospheric deposition)
-            if (this.weatherEffectsConfig.rainNitrogenRestorePerDay) {
-                nitrogenChangePerDay = this.weatherEffectsConfig.rainNitrogenRestorePerDay * rainIntensity;
-            }
-        } else if (currentWeather === 'sunny') {
-            waterChangePerDay = -this.weatherEffectsConfig.sunEvaporationPerDay;
-        } else if (currentWeather === 'cloudy') {
-            waterChangePerDay = -this.weatherEffectsConfig.cloudyEvaporationPerDay;
-        }
-        
-        // Convert from per-day to per-second
-        const timeManager = window.graphicsEngine?.timeManager;
-        if (!timeManager) {
-            return;
-        }
-        
-        const realSecondsPerGameDay = timeManager.config.realSecondsPerGameDay;
-        const waterChangePerSecond = waterChangePerDay / realSecondsPerGameDay;
-        const waterChangeThisFrame = waterChangePerSecond * deltaTime;
-        
-        const nitrogenChangePerSecond = nitrogenChangePerDay / realSecondsPerGameDay;
-        const nitrogenChangeThisFrame = nitrogenChangePerSecond * deltaTime;
-        
-        // Apply to all soil cells
-        const hasWaterChange = Math.abs(waterChangeThisFrame) > 0.001;
-        const hasNitrogenChange = Math.abs(nitrogenChangeThisFrame) > 0.001;
-        
-        if (hasWaterChange || hasNitrogenChange) {
-            let waterCellsUpdated = 0;
-            let nitrogenCellsUpdated = 0;
-            
-            this.soilGrid.forEach(soil => {
-                // Apply water changes
-                if (hasWaterChange) {
-                    const oldWater = soil.waterRetention;
-                    soil.waterRetention = Math.max(0, Math.min(100, soil.waterRetention + waterChangeThisFrame));
-                    
-                    // If water changed significantly, regenerate water pixels
-                    if (Math.abs(soil.waterRetention - oldWater) > 0.1) {
-                        soil.waterPixels = soil.generateWaterPixels();
-                        soil.needsUpdate = true;
-                        waterCellsUpdated++;
-                    }
-                }
-                
-                // Apply nitrogen changes
-                if (hasNitrogenChange) {
-                    const oldNitrogen = soil.nitrogen;
-                    soil.nitrogen = Math.max(0, Math.min(100, soil.nitrogen + nitrogenChangeThisFrame));
-                    
-                    // If nitrogen changed significantly, recalculate fertility
-                    if (Math.abs(soil.nitrogen - oldNitrogen) > 0.1) {
-                        soil.fertility = soil.calculateFertility();
-                        soil.baseColor = soil.calculateBaseColor();
-                        soil.needsUpdate = true;
-                        nitrogenCellsUpdated++;
-                    }
-                }
-            });
-            
-            // Invalidate texture cache if cells updated
-            if (waterCellsUpdated > 0 || nitrogenCellsUpdated > 0) {
-                this.needsRefresh = true;
-            }
-        }
-    }
-    
-    /**
-     * Apply organic matter decomposition into nitrogen and phosphorus (Milestone 2)
-     * UPDATED Milestone 4 Phase 2: Localized decomposition only in active plant zones
-     * @param {number} deltaTime - Time since last frame (seconds)
-     */
-    applyOrganicMatterDecomposition(deltaTime) {
-        // Check if decomposition is enabled
-        if (!this.decompositionConfig || !this.decompositionConfig.enabled) {
-            return;
-        }
-        
-        // Get time manager for game day calculations
-        const timeManager = window.graphicsEngine?.timeManager;
-        if (!timeManager) {
-            return;
-        }
-        
-        // Calculate game days elapsed this frame
-        const realSecondsPerGameDay = timeManager.config.realSecondsPerGameDay;
-        const gameDaysElapsed = deltaTime / realSecondsPerGameDay;
-        const currentGameDay = timeManager.getElapsedGameDays();
-        
-        // Calculate base decay rate
-        const baseDecayPerDay = this.decompositionConfig.organicMatterDecayPerDay;
-        
-        // Apply weather multiplier (Milestone 3)
-        let weatherMultiplier = 1.0; // Default (no weather or cloudy baseline)
-        
-        const weatherManager = window.graphicsEngine?.weatherManager;
-        if (weatherManager && weatherManager.initialized && this.decompositionConfig.weatherModifiers) {
-            const currentWeather = weatherManager.getCurrentWeather();
-            
-            if (currentWeather === 'rainy') {
-                // Rain accelerates decomposition (moisture + microbes)
-                const rainIntensity = weatherManager.getRainIntensity();
-                const rainyConfig = this.decompositionConfig.weatherModifiers.rainy;
-                weatherMultiplier = rainyConfig.base + (rainIntensity * rainyConfig.intensityScale);
-            } else if (currentWeather === 'sunny') {
-                // Sun slows decomposition (drier soil, heat stress on microbes)
-                weatherMultiplier = this.decompositionConfig.weatherModifiers.sunny;
-            } else if (currentWeather === 'cloudy') {
-                // Cloudy is baseline
-                weatherMultiplier = this.decompositionConfig.weatherModifiers.cloudy;
-            }
-        }
-        
-        // Calculate final decay amount with weather modifier
-        const decayThisFrame = baseDecayPerDay * weatherMultiplier * gameDaysElapsed;
-        
-        // Skip if decay amount is negligible
-        if (decayThisFrame < 0.001) {
-            return;
-        }
-        
-        // Get decomposition ratios
-        const nitrogenRatio = this.decompositionConfig.nitrogenReleaseRatio;
-        const phosphorusRatio = this.decompositionConfig.phosphorusReleaseRatio;
-        const minimumOM = this.decompositionConfig.minimumOMForBreakdown;
-        
-        // Track cells affected for logging
-        let cellsAffected = 0;
-        let totalOMDecayed = 0;
-        let totalNAdded = 0;
-        let totalPAdded = 0;
-        let cellsExpired = 0;
-        
-        // Get plant manager for living plant checks
-        const plantManager = window.graphicsEngine?.plantManager;
-        
-        // PHASE 2: Apply decomposition ONLY to active cells (localized)
-        const cellsToCheck = Array.from(this.activeCells);
-        
-        cellsToCheck.forEach(cellKey => {
-            const [x, y] = cellKey.split(',').map(Number);
-            const soil = this.getSoilAt(x, y);
-            
-            if (!soil) {
-                this.activeCells.delete(cellKey);
-                this.cellLastPlantActivity.delete(cellKey);
-                return;
-            }
-            
-            // Check if cell still has active decomposition conditions:
-            // 1. Has living plant (root zone activity boosts microbes)
-            // 2. OR had recent plant death (within activity window)
-            const plants = plantManager && plantManager.getPlantAt(x, y); // Returns array
-            const hasLivingPlant = plants && plants.length > 0;
-            const lastActivity = this.cellLastPlantActivity.get(cellKey) || 0;
-            const daysSinceActivity = currentGameDay - lastActivity;
-            
-            const isActive = hasLivingPlant || daysSinceActivity < this.decompositionActivityWindow;
-            
-            if (!isActive) {
-                // No recent activity - remove from active set
-                this.activeCells.delete(cellKey);
-                this.cellLastPlantActivity.delete(cellKey);
-                cellsExpired++;
-                return;
-            }
-            
-            // Update activity timestamp if living plant present
-            if (hasLivingPlant) {
-                this.cellLastPlantActivity.set(cellKey, currentGameDay);
-            }
-            
-            // Only decompose if OM is above minimum threshold
-            if (soil.organicMatter > minimumOM) {
-                // Store old values
-                const oldOM = soil.organicMatter;
-                const oldN = soil.nitrogen;
-                const oldP = soil.phosphorus;
-                
-                // Calculate actual decay (don't go below minimum)
-                const availableOM = soil.organicMatter - minimumOM;
-                const actualDecay = Math.min(decayThisFrame, availableOM);
-                
-                // Apply decay
-                soil.organicMatter -= actualDecay;
-                soil.nitrogen += actualDecay * nitrogenRatio;
-                soil.phosphorus += actualDecay * phosphorusRatio;
-                
-                // Clamp all values to 0-100 range
-                soil.organicMatter = Math.max(0, Math.min(100, soil.organicMatter));
-                soil.nitrogen = Math.max(0, Math.min(100, soil.nitrogen));
-                soil.phosphorus = Math.max(0, Math.min(100, soil.phosphorus));
-                
-                // Update derived properties if significant change occurred
-                if (actualDecay > 0.01) {
-                    soil.fertility = soil.calculateFertility();
-                    soil.baseColor = soil.calculateBaseColor();
-                    soil.needsUpdate = true;
-                    
-                    cellsAffected++;
-                    totalOMDecayed += actualDecay;
-                    totalNAdded += soil.nitrogen - oldN;
-                    totalPAdded += soil.phosphorus - oldP;
-                }
-            }
-        });
-        
-        // Invalidate texture cache if cells updated
-        if (cellsAffected > 0) {
+        // Apply weather effects via SoilEffectsManager
+        const weatherUpdated = this.soilEffectsManager.applyWeatherEffects(this.soilGrid, deltaTime);
+        if (weatherUpdated) {
             this.needsRefresh = true;
-            
-            // Optional logging (throttled)
-            if (this.decompositionConfig.enableLogging) {
-                this.decompositionLogCounter += gameDaysElapsed;
-                
-                if (this.decompositionLogCounter >= this.decompositionLogInterval) {
-                    // Get current weather for logging
-                    const weatherManager = window.graphicsEngine?.weatherManager;
-                    let weatherInfo = '';
-                    if (weatherManager && weatherManager.initialized) {
-                        const weather = weatherManager.getCurrentWeather();
-                        const multiplier = weatherMultiplier.toFixed(2);
-                        weatherInfo = ` [Weather: ${weather}, multiplier: ${multiplier}x]`;
-                    }
-                    
-                    console.log(`[OM DECOMP LOCALIZED] ${cellsAffected}/${this.activeCells.size} active cells decomposed (${cellsExpired} expired) - OM decayed: ${totalOMDecayed.toFixed(2)}, N added: ${totalNAdded.toFixed(2)}, P added: ${totalPAdded.toFixed(2)}${weatherInfo}`);
-                    this.decompositionLogCounter = 0;
-                }
-            }
+        }
+        
+        // Apply organic matter decomposition via SoilEffectsManager
+        const decompositionUpdated = this.soilEffectsManager.applyOrganicMatterDecomposition(
+            this.soilGrid,
+            (x, y) => this.getSoilAt(x, y),
+            deltaTime
+        );
+        if (decompositionUpdated) {
+            this.needsRefresh = true;
         }
     }
     
@@ -1038,21 +583,14 @@ class SoilManager {
      * @param {number} gridY - Grid Y coordinate
      */
     markCellForDecomposition(gridX, gridY) {
-        const timeManager = window.graphicsEngine?.timeManager;
-        if (!timeManager) return;
+        // Delegate to SoilEffectsManager
+        const radius = this.config.world.soil?.decomposition?.radius || 1;
         
-        const currentGameDay = timeManager.getElapsedGameDays();
-        const radius = this.decompositionRadius;
-        
-        // Mark this cell and neighbors within radius
         for (let dx = -radius; dx <= radius; dx++) {
             for (let dy = -radius; dy <= radius; dy++) {
-                const key = `${gridX + dx},${gridY + dy}`;
                 const soil = this.getSoilAt(gridX + dx, gridY + dy);
-                
                 if (soil) {
-                    this.activeCells.add(key);
-                    this.cellLastPlantActivity.set(key, currentGameDay);
+                    this.soilEffectsManager.markCellActive(gridX + dx, gridY + dy);
                 }
             }
         }
@@ -1068,14 +606,13 @@ class SoilManager {
     }
     
     getActiveCellsCount() {
-        return this.activeCells.size;
+        return this.soilEffectsManager.getActiveCellCount();
     }
     
     // Cleanup resources
     cleanup() {
+        this.soilEffectsManager.clearActiveCells();
         this.soilGrid.clear();
         this.visibleCells = [];
-        this.activeCells.clear();
-        this.cellLastPlantActivity.clear();
     }
 }

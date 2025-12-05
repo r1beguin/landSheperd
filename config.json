@@ -62,8 +62,30 @@
         "plants": {
             "stuntGracePeriod": 7,
             "starvationReturnMultiplier": 0.5,
+            "dailyNutrientConsumption": {
+                "enabled": true,
+                "baseDailyRate": {
+                    "nitrogen": 0.5,
+                    "phosphorus": 0.3,
+                    "potassium": 0.2,
+                    "organicMatter": 0.1
+                },
+                "stageMultipliers": {
+                    "Seedling": 0.3,
+                    "Sapling": 0.5,
+                    "YoungTree": 0.7,
+                    "MatureTree": 1.0,
+                    "Sprouting": 0.4,
+                    "Mature": 1.0,
+                    "Flowering": 1.2,
+                    "Withered": 0.0
+                },
+                "description": "Daily nutrient consumption independent of growth stage advancement"
+            },
             "reproduction": {
-                "enableLogging": false
+                "enableLogging": false,
+                "costMultiplier": 1.0,
+                "description": "Global reproduction settings (costMultiplier allows easy tuning)"
             },
             "decomposition": {
                 "enableLogging": false
@@ -107,6 +129,45 @@
                 "nutrientPriority": {
                     "enabled": false
                 }
+            },
+            "starvationVisualization": {
+                "enabled": true,
+                "stages": {
+                    "healthy": {
+                        "nutrientThreshold": 0.8,
+                        "colorIntensity": 1.0,
+                        "alphaMultiplier": 1.0,
+                        "sizeMultiplier": 1.0
+                    },
+                    "stressed": {
+                        "nutrientThreshold": 0.5,
+                        "daysStuntedMax": 2,
+                        "colorIntensity": 0.7,
+                        "alphaMultiplier": 0.95,
+                        "sizeMultiplier": 0.95
+                    },
+                    "starving": {
+                        "nutrientThreshold": 0.2,
+                        "daysStuntedMax": 5,
+                        "colorIntensity": 0.4,
+                        "alphaMultiplier": 0.8,
+                        "sizeMultiplier": 0.85
+                    },
+                    "critical": {
+                        "nutrientThreshold": 0.0,
+                        "daysStuntedMax": 999,
+                        "colorIntensity": 0.2,
+                        "alphaMultiplier": 0.6,
+                        "sizeMultiplier": 0.7
+                    }
+                },
+                "enhancedColorIntensity": {
+                    "nitrogen": 0.6,
+                    "phosphorus": 0.7,
+                    "potassium": 0.8,
+                    "organicMatter": 0.5
+                },
+                "description": "Multi-stage starvation visualization with wilting effects"
             }
         },
         "soil": {

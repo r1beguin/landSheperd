@@ -104,7 +104,14 @@
       "activeStages": ["Vegetative", "Flowering"],
       "checkIntervalDays": 2,
       "successChance": 0.3,
-      "maxDistance": 1
+      "maxDistance": 1,
+      "reproductionCost": {
+        "nitrogen": 8,
+        "phosphorus": 5,
+        "potassium": 4,
+        "organicMatter": 2,
+        "description": "Rhizome extension is cheaper than seed production (vegetative propagation)"
+      }
     }
   },
   "environment": {

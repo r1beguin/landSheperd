@@ -22,17 +22,10 @@ const path = require('path');
 const fs = require('fs');
 const {
     waitForRenderFrames,
-    spawnPlantAt,
     sampleEcosystemMetrics,
     advanceGameTimeDeterministic,
     setNutrientOverlay
 } = require('./test-utils');
-
-// Configuration for existing 100-day test
-const SIMULATION_DAYS = 100;
-const SAMPLING_INTERVAL = 10;
-const INITIAL_PLANT_COUNT = 8;
-const SCREENSHOT_DAYS = [0, 25, 50, 75, 100];
 
 // Configuration for 500-day baseline test
 const BASELINE_DAYS = 500;
@@ -57,41 +50,6 @@ function saveMetricsToJSON(data, filename) {
     const jsonPath = path.join(RESULTS_DIR, filename);
     fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2));
     console.log(`✓ Metrics saved to: ${jsonPath}`);
-}
-
-// Helper to save metrics to CSV (for old test)
-function saveMetricsToCSV(metrics, filename) {
-    const csvPath = path.join(RESULTS_DIR, filename);
-    const headers = 'GameDay,AvgN,AvgP,AvgK,AvgOM,AvgFertility,PlantCount,Weather,MinN,MaxN,MinP,MaxP,MinK,MaxK,MinOM,MaxOM\n';
-    
-    const rows = metrics.map(m => {
-        return `${m.gameDay},${m.averages.nitrogen},${m.averages.phosphorus},${m.averages.potassium},${m.averages.organicMatter},${m.averages.fertility},${m.plantCount},${m.weather},${m.ranges.nitrogen.min},${m.ranges.nitrogen.max},${m.ranges.phosphorus.min},${m.ranges.phosphorus.max},${m.ranges.potassium.min},${m.ranges.potassium.max},${m.ranges.organicMatter.min},${m.ranges.organicMatter.max}`;
-    }).join('\n');
-    
-    fs.writeFileSync(csvPath, headers + rows);
-    console.log(`✓ Metrics saved to: ${csvPath}`);
-}
-
-// Helper to analyze nutrient depletion patterns (for old test)
-function analyzeDepletionPatterns(metrics) {
-    const start = metrics[0];
-    const end = metrics[metrics.length - 1];
-    
-    const nDepletion = ((start.averages.nitrogen - end.averages.nitrogen) / start.averages.nitrogen) * 100;
-    const pDepletion = ((start.averages.phosphorus - end.averages.phosphorus) / start.averages.phosphorus) * 100;
-    const kDepletion = ((start.averages.potassium - end.averages.potassium) / start.averages.potassium) * 100;
-    const omChange = end.averages.organicMatter - start.averages.organicMatter;
-    
-    return {
-        nitrogenDepletion: Math.round(nDepletion * 10) / 10,
-        phosphorusDepletion: Math.round(pDepletion * 10) / 10,
-        potassiumDepletion: Math.round(kDepletion * 10) / 10,
-        organicMatterChange: Math.round(omChange * 10) / 10,
-        startValues: start.averages,
-        endValues: end.averages,
-        populationStart: start.plantCount,
-        populationEnd: end.plantCount
-    };
 }
 
 /**

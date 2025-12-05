@@ -205,6 +205,9 @@ class Plant {
             this.accumulatedGrowthDays += gameDaysElapsed * growthRate;
         }
         
+        // NEW: Consume nutrients daily (Milestone 1)
+        this.consumeNutrientsDaily(gameDaysElapsed);
+        
         // Check if we should advance to next growth stage
         this.checkGrowthAdvancement(currentDay);
         
@@ -296,6 +299,13 @@ class Plant {
             return null;
         }
         
+        // NEW: Check if parent soil can afford reproduction cost (Milestone 2)
+        if (rhizomeConfig.reproductionCost) {
+            if (!this.canAffordReproduction(rhizomeConfig.reproductionCost)) {
+                return null; // Not enough nutrients in parent soil
+            }
+        }
+        
         // Update last reproduction day BEFORE rolling for success
         // This prevents multiple attempts in the same frame
         this.lastReproductionDay = currentDay;
@@ -311,7 +321,8 @@ class Plant {
             parentX: this.x,
             parentY: this.y,
             maxDistance: rhizomeConfig.maxDistance,
-            species: this.species.id
+            species: this.species.id,
+            reproductionCost: rhizomeConfig.reproductionCost // NEW: Pass cost to handler
         };
     }
     
@@ -340,6 +351,13 @@ class Plant {
             return null;
         }
         
+        // NEW: Check if parent soil can afford reproduction cost (Milestone 2)
+        if (seedConfig.reproductionCost) {
+            if (!this.canAffordReproduction(seedConfig.reproductionCost)) {
+                return null; // Not enough nutrients in parent soil
+            }
+        }
+        
         // Update last reproduction day BEFORE rolling for success
         this.lastReproductionDay = currentDay;
         
@@ -355,7 +373,8 @@ class Plant {
             parentY: this.y,
             maxDistance: seedConfig.maxDistance,
             germinationChance: seedConfig.germinationChance || 1.0, // Chance seed germinates after dispersal
-            species: this.species.id
+            species: this.species.id,
+            reproductionCost: seedConfig.reproductionCost // NEW: Pass cost to handler
         };
     }
     
@@ -374,6 +393,13 @@ class Plant {
         const daysSinceLast = currentDay - this.lastReproductionDay;
         if (daysSinceLast < proximityConfig.checkIntervalDays) return null;
         
+        // NEW: Check if parent soil can afford reproduction cost (Milestone 2)
+        if (proximityConfig.reproductionCost) {
+            if (!this.canAffordReproduction(proximityConfig.reproductionCost)) {
+                return null; // Not enough nutrients in parent soil
+            }
+        }
+        
         // Update last reproduction day BEFORE rolling for success
         this.lastReproductionDay = currentDay;
         
@@ -387,7 +413,8 @@ class Plant {
             parentGenetics: this.genetics,
             proximityDistance: proximityConfig.proximityDistance,
             maxOffspringDistance: proximityConfig.maxOffspringDistance,
-            species: this.species.id
+            species: this.species.id,
+            reproductionCost: proximityConfig.reproductionCost // NEW: Pass cost to handler
         };
     }
     
@@ -557,8 +584,116 @@ class Plant {
     }
 
     /**
-     * Calculate visual tint color based on nutrient status
-     * Returns RGB tint multiplier based on most limiting nutrient
+     * Consume nutrients daily based on stage and genetics (Milestone 1)
+     * Called every frame, scales consumption by game days elapsed
+     * @param {number} gameDaysElapsed - Game days elapsed this frame
+     */
+    consumeNutrientsDaily(gameDaysElapsed) {
+        // Check if daily consumption is enabled
+        const config = window.config?.world?.plants?.dailyNutrientConsumption;
+        if (!config || !config.enabled) {
+            return;
+        }
+        
+        // Withered plants don't consume nutrients
+        if (this.stage === 'Withered') {
+            return;
+        }
+        
+        // Get soil at plant position
+        let soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
+        
+        // DEFENSIVE: Try grid lookup if world lookup fails
+        if (!soil) {
+            const gridCoords = window.graphicsEngine.soilManager.worldToGrid(this.x, this.y);
+            soil = window.graphicsEngine.soilManager.getSoilAt(gridCoords.x, gridCoords.y);
+        }
+        
+        if (!soil) {
+            // Silently fail - don't spam console for every plant every frame
+            return;
+        }
+        
+        // Get base daily consumption rates
+        const baseRates = config.baseDailyRate;
+        
+        // Get stage multiplier (default to 1.0 if stage not in config)
+        const stageMultiplier = config.stageMultipliers[this.stage] || 1.0;
+        
+        // Calculate consumption amounts with stage multiplier
+        let nConsumption = baseRates.nitrogen * stageMultiplier * gameDaysElapsed;
+        let pConsumption = baseRates.phosphorus * stageMultiplier * gameDaysElapsed;
+        let kConsumption = baseRates.potassium * stageMultiplier * gameDaysElapsed;
+        let omConsumption = baseRates.organicMatter * stageMultiplier * gameDaysElapsed;
+        
+        // Apply genetic efficiency modifiers (if plant has genetics)
+        if (this.genetics) {
+            // Efficiency: 0.8-1.2 range
+            // Higher genetic value (200+) = more efficient = consumes less (0.8x)
+            // Lower genetic value (60-) = less efficient = consumes more (1.2x)
+            const nEff = 2.0 - this.geneticToMultiplier(this.genetics.nitrogenEfficiency);
+            const pEff = 2.0 - this.geneticToMultiplier(this.genetics.phosphorusEfficiency);
+            const kEff = 2.0 - this.geneticToMultiplier(this.genetics.potassiumEfficiency);
+            const omEff = 2.0 - this.geneticToMultiplier(this.genetics.organicMatterEfficiency);
+            
+            nConsumption *= nEff;
+            pConsumption *= pEff;
+            kConsumption *= kEff;
+            omConsumption *= omEff;
+        }
+        
+        // Calculate new nutrient levels (clamp to 0 minimum)
+        const newNitrogen = Math.max(0, soil.nitrogen - nConsumption);
+        const newPhosphorus = Math.max(0, soil.phosphorus - pConsumption);
+        const newPotassium = Math.max(0, soil.potassium - kConsumption);
+        const newOrganicMatter = Math.max(0, soil.organicMatter - omConsumption);
+        
+        // Only update if consumption actually occurred (avoid unnecessary updates)
+        if (nConsumption > 0.001 || pConsumption > 0.001 || 
+            kConsumption > 0.001 || omConsumption > 0.001) {
+            soil.updateNutrients(newNitrogen, newPhosphorus, newPotassium, newOrganicMatter);
+            
+            // Note: Don't set needsRefresh here - batched soil updates happen elsewhere
+            // Setting it per-plant would cause massive performance hit
+        }
+    }
+
+    /**
+     * Check if parent soil has sufficient nutrients for reproduction (Milestone 2)
+     * Called before reproduction attempt to ensure parent can afford the cost
+     * @param {Object} reproductionCost - Cost object {nitrogen, phosphorus, potassium, organicMatter}
+     * @returns {boolean} True if parent soil can afford the cost
+     */
+    canAffordReproduction(reproductionCost) {
+        if (!reproductionCost) return true; // No cost defined = free reproduction
+        
+        // Get soil at parent position
+        let soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
+        
+        // DEFENSIVE: Try grid lookup if world lookup fails
+        if (!soil) {
+            const gridCoords = window.graphicsEngine.soilManager.worldToGrid(this.x, this.y);
+            soil = window.graphicsEngine.soilManager.getSoilAt(gridCoords.x, gridCoords.y);
+        }
+        
+        if (!soil) {
+            return false; // Can't reproduce without soil
+        }
+        
+        // Check if soil has enough of EACH nutrient
+        // Use a small buffer (cost + 5) to ensure soil doesn't hit absolute zero
+        const buffer = 5;
+        if (soil.nitrogen < reproductionCost.nitrogen + buffer) return false;
+        if (soil.phosphorus < reproductionCost.phosphorus + buffer) return false;
+        if (soil.potassium < reproductionCost.potassium + buffer) return false;
+        if (soil.organicMatter < reproductionCost.organicMatter + buffer) return false;
+        
+        return true; // Parent soil can afford reproduction
+    }
+
+    /**
+     * Calculate visual tint color based on nutrient status (Milestone 3: Enhanced)
+     * Returns RGB tint multiplier with enhanced intensity and starvation stages
      * @returns {Array} [r, g, b, a] color multiplier (0.0-1.0 each)
      */
     calculateNutrientTint() {
@@ -571,13 +706,16 @@ class Plant {
         if (!reqs) return [1, 1, 1, 1]; // No requirements - no tint
         
         // Calculate individual nutrient scores
-        const nScore = this.nutrientScore(soil.nitrogen, reqs.nitrogen);
-        const pScore = this.nutrientScore(soil.phosphorus, reqs.phosphorus);
-        const kScore = this.nutrientScore(soil.potassium, reqs.potassium);
-        const omScore = this.nutrientScore(soil.organicMatter, reqs.organicMatter);
+        const nScore = this.nutrientScore(soil.nitrogen, reqs.nitrogen, 'nitrogen');
+        const pScore = this.nutrientScore(soil.phosphorus, reqs.phosphorus, 'phosphorus');
+        const kScore = this.nutrientScore(soil.potassium, reqs.potassium, 'potassium');
+        const omScore = this.nutrientScore(soil.organicMatter, reqs.organicMatter, 'organicMatter');
         
         // Find most limiting nutrient (Liebig's Law - visual edition)
         const minScore = Math.min(nScore, pScore, kScore, omScore);
+        
+        // NEW: Determine starvation stage (Milestone 3)
+        const starvationStage = this.getStarvationStage(minScore);
         
         // Determine which nutrient is most limiting
         let limitingNutrient = 'none';
@@ -589,40 +727,45 @@ class Plant {
         }
         
         // Calculate base tint based on limiting nutrient
-        let r = 1.0, g = 1.0, b = 1.0;
+        let r = 1.0, g = 1.0, b = 1.0, a = 1.0;
         
         // Deficiency intensity (0.0 = optimal, 1.0 = at minimum)
         const deficiency = 1.0 - minScore;
         
+        // NEW: Get enhanced color intensity from config (Milestone 3)
+        const config = window.config?.world?.plants?.starvationVisualization;
+        const enhancedIntensity = config?.enhancedColorIntensity || {
+            nitrogen: 0.6,
+            phosphorus: 0.7,
+            potassium: 0.8,
+            organicMatter: 0.5
+        };
+        
         switch (limitingNutrient) {
             case 'nitrogen':
-                // Nitrogen deficiency: pale/yellow leaves
-                // Reduce green slightly, increase red/yellow tint
+                // Nitrogen deficiency: pale/yellow leaves (ENHANCED)
                 r = 1.0;
-                g = 1.0 - (deficiency * 0.3); // Reduce green by up to 30%
-                b = 1.0 - (deficiency * 0.4); // Reduce blue by up to 40%
+                g = 1.0 - (deficiency * enhancedIntensity.nitrogen); // Enhanced: up to 60%
+                b = 1.0 - (deficiency * enhancedIntensity.nitrogen); // Enhanced: up to 60%
                 break;
                 
             case 'phosphorus':
-                // Phosphorus deficiency: purple/reddish tint
-                // Increase red and blue, reduce green
+                // Phosphorus deficiency: purple/reddish tint (ENHANCED)
                 r = 1.0;
-                g = 1.0 - (deficiency * 0.4); // Reduce green by up to 40%
-                b = 1.0 - (deficiency * 0.1); // Slight blue reduction for purple
+                g = 1.0 - (deficiency * enhancedIntensity.phosphorus); // Enhanced: up to 70%
+                b = 1.0 - (deficiency * 0.2); // Slight blue reduction for purple
                 break;
                 
             case 'potassium':
-                // Potassium deficiency: brown/yellow edges
-                // Add red, reduce green and blue
+                // Potassium deficiency: brown/yellow edges (ENHANCED)
                 r = 1.0;
-                g = 1.0 - (deficiency * 0.35); // Reduce green by up to 35%
-                b = 1.0 - (deficiency * 0.5); // Reduce blue by up to 50%
+                g = 1.0 - (deficiency * enhancedIntensity.potassium * 0.7); // Enhanced: up to 56%
+                b = 1.0 - (deficiency * enhancedIntensity.potassium); // Enhanced: up to 80%
                 break;
                 
             case 'organicMatter':
-                // Organic matter deficiency: dull, desaturated
-                // Reduce overall saturation/brightness
-                const desaturation = 1.0 - (deficiency * 0.25); // Up to 25% darker
+                // Organic matter deficiency: dull, desaturated (ENHANCED)
+                const desaturation = 1.0 - (deficiency * enhancedIntensity.organicMatter); // Enhanced: up to 50%
                 r = desaturation;
                 g = desaturation;
                 b = desaturation;
@@ -636,7 +779,56 @@ class Plant {
                 break;
         }
         
-        return [r, g, b, 1.0];
+        // NEW: Apply starvation stage color intensity (Milestone 3)
+        // This further reduces color for stressed/starving/critical stages
+        const colorMultiplier = starvationStage.colorIntensity;
+        r = r * colorMultiplier + (1.0 - colorMultiplier); // Blend toward white/gray
+        g = g * colorMultiplier + (1.0 - colorMultiplier);
+        b = b * colorMultiplier + (1.0 - colorMultiplier);
+        
+        // NEW: Apply alpha multiplier for wilting effect (Milestone 3)
+        a = starvationStage.alphaMultiplier;
+        
+        return [r, g, b, a];
+    }
+
+    /**
+     * Determine starvation stage based on nutrient score and days stunted (Milestone 3)
+     * @param {number} minNutrientScore - Minimum nutrient score (0.0-1.0)
+     * @returns {Object} Starvation stage config
+     */
+    getStarvationStage(minNutrientScore) {
+        const config = window.config?.world?.plants?.starvationVisualization;
+        
+        // If feature disabled, return healthy stage
+        if (!config || !config.enabled) {
+            return {
+                name: 'Healthy',
+                colorIntensity: 1.0,
+                alphaMultiplier: 1.0,
+                sizeMultiplier: 1.0
+            };
+        }
+        
+        const stages = config.stages;
+        const daysStunted = this.daysStunted || 0;
+        
+        // Determine stage based on BOTH nutrient score AND days stunted
+        // This creates progression: healthy → stressed → starving → critical
+        
+        if (minNutrientScore >= stages.healthy.nutrientThreshold && daysStunted === 0) {
+            return stages.healthy;
+        }
+        else if (minNutrientScore >= stages.stressed.nutrientThreshold || daysStunted <= stages.stressed.daysStuntedMax) {
+            return stages.stressed;
+        }
+        else if (minNutrientScore >= stages.starving.nutrientThreshold || daysStunted <= stages.starving.daysStuntedMax) {
+            return stages.starving;
+        }
+        else {
+            // Critical: very low nutrients OR 6+ days stunted
+            return stages.critical;
+        }
     }
 
     /**
@@ -704,11 +896,34 @@ class Plant {
 
     getRenderData() {
         const yOffset = this.getRenderOffset();
+        
+        // NEW: Calculate starvation stage for size multiplier (Milestone 3)
+        const soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
+        let sizeMultiplier = 1.0;
+        
+        if (soil) {
+            const reqs = this.species?.environment?.nutrientRequirements;
+            if (reqs) {
+                const nScore = this.nutrientScore(soil.nitrogen, reqs.nitrogen, 'nitrogen');
+                const pScore = this.nutrientScore(soil.phosphorus, reqs.phosphorus, 'phosphorus');
+                const kScore = this.nutrientScore(soil.potassium, reqs.potassium, 'potassium');
+                const omScore = this.nutrientScore(soil.organicMatter, reqs.organicMatter, 'organicMatter');
+                const minScore = Math.min(nScore, pScore, kScore, omScore);
+                
+                const starvationStage = this.getStarvationStage(minScore);
+                sizeMultiplier = starvationStage.sizeMultiplier;
+            }
+        }
+        
+        // Apply wilting size effect
+        const wiltedWidth = this.width * sizeMultiplier;
+        const wiltedHeight = this.height * sizeMultiplier;
+        
         return {
-            x: this.x - this.width / 2,  // Center horizontally
-            y: this.y - this.height - yOffset, // Anchor at bottom (plant "stands" on ground)
-            width: this.width,
-            height: this.height,
+            x: this.x - wiltedWidth / 2,
+            y: this.y - wiltedHeight - yOffset,
+            width: wiltedWidth,
+            height: wiltedHeight,
             texture: this.texture,
             tint: this.calculateNutrientTint(),
             layer: this.getLayer() // Add layer info for rendering system

@@ -1,6 +1,6 @@
 # Land Shepherd Documentation Index
 
-**Last updated:** 2025-12-03 (Config Validation System Complete)
+**Last updated:** 2025-12-05 (Milestone 3: Starvation Visualization Complete)
 
 Welcome to the Land Shepherd documentation. This index helps you find the information you need quickly.
 
@@ -41,7 +41,8 @@ System design, technical details, and rendering pipeline.
 ### Features
 Feature-specific documentation with implementation details.
 
-- [config-validation-system.md](features/config-validation-system.md) - JSON schema validation for configs (NEW)
+- [config-validation-system.md](features/config-validation-system.md) - JSON schema validation for configs
+- [starvation-visualization-system.md](features/starvation-visualization-system.md) - Multi-stage nutrient deficiency visualization (NEW)
 - [oak-genetics-system.md](features/oak-genetics-system.md) - Oak genetics, reproduction, and inheritance
 - [plant-generation-system.md](features/plant-generation-system.md) - Procedural plant generation
 - [reproduction-system.md](features/reproduction-system.md) - Plant reproduction mechanics
@@ -71,7 +72,8 @@ Development history, feature implementation logs, and architectural decisions.
 - [devlogs/](devlogs/) - Chronological development logs organized by year-month
 
 #### December 2025
-- [2025-12-03: Config Validation System](devlogs/2025-12/2025-12-03-config-validation-system.md) - JSON Schema validation for all configs (NEW)
+- [2025-12-05: Milestone 3 - Starvation Visualization](devlogs/2025-12/2025-12-05-milestone3-starvation-visualization.md) - Multi-stage nutrient deficiency visuals (NEW)
+- [2025-12-03: Config Validation System](devlogs/2025-12/2025-12-03-config-validation-system.md) - JSON Schema validation for all configs
 - [2025-12-03: PlantGenerator Modular Refactor](devlogs/2025-12/2025-12-03-generator-refactor.md) - Refactored to plugin architecture
 - [2025-12-03: Nettles Category Bugfix](devlogs/2025-12/2025-12-03-nettles-category-fix.md) - Fixed invalid category causing green rectangle rendering
 - [2025-12-02: Oak Genetics System (Complete)](devlogs/2025-12/2025-12-02-oak-genetics-complete.md) - Full genetics with proximity reproduction

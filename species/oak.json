@@ -11,7 +11,14 @@
       "proximityDistance": 3,
       "successChance": 0.25,
       "maxOffspringDistance": 2,
-      "requiresPartner": true
+      "requiresPartner": true,
+      "reproductionCost": {
+        "nitrogen": 25,
+        "phosphorus": 20,
+        "potassium": 15,
+        "organicMatter": 10,
+        "description": "Acorn production is very expensive (large seeds, high reserves)"
+      }
     }
   },
   "commonName": "Oak Tree",

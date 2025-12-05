@@ -128,7 +128,14 @@
       "checkIntervalDays": 3,
       "successChance": 0.4,
       "maxDistance": 2,
-      "germinationChance": 0.7
+      "germinationChance": 0.7,
+      "reproductionCost": {
+        "nitrogen": 4,
+        "phosphorus": 8,
+        "potassium": 6,
+        "organicMatter": 3,
+        "description": "Seed production is moderate cost (small seeds but frequent)"
+      }
     }
   },
   "environment": {

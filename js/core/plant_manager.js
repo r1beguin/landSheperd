@@ -496,6 +496,26 @@ class PlantManager {
         // Pick a random valid neighbor
         const targetCell = validNeighbors[Math.floor(Math.random() * validNeighbors.length)];
         
+        // NEW: Apply reproduction cost to parent soil BEFORE spawning (Milestone 2)
+        if (event.reproductionCost) {
+            const parentSoil = this.soilManager.getSoilAt(parentGrid.x, parentGrid.y);
+            if (parentSoil) {
+                const newN = Math.max(0, parentSoil.nitrogen - event.reproductionCost.nitrogen);
+                const newP = Math.max(0, parentSoil.phosphorus - event.reproductionCost.phosphorus);
+                const newK = Math.max(0, parentSoil.potassium - event.reproductionCost.potassium);
+                const newOM = Math.max(0, parentSoil.organicMatter - event.reproductionCost.organicMatter);
+                
+                parentSoil.updateNutrients(newN, newP, newK, newOM);
+                this.soilManager.needsRefresh = true;
+                
+                // Optional: Log reproduction cost application
+                const config = window.config?.world?.plants?.reproduction;
+                if (config?.enableLogging) {
+                    console.log(`[REPRO COST] ${speciesConfig.commonName} rhizome: -N${event.reproductionCost.nitrogen.toFixed(1)} -P${event.reproductionCost.phosphorus.toFixed(1)} -K${event.reproductionCost.potassium.toFixed(1)} -OM${event.reproductionCost.organicMatter.toFixed(1)}`);
+                }
+            }
+        }
+        
         // Spawn new plant at first growth stage
         const newPlant = this.addPlant(targetCell.x, targetCell.y, event.species, currentDay);
     }
@@ -554,6 +574,26 @@ class PlantManager {
         // Pick a random valid neighbor
         const targetCell = validNeighbors[Math.floor(Math.random() * validNeighbors.length)];
         
+        // NEW: Apply reproduction cost to parent soil BEFORE spawning (Milestone 2)
+        if (event.reproductionCost) {
+            const parentSoil = this.soilManager.getSoilAt(parentGrid.x, parentGrid.y);
+            if (parentSoil) {
+                const newN = Math.max(0, parentSoil.nitrogen - event.reproductionCost.nitrogen);
+                const newP = Math.max(0, parentSoil.phosphorus - event.reproductionCost.phosphorus);
+                const newK = Math.max(0, parentSoil.potassium - event.reproductionCost.potassium);
+                const newOM = Math.max(0, parentSoil.organicMatter - event.reproductionCost.organicMatter);
+                
+                parentSoil.updateNutrients(newN, newP, newK, newOM);
+                this.soilManager.needsRefresh = true;
+                
+                // Optional: Log reproduction cost application
+                const config = window.config?.world?.plants?.reproduction;
+                if (config?.enableLogging) {
+                    console.log(`[REPRO COST] ${speciesConfig.commonName} seed: -N${event.reproductionCost.nitrogen.toFixed(1)} -P${event.reproductionCost.phosphorus.toFixed(1)} -K${event.reproductionCost.potassium.toFixed(1)} -OM${event.reproductionCost.organicMatter.toFixed(1)}`);
+                }
+            }
+        }
+        
         // Spawn new plant at first growth stage (seedling/sprout)
         const newPlant = this.addPlant(targetCell.x, targetCell.y, event.species, currentDay);
     }
@@ -605,6 +645,26 @@ class PlantManager {
         
         if (!spawnLocation) {
             return; // No valid spawn location
+        }
+        
+        // NEW: Apply reproduction cost to parent soil BEFORE spawning (Milestone 2)
+        if (event.reproductionCost) {
+            const parentSoil = this.soilManager.getSoilAt(parentGrid.x, parentGrid.y);
+            if (parentSoil) {
+                const newN = Math.max(0, parentSoil.nitrogen - event.reproductionCost.nitrogen);
+                const newP = Math.max(0, parentSoil.phosphorus - event.reproductionCost.phosphorus);
+                const newK = Math.max(0, parentSoil.potassium - event.reproductionCost.potassium);
+                const newOM = Math.max(0, parentSoil.organicMatter - event.reproductionCost.organicMatter);
+                
+                parentSoil.updateNutrients(newN, newP, newK, newOM);
+                this.soilManager.needsRefresh = true;
+                
+                // Optional: Log reproduction cost application
+                const config = window.config?.world?.plants?.reproduction;
+                if (config?.enableLogging) {
+                    console.log(`[REPRO COST] ${speciesConfig.commonName} acorn: -N${event.reproductionCost.nitrogen.toFixed(1)} -P${event.reproductionCost.phosphorus.toFixed(1)} -K${event.reproductionCost.potassium.toFixed(1)} -OM${event.reproductionCost.organicMatter.toFixed(1)}`);
+                }
+            }
         }
         
         // Spawn offspring with genetics
