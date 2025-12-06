@@ -147,6 +147,8 @@ landSheperd/
 - **Advanced soil system** with chemical and physical properties
   - Configurable grid (50x50 cells of 20x20 pixels by default)
   - N, P, K, organic matter properties (fertility calculated automatically)
+  - **2-layer nutrient system** (surface 0-20cm, deep 20-100cm) with root depth-based access
+  - **Nutrient cycling**: Leaf litter, rain leaching, root lift, mycorrhizal networks
   - Water retention and pollution with gradual intensity levels
   - Procedural generation with coherent zones and natural gradients
   - Optimization by culling and procedural textures (1 call/cell)
@@ -168,6 +170,8 @@ landSheperd/
   - **Automatic growth progression** through multiple life stages
   - **Time-based lifecycle** (Seedling → Vegetative → Flowering → Withered)
   - **Multi-layer plant placement**: Plant multiple species on same cell (clover + nettle + oak for full ecosystem stacking)
+  - **Root depth system**: Deep-rooted trees access nutrients unavailable to herbs
+  - **Forest ecosystems**: Sustainable oak groves with nutrient cycling (leaf litter, root lift, mycorrhizal networks)
   - Right-click placement and removal with layer-aware context menu
   - **Species**: Stinging Nettle (middle layer), Oak Tree (top layer), Clover (bottom layer - ground cover)
   - Currently includes 3 species demonstrating full vertical stratification

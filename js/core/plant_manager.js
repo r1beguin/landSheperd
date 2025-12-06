@@ -346,6 +346,8 @@ class PlantManager {
             }
         });
         
+        // MILESTONE 6: Perform mycorrhizal network sharing (once per frame)
+        this.performMycorrhizalSharing(currentDay);
     }
     
     /**
@@ -619,6 +621,11 @@ class PlantManager {
         );
         
         if (!partner) {
+            // Log partner search failure if logging enabled
+            const config = window.config?.world?.plants?.reproduction;
+            if (config?.enableLogging) {
+                console.log(`[REPRO FAIL] ${speciesConfig.commonName} at grid (${parentGrid.x},${parentGrid.y}) - No mature partner found within ${event.proximityDistance} cells`);
+            }
             return; // No valid partner found
         }
         
@@ -644,6 +651,11 @@ class PlantManager {
         );
         
         if (!spawnLocation) {
+            // Log spawn location failure if logging enabled
+            const config = window.config?.world?.plants?.reproduction;
+            if (config?.enableLogging) {
+                console.log(`[REPRO FAIL] ${speciesConfig.commonName} at grid (${parentGrid.x},${parentGrid.y}) - No valid spawn location within ${event.maxOffspringDistance} cells of either parent`);
+            }
             return; // No valid spawn location
         }
         
@@ -675,7 +687,7 @@ class PlantManager {
             
             const config = window.config?.world?.plants?.reproduction;
             if (config?.enableLogging) {
-                console.log(`Oak reproduction: Gen ${offspringGenetics.generation} sapling at (${spawnLocation.x}, ${spawnLocation.y})`);
+                console.log(`[REPRO SUCCESS] ${speciesConfig.commonName} Gen ${offspringGenetics.generation} sapling spawned at grid (${spawnLocation.x}, ${spawnLocation.y}) from parents at (${parentGrid.x},${parentGrid.y}) and (${this.soilManager.worldToGrid(partner.x, partner.y).x},${this.soilManager.worldToGrid(partner.x, partner.y).y})`);
             }
         }
     }
@@ -782,5 +794,109 @@ class PlantManager {
         }
         
         return neighbors;
+    }
+    
+    /**
+     * MILESTONE 6: Perform mycorrhizal network sharing between mature trees
+     * Called once per frame from update() method
+     * @param {number} currentDay - Current game day
+     */
+    performMycorrhizalSharing(currentDay) {
+        // Find all MatureTree plants with mycorrhizalNetwork enabled
+        const allPlants = this.getAllPlants();
+        const eligibleTrees = allPlants.filter(plant => {
+            if (plant.stage !== 'MatureTree') return false;
+            
+            const stages = plant.species.growthStages;
+            const matureStage = stages.find(s => s.name === 'MatureTree');
+            return matureStage?.mycorrhizalNetwork?.enabled === true;
+        });
+        
+        if (eligibleTrees.length < 2) {
+            return; // Need at least 2 trees for sharing
+        }
+        
+        // For each tree, check if it can share with neighbors
+        eligibleTrees.forEach(tree => {
+            const stages = tree.species.growthStages;
+            const matureStage = stages.find(s => s.name === 'MatureTree');
+            const networkConfig = matureStage.mycorrhizalNetwork;
+            
+            if (!networkConfig) return;
+            
+            // Get tree's soil
+            const treeSoil = this.soilManager.getSoilAtWorld(tree.x, tree.y);
+            if (!treeSoil || !treeSoil.nutrientLayers) return;
+            
+            // Check if tree has excess nutrients (above threshold)
+            const deepLayer = treeSoil.nutrientLayers.deep;
+            const thresholds = networkConfig.minimumThreshold;
+            
+            const hasExcessN = deepLayer.nitrogen > thresholds.nitrogen;
+            const hasExcessP = deepLayer.phosphorus > thresholds.phosphorus;
+            const hasExcessK = deepLayer.potassium > thresholds.potassium;
+            
+            if (!hasExcessN && !hasExcessP && !hasExcessK) {
+                return; // Tree doesn't have excess nutrients to share
+            }
+            
+            // Find neighboring trees within shareRadius
+            const treeGrid = this.soilManager.worldToGrid(tree.x, tree.y);
+            const shareRadius = networkConfig.shareRadius;
+            const neighbors = [];
+            
+            for (let dx = -shareRadius; dx <= shareRadius; dx++) {
+                for (let dy = -shareRadius; dy <= shareRadius; dy++) {
+                    if (dx === 0 && dy === 0) continue; // Skip self
+                    
+                    const neighborPlants = this.getPlantAt(treeGrid.x + dx, treeGrid.y + dy);
+                    if (neighborPlants) {
+                        // Check if any plant at this location is an eligible tree
+                        const neighbor = Array.isArray(neighborPlants) ? 
+                            neighborPlants.find(p => p.stage === 'MatureTree') : 
+                            (neighborPlants.stage === 'MatureTree' ? neighborPlants : null);
+                        
+                        if (neighbor) {
+                            neighbors.push(neighbor);
+                        }
+                    }
+                }
+            }
+            
+            if (neighbors.length === 0) {
+                return; // No neighbors to share with
+            }
+            
+            // Calculate share amount and distribute to neighbors
+            const sharePercentage = networkConfig.sharePercentage;
+            const sharePerNeighbor = sharePercentage / neighbors.length;
+            
+            neighbors.forEach(neighbor => {
+                const neighborSoil = this.soilManager.getSoilAtWorld(neighbor.x, neighbor.y);
+                if (!neighborSoil || !neighborSoil.nutrientLayers) return;
+                
+                // Transfer nutrients from tree's deep layer to neighbor's deep layer
+                const nShare = hasExcessN ? (deepLayer.nitrogen - thresholds.nitrogen) * sharePerNeighbor : 0;
+                const pShare = hasExcessP ? (deepLayer.phosphorus - thresholds.phosphorus) * sharePerNeighbor : 0;
+                const kShare = hasExcessK ? (deepLayer.potassium - thresholds.potassium) * sharePerNeighbor : 0;
+                
+                // Update tree's soil (reduce)
+                const treeDeepN = Math.max(thresholds.nitrogen, deepLayer.nitrogen - nShare);
+                const treeDeepP = Math.max(thresholds.phosphorus, deepLayer.phosphorus - pShare);
+                const treeDeepK = Math.max(thresholds.potassium, deepLayer.potassium - kShare);
+                const treeDeepOM = deepLayer.organicMatter;
+                
+                treeSoil.updateNutrientsLayered('deep', treeDeepN, treeDeepP, treeDeepK, treeDeepOM);
+                
+                // Update neighbor's soil (increase)
+                const neighborDeep = neighborSoil.nutrientLayers.deep;
+                const neighborDeepN = Math.min(100, neighborDeep.nitrogen + nShare);
+                const neighborDeepP = Math.min(100, neighborDeep.phosphorus + pShare);
+                const neighborDeepK = Math.min(100, neighborDeep.potassium + kShare);
+                const neighborDeepOM = neighborDeep.organicMatter;
+                
+                neighborSoil.updateNutrientsLayered('deep', neighborDeepN, neighborDeepP, neighborDeepK, neighborDeepOM);
+            });
+        });
     }
 }

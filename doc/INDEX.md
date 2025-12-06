@@ -1,6 +1,6 @@
 # Land Shepherd Documentation Index
 
-**Last updated:** 2025-12-05 (Milestone 3: Starvation Visualization Complete)
+**Last updated:** 2025-12-06 (Root Depth & Nutrient Cycling System Complete)
 
 Welcome to the Land Shepherd documentation. This index helps you find the information you need quickly.
 
@@ -42,7 +42,8 @@ System design, technical details, and rendering pipeline.
 Feature-specific documentation with implementation details.
 
 - [config-validation-system.md](features/config-validation-system.md) - JSON schema validation for configs
-- [starvation-visualization-system.md](features/starvation-visualization-system.md) - Multi-stage nutrient deficiency visualization (NEW)
+- [root-depth-nutrient-cycling.md](features/root-depth-nutrient-cycling.md) - 2-layer soil with nutrient cycling (NEW)
+- [starvation-visualization-system.md](features/starvation-visualization-system.md) - Multi-stage nutrient deficiency visualization
 - [oak-genetics-system.md](features/oak-genetics-system.md) - Oak genetics, reproduction, and inheritance
 - [plant-generation-system.md](features/plant-generation-system.md) - Procedural plant generation
 - [reproduction-system.md](features/reproduction-system.md) - Plant reproduction mechanics

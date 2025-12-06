@@ -23,11 +23,29 @@ class Soil {
         // Dimensions fixes des cellules
         this.size = 20;
         
-        // Propriétés chimiques (0-100)
+        // Propriétés chimiques (0-100) - LEGACY surface layer for backward compatibility
         this.nitrogen = options.nitrogen ?? this.randomValue(0, 100);
         this.phosphorus = options.phosphorus ?? this.randomValue(0, 100);
         this.potassium = options.potassium ?? this.randomValue(0, 100);
         this.organicMatter = options.organicMatter ?? this.randomValue(0, 100);
+        
+        // NEW MILESTONE 1: 2-layer nutrient system (surface/deep)
+        this.nutrientLayers = {
+            surface: {
+                nitrogen: this.nitrogen,
+                phosphorus: this.phosphorus,
+                potassium: this.potassium,
+                organicMatter: this.organicMatter
+            },
+            deep: {
+                // Deep layer initialized as percentage of surface
+                // N=150% (deep mineral reserves), P=120%, K=130%, OM=30% (doesn't go deep)
+                nitrogen: options.deepN ?? this.nitrogen * 1.5,
+                phosphorus: options.deepP ?? this.phosphorus * 1.2,
+                potassium: options.deepK ?? this.potassium * 1.3,
+                organicMatter: options.deepOM ?? this.organicMatter * 0.30
+            }
+        };
         
         // Propriétés physiques (0-100)
         this.waterRetention = options.waterRetention ?? this.randomValue(0, 100);
@@ -153,8 +171,55 @@ class Soil {
         this.potassium = Math.max(0, Math.min(100, potassium));
         this.organicMatter = Math.max(0, Math.min(100, organicMatter));
         
+        // Sync surface layer with legacy properties
+        this.syncSurfaceProperties();
+        
         this.fertility = this.calculateFertility();
         this.baseColor = this.calculateBaseColor();
+        this.needsUpdate = true;
+    }
+    
+    /**
+     * MILESTONE 1: Sync surface layer with legacy properties for backward compatibility
+     * Called after updateNutrients() to maintain overlay and visual systems
+     */
+    syncSurfaceProperties() {
+        this.nutrientLayers.surface.nitrogen = this.nitrogen;
+        this.nutrientLayers.surface.phosphorus = this.phosphorus;
+        this.nutrientLayers.surface.potassium = this.potassium;
+        this.nutrientLayers.surface.organicMatter = this.organicMatter;
+    }
+    
+    /**
+     * MILESTONE 1: Update nutrients in a specific layer
+     * @param {string} layer - 'surface' or 'deep'
+     * @param {number} nitrogen - New nitrogen value
+     * @param {number} phosphorus - New phosphorus value
+     * @param {number} potassium - New potassium value
+     * @param {number} organicMatter - New organic matter value
+     */
+    updateNutrientsLayered(layer, nitrogen, phosphorus, potassium, organicMatter) {
+        if (layer !== 'surface' && layer !== 'deep') {
+            console.error(`Invalid layer: ${layer}. Must be 'surface' or 'deep'`);
+            return;
+        }
+        
+        this.nutrientLayers[layer].nitrogen = Math.max(0, Math.min(100, nitrogen));
+        this.nutrientLayers[layer].phosphorus = Math.max(0, Math.min(100, phosphorus));
+        this.nutrientLayers[layer].potassium = Math.max(0, Math.min(100, potassium));
+        this.nutrientLayers[layer].organicMatter = Math.max(0, Math.min(100, organicMatter));
+        
+        // If surface layer updated, sync to legacy properties for overlays
+        if (layer === 'surface') {
+            this.nitrogen = this.nutrientLayers.surface.nitrogen;
+            this.phosphorus = this.nutrientLayers.surface.phosphorus;
+            this.potassium = this.nutrientLayers.surface.potassium;
+            this.organicMatter = this.nutrientLayers.surface.organicMatter;
+            
+            this.fertility = this.calculateFertility();
+            this.baseColor = this.calculateBaseColor();
+        }
+        
         this.needsUpdate = true;
     }
     

@@ -47,6 +47,17 @@ The Nutrient System implements realistic plant nutrition dynamics where plants c
 - **Visual Deficiency**: Poor soil texture, reduced nutrient availability
 - **Overlay Color**: Brown gradient
 
+## Root Depth & Nutrient Cycling
+
+**NEW (2025-12-06)**: The nutrient system now includes vertical stratification with 2-layer soil (surface/deep) and nutrient cycling mechanisms. See [Root Depth & Nutrient Cycling System](root-depth-nutrient-cycling.md) for:
+- Root depth-based nutrient access (shallow/medium/deep profiles)
+- Leaf litter deposition from mature trees
+- Rain-driven nutrient leaching (surface → deep)
+- Root lift (deep → surface via tree pump)
+- Mycorrhizal networks (tree-to-tree sharing)
+
+This system enables sustainable forest ecosystems where deep-rooted trees access and cycle nutrients unavailable to shallow-rooted plants.
+
 ## Nutrient Requirements by Species
 
 ### Stinging Nettles

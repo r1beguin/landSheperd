@@ -127,6 +127,39 @@
           "weight": 0.15,
           "description": "Long-term soil quality"
         }
+      },
+      "leafLitter": {
+        "enabled": true,
+        "depositPerDay": {
+          "organicMatter": 20,
+          "nitrogen": 8
+        },
+        "targetLayer": "surface",
+        "radius": 1,
+        "spreadToNeighbors": true
+      },
+      "rootLift": {
+        "enabled": true,
+        "liftPerDay": {
+          "nitrogen": 5,
+          "phosphorus": 3,
+          "potassium": 3
+        },
+        "activeWhenDeepExceeds": {
+          "nitrogen": 15,
+          "phosphorus": 12,
+          "potassium": 15
+        }
+      },
+      "mycorrhizalNetwork": {
+        "enabled": true,
+        "shareRadius": 2,
+        "sharePercentage": 0.05,
+        "minimumThreshold": {
+          "nitrogen": 40,
+          "phosphorus": 30,
+          "potassium": 30
+        }
       }
     },
     {

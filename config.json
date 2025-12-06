@@ -62,6 +62,11 @@
         "plants": {
             "stuntGracePeriod": 7,
             "starvationReturnMultiplier": 0.5,
+            "rootDepthProfiles": {
+                "shallow": { "surface": 1.0, "deep": 0.2 },
+                "medium": { "surface": 0.8, "deep": 0.6 },
+                "deep": { "surface": 0.5, "deep": 1.0 }
+            },
             "dailyNutrientConsumption": {
                 "enabled": true,
                 "baseDailyRate": {
@@ -70,11 +75,16 @@
                     "potassium": 0.2,
                     "organicMatter": 0.1
                 },
+                "categoryMultipliers": {
+                    "tree": 0.2,
+                    "herb": 1.0,
+                    "groundcover": 1.0
+                },
                 "stageMultipliers": {
                     "Seedling": 0.3,
                     "Sapling": 0.5,
                     "YoungTree": 0.7,
-                    "MatureTree": 1.0,
+                    "MatureTree": 0.0,
                     "Sprouting": 0.4,
                     "Mature": 1.0,
                     "Flowering": 1.2,
@@ -83,7 +93,7 @@
                 "description": "Daily nutrient consumption independent of growth stage advancement"
             },
             "reproduction": {
-                "enableLogging": false,
+                "enableLogging": true,
                 "costMultiplier": 1.0,
                 "description": "Global reproduction settings (costMultiplier allows easy tuning)"
             },
@@ -174,7 +184,7 @@
             "decomposition": {
                 "enabled": true,
                 "organicMatterDecayPerDay": 0.3,
-                "nitrogenReleaseRatio": 0.4,
+                "nitrogenReleaseRatio": 0.5,
                 "phosphorusReleaseRatio": 0.3,
                 "minimumOMForBreakdown": 10,
                 "enableLogging": false,
@@ -294,7 +304,19 @@
                 "rainWaterIncreasePerDay": 15,
                 "sunEvaporationPerDay": 5,
                 "cloudyEvaporationPerDay": 2,
-                "rainNitrogenRestorePerDay": 0.0
+                "rainNitrogenRestorePerDay": 0.5,
+                "leaching": {
+                    "enabled": true,
+                    "nitrogenLeachRate": 0.8,
+                    "phosphorusLeachRate": 0.1,
+                    "potassiumLeachRate": 0.3,
+                    "organicMatterLeachRate": 0.0,
+                    "transferEfficiency": 0.7,
+                    "intensityMultiplier": {
+                        "light": 0.5,
+                        "heavy": 1.5
+                    }
+                }
             }
         },
         

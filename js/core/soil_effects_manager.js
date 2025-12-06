@@ -37,6 +37,7 @@ class SoilEffectsManager {
     
     /**
      * Apply weather effects to soil (rain increases water, sun evaporates)
+     * MILESTONE 4: Added nutrient leaching during rain (surface → deep transfer)
      * @param {Map} soilGrid - Map of soil objects keyed by "x,y"
      * @param {number} deltaTime - Time since last frame (seconds)
      */
@@ -87,13 +88,36 @@ class SoilEffectsManager {
         const nitrogenChangePerSecond = nitrogenChangePerDay / realSecondsPerGameDay;
         const nitrogenChangeThisFrame = nitrogenChangePerSecond * deltaTime;
         
+        // MILESTONE 4: Check if leaching is enabled and calculate leach amounts
+        const leachingConfig = this.weatherEffectsConfig.leaching;
+        const isRainy = currentWeather === 'rainy';
+        const shouldLeach = isRainy && leachingConfig && leachingConfig.enabled;
+        
+        let leachAmountsPerDay = null;
+        if (shouldLeach) {
+            const rainIntensity = weatherManager.getRainIntensity();
+            const intensityMult = rainIntensity < 0.6 ? leachingConfig.intensityMultiplier.light : 
+                                 rainIntensity > 0.9 ? leachingConfig.intensityMultiplier.heavy : 1.0;
+            
+            // Calculate leach amounts per day
+            leachAmountsPerDay = {
+                nitrogen: leachingConfig.nitrogenLeachRate * intensityMult,
+                phosphorus: leachingConfig.phosphorusLeachRate * intensityMult,
+                potassium: leachingConfig.potassiumLeachRate * intensityMult,
+                organicMatter: leachingConfig.organicMatterLeachRate * intensityMult,
+                efficiency: leachingConfig.transferEfficiency || 0.7
+            };
+        }
+        
         // Apply to all soil cells
         const hasWaterChange = Math.abs(waterChangeThisFrame) > 0.001;
         const hasNitrogenChange = Math.abs(nitrogenChangeThisFrame) > 0.001;
+        const hasLeaching = shouldLeach && leachAmountsPerDay !== null;
         
-        if (hasWaterChange || hasNitrogenChange) {
+        if (hasWaterChange || hasNitrogenChange || hasLeaching) {
             let waterCellsUpdated = 0;
             let nitrogenCellsUpdated = 0;
+            let leachedCellsCount = 0;
             
             soilGrid.forEach(soil => {
                 // Apply water changes
@@ -122,10 +146,44 @@ class SoilEffectsManager {
                         nitrogenCellsUpdated++;
                     }
                 }
+                
+                // MILESTONE 4: Apply leaching (surface → deep nutrient transfer)
+                if (hasLeaching && soil.nutrientLayers) {
+                    const gameDaysElapsed = deltaTime / realSecondsPerGameDay;
+                    
+                    // Calculate leach amounts this frame
+                    const nLeach = leachAmountsPerDay.nitrogen * gameDaysElapsed;
+                    const pLeach = leachAmountsPerDay.phosphorus * gameDaysElapsed;
+                    const kLeach = leachAmountsPerDay.potassium * gameDaysElapsed;
+                    const omLeach = leachAmountsPerDay.organicMatter * gameDaysElapsed;
+                    
+                    // Transfer from surface to deep (with efficiency loss)
+                    const efficiency = leachAmountsPerDay.efficiency;
+                    const runoffLoss = 1.0 - efficiency; // 30% runoff loss by default
+                    
+                    // Reduce surface nutrients
+                    const surfaceN = Math.max(0, soil.nutrientLayers.surface.nitrogen - nLeach);
+                    const surfaceP = Math.max(0, soil.nutrientLayers.surface.phosphorus - pLeach);
+                    const surfaceK = Math.max(0, soil.nutrientLayers.surface.potassium - kLeach);
+                    const surfaceOM = Math.max(0, soil.nutrientLayers.surface.organicMatter - omLeach);
+                    
+                    // Increase deep nutrients (with efficiency applied)
+                    const deepN = Math.min(100, soil.nutrientLayers.deep.nitrogen + (nLeach * efficiency));
+                    const deepP = Math.min(100, soil.nutrientLayers.deep.phosphorus + (pLeach * efficiency));
+                    const deepK = Math.min(100, soil.nutrientLayers.deep.potassium + (kLeach * efficiency));
+                    const deepOM = Math.min(100, soil.nutrientLayers.deep.organicMatter + (omLeach * efficiency));
+                    
+                    // Only update if significant leaching occurred
+                    if (nLeach > 0.01 || pLeach > 0.01 || kLeach > 0.01 || omLeach > 0.01) {
+                        soil.updateNutrientsLayered('surface', surfaceN, surfaceP, surfaceK, surfaceOM);
+                        soil.updateNutrientsLayered('deep', deepN, deepP, deepK, deepOM);
+                        leachedCellsCount++;
+                    }
+                }
             });
             
             // Return whether cells were updated (for cache invalidation)
-            return waterCellsUpdated > 0 || nitrogenCellsUpdated > 0;
+            return waterCellsUpdated > 0 || nitrogenCellsUpdated > 0 || leachedCellsCount > 0;
         }
         
         return false;

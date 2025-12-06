@@ -396,14 +396,29 @@ class Plant {
         // NEW: Check if parent soil can afford reproduction cost (Milestone 2)
         if (proximityConfig.reproductionCost) {
             if (!this.canAffordReproduction(proximityConfig.reproductionCost)) {
+                // Log nutrient failure if logging enabled
+                const config = window.config?.world?.plants?.reproduction;
+                if (config?.enableLogging) {
+                    const soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
+                    const cost = proximityConfig.reproductionCost;
+                    console.log(`[REPRO FAIL] ${this.species.commonName} at (${Math.round(this.x)},${Math.round(this.y)}) - Insufficient nutrients. Need: N${cost.nitrogen+5} P${cost.phosphorus+5} K${cost.potassium+5} OM${cost.organicMatter+5} | Has: N${soil?.nitrogen?.toFixed(1)} P${soil?.phosphorus?.toFixed(1)} K${soil?.potassium?.toFixed(1)} OM${soil?.organicMatter?.toFixed(1)}`);
+                }
                 return null; // Not enough nutrients in parent soil
             }
         }
         
-        // Update last reproduction day BEFORE rolling for success
-        this.lastReproductionDay = currentDay;
+        // Roll for success chance
+        if (Math.random() > proximityConfig.successChance) {
+            // Log success roll failure if logging enabled
+            const config = window.config?.world?.plants?.reproduction;
+            if (config?.enableLogging) {
+                console.log(`[REPRO FAIL] ${this.species.commonName} at (${Math.round(this.x)},${Math.round(this.y)}) - Failed success roll (${(proximityConfig.successChance*100).toFixed(0)}% chance)`);
+            }
+            return null;
+        }
         
-        if (Math.random() > proximityConfig.successChance) return null;
+        // SUCCESS: Update last reproduction day AFTER all checks pass
+        this.lastReproductionDay = currentDay;
         
         // Return event for PlantManager to find partner
         return {
@@ -512,7 +527,59 @@ class Plant {
     }
 
     /**
+     * MILESTONE 2: Get root access profile for this plant
+     * @returns {Object} {surface: number, deep: number} access multipliers (0.0-1.0)
+     */
+    getRootAccessProfile() {
+        const config = window.config?.world?.plants?.rootDepthProfiles;
+        const rootDepth = this.species.environment?.rootDepth || 'medium';
+        
+        if (config && config[rootDepth]) {
+            return config[rootDepth];
+        }
+        
+        // Default fallback if config missing
+        const defaults = {
+            shallow: { surface: 1.0, deep: 0.2 },
+            medium: { surface: 0.8, deep: 0.6 },
+            deep: { surface: 0.5, deep: 1.0 }
+        };
+        
+        return defaults[rootDepth] || defaults.medium;
+    }
+    
+    /**
+     * MILESTONE 2: Get effective nutrients based on root depth access
+     * Calculates weighted average of surface + deep layers based on root profile
+     * @param {Object} soil - Soil cell object
+     * @returns {Object} {nitrogen, phosphorus, potassium, organicMatter} effective values
+     */
+    getEffectiveNutrients(soil) {
+        if (!soil || !soil.nutrientLayers) {
+            // Fallback to legacy surface properties if layers not available
+            return {
+                nitrogen: soil?.nitrogen || 0,
+                phosphorus: soil?.phosphorus || 0,
+                potassium: soil?.potassium || 0,
+                organicMatter: soil?.organicMatter || 0
+            };
+        }
+        
+        const rootProfile = this.getRootAccessProfile();
+        const surface = soil.nutrientLayers.surface;
+        const deep = soil.nutrientLayers.deep;
+        
+        return {
+            nitrogen: (surface.nitrogen * rootProfile.surface) + (deep.nitrogen * rootProfile.deep),
+            phosphorus: (surface.phosphorus * rootProfile.surface) + (deep.phosphorus * rootProfile.deep),
+            potassium: (surface.potassium * rootProfile.surface) + (deep.potassium * rootProfile.deep),
+            organicMatter: (surface.organicMatter * rootProfile.surface) + (deep.organicMatter * rootProfile.deep)
+        };
+    }
+    
+    /**
      * Calculate growth rate based on current nutrient availability
+     * MILESTONE 2: Updated to use effective nutrients from root depth system
      * @returns {number} Growth rate multiplier (0.0 to 1.0)
      */
     calculateGrowthRate() {
@@ -534,12 +601,15 @@ class Plant {
         const reqs = this.species.environment.nutrientRequirements;
         if (!reqs) return 1.0;
         
-        // Calculate weighted growth rate
+        // MILESTONE 2: Use effective nutrients based on root depth
+        const effectiveNutrients = this.getEffectiveNutrients(soil);
+        
+        // Calculate weighted growth rate using effective nutrients
         let totalScore = 0;
-        totalScore += this.nutrientScore(soil.nitrogen, reqs.nitrogen, 'nitrogen') * modifiers.nitrogen.weight;
-        totalScore += this.nutrientScore(soil.phosphorus, reqs.phosphorus, 'phosphorus') * modifiers.phosphorus.weight;
-        totalScore += this.nutrientScore(soil.potassium, reqs.potassium, 'potassium') * modifiers.potassium.weight;
-        totalScore += this.nutrientScore(soil.organicMatter, reqs.organicMatter, 'organicMatter') * modifiers.organicMatter.weight;
+        totalScore += this.nutrientScore(effectiveNutrients.nitrogen, reqs.nitrogen, 'nitrogen') * modifiers.nitrogen.weight;
+        totalScore += this.nutrientScore(effectiveNutrients.phosphorus, reqs.phosphorus, 'phosphorus') * modifiers.phosphorus.weight;
+        totalScore += this.nutrientScore(effectiveNutrients.potassium, reqs.potassium, 'potassium') * modifiers.potassium.weight;
+        totalScore += this.nutrientScore(effectiveNutrients.organicMatter, reqs.organicMatter, 'organicMatter') * modifiers.organicMatter.weight;
         
         return totalScore;
     }
@@ -585,6 +655,7 @@ class Plant {
 
     /**
      * Consume nutrients daily based on stage and genetics (Milestone 1)
+     * MILESTONE 2: Updated to consume from both soil layers proportionally
      * Called every frame, scales consumption by game days elapsed
      * @param {number} gameDaysElapsed - Game days elapsed this frame
      */
@@ -617,14 +688,18 @@ class Plant {
         // Get base daily consumption rates
         const baseRates = config.baseDailyRate;
         
+        // Get category multiplier (tree/herb/groundcover) - NEW
+        const category = this.species.category || 'herb';
+        const categoryMultiplier = config.categoryMultipliers?.[category] || 1.0;
+        
         // Get stage multiplier (default to 1.0 if stage not in config)
         const stageMultiplier = config.stageMultipliers[this.stage] || 1.0;
         
-        // Calculate consumption amounts with stage multiplier
-        let nConsumption = baseRates.nitrogen * stageMultiplier * gameDaysElapsed;
-        let pConsumption = baseRates.phosphorus * stageMultiplier * gameDaysElapsed;
-        let kConsumption = baseRates.potassium * stageMultiplier * gameDaysElapsed;
-        let omConsumption = baseRates.organicMatter * stageMultiplier * gameDaysElapsed;
+        // Calculate consumption amounts with multipliers
+        let nConsumption = baseRates.nitrogen * categoryMultiplier * stageMultiplier * gameDaysElapsed;
+        let pConsumption = baseRates.phosphorus * categoryMultiplier * stageMultiplier * gameDaysElapsed;
+        let kConsumption = baseRates.potassium * categoryMultiplier * stageMultiplier * gameDaysElapsed;
+        let omConsumption = baseRates.organicMatter * categoryMultiplier * stageMultiplier * gameDaysElapsed;
         
         // Apply genetic efficiency modifiers (if plant has genetics)
         if (this.genetics) {
@@ -642,20 +717,184 @@ class Plant {
             omConsumption *= omEff;
         }
         
-        // Calculate new nutrient levels (clamp to 0 minimum)
-        const newNitrogen = Math.max(0, soil.nitrogen - nConsumption);
-        const newPhosphorus = Math.max(0, soil.phosphorus - pConsumption);
-        const newPotassium = Math.max(0, soil.potassium - kConsumption);
-        const newOrganicMatter = Math.max(0, soil.organicMatter - omConsumption);
+        // MILESTONE 2: Get root access profile and consume from both layers
+        const rootProfile = this.getRootAccessProfile();
         
-        // Only update if consumption actually occurred (avoid unnecessary updates)
-        if (nConsumption > 0.001 || pConsumption > 0.001 || 
-            kConsumption > 0.001 || omConsumption > 0.001) {
-            soil.updateNutrients(newNitrogen, newPhosphorus, newPotassium, newOrganicMatter);
+        // Calculate consumption share per layer based on root access
+        // Higher access = more consumption from that layer
+        const totalAccess = rootProfile.surface + rootProfile.deep;
+        const surfaceShare = rootProfile.surface / totalAccess;
+        const deepShare = rootProfile.deep / totalAccess;
+        
+        // Consume from surface layer
+        if (soil.nutrientLayers) {
+            const surfaceN = soil.nutrientLayers.surface.nitrogen - (nConsumption * surfaceShare);
+            const surfaceP = soil.nutrientLayers.surface.phosphorus - (pConsumption * surfaceShare);
+            const surfaceK = soil.nutrientLayers.surface.potassium - (kConsumption * surfaceShare);
+            const surfaceOM = soil.nutrientLayers.surface.organicMatter - (omConsumption * surfaceShare);
             
-            // Note: Don't set needsRefresh here - batched soil updates happen elsewhere
-            // Setting it per-plant would cause massive performance hit
+            soil.updateNutrientsLayered('surface', surfaceN, surfaceP, surfaceK, surfaceOM);
+            
+            // Consume from deep layer
+            const deepN = soil.nutrientLayers.deep.nitrogen - (nConsumption * deepShare);
+            const deepP = soil.nutrientLayers.deep.phosphorus - (pConsumption * deepShare);
+            const deepK = soil.nutrientLayers.deep.potassium - (kConsumption * deepShare);
+            const deepOM = soil.nutrientLayers.deep.organicMatter - (omConsumption * deepShare);
+            
+            soil.updateNutrientsLayered('deep', deepN, deepP, deepK, deepOM);
+        } else {
+            // Fallback to legacy single-layer consumption if layers not available
+            const newNitrogen = Math.max(0, soil.nitrogen - nConsumption);
+            const newPhosphorus = Math.max(0, soil.phosphorus - pConsumption);
+            const newPotassium = Math.max(0, soil.potassium - kConsumption);
+            const newOrganicMatter = Math.max(0, soil.organicMatter - omConsumption);
+            
+            soil.updateNutrients(newNitrogen, newPhosphorus, newPotassium, newOrganicMatter);
         }
+        
+        // Note: Don't set needsRefresh here - batched soil updates happen elsewhere
+        // Setting it per-plant would cause massive performance hit
+        
+        // MILESTONE 3: Call leaf litter deposition after consumption
+        this.depositLeafLitter(soil, gameDaysElapsed);
+        
+        // MILESTONE 5: Call root lift after leaf litter
+        this.performRootLift(soil, gameDaysElapsed);
+    }
+    
+    /**
+     * MILESTONE 3: Deposit leaf litter on soil surface (MatureTree returns OM to surface)
+     * Called at end of consumeNutrientsDaily()
+     * @param {Object} soil - Soil cell object
+     * @param {number} gameDaysElapsed - Game days elapsed this frame
+     */
+    depositLeafLitter(soil, gameDaysElapsed) {
+        // Get current stage config
+        const stages = this.species.growthStages;
+        const currentStageIndex = stages.findIndex(stage => stage.name === this.stage);
+        if (currentStageIndex === -1) return;
+        
+        const currentStageConfig = stages[currentStageIndex];
+        const leafLitterConfig = currentStageConfig.leafLitter;
+        
+        // Check if leaf litter is enabled for this stage
+        if (!leafLitterConfig || !leafLitterConfig.enabled) {
+            return;
+        }
+        
+        if (!soil || !soil.nutrientLayers) {
+            return; // No soil or layers available
+        }
+        
+        // Calculate deposition amounts
+        const omDeposit = leafLitterConfig.depositPerDay.organicMatter * gameDaysElapsed;
+        const nDeposit = leafLitterConfig.depositPerDay.nitrogen * gameDaysElapsed;
+        
+        // Get grid coordinates for this plant
+        const soilManager = window.graphicsEngine?.soilManager;
+        if (!soilManager) return;
+        
+        const gridCoords = soilManager.worldToGrid(this.x, this.y);
+        
+        // Deposit to tree's cell (always)
+        const treeSoil = soilManager.getSoilAt(gridCoords.x, gridCoords.y);
+        if (treeSoil && treeSoil.nutrientLayers) {
+            const newOM = treeSoil.nutrientLayers.surface.organicMatter + omDeposit;
+            const newN = treeSoil.nutrientLayers.surface.nitrogen + nDeposit;
+            const newP = treeSoil.nutrientLayers.surface.phosphorus;
+            const newK = treeSoil.nutrientLayers.surface.potassium;
+            
+            treeSoil.updateNutrientsLayered('surface', newN, newP, newK, newOM);
+        }
+        
+        // Spread to neighbors if enabled
+        if (leafLitterConfig.spreadToNeighbors && leafLitterConfig.radius > 0) {
+            const radius = leafLitterConfig.radius;
+            const neighborCount = (radius * 2 + 1) * (radius * 2 + 1) - 1; // Exclude center cell
+            const neighborShare = omDeposit / neighborCount;
+            const neighborNShare = nDeposit / neighborCount;
+            
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dy = -radius; dy <= radius; dy++) {
+                    // Skip center cell (already deposited to tree's cell)
+                    if (dx === 0 && dy === 0) continue;
+                    
+                    const neighborSoil = soilManager.getSoilAt(gridCoords.x + dx, gridCoords.y + dy);
+                    if (neighborSoil && neighborSoil.nutrientLayers) {
+                        const newOM = neighborSoil.nutrientLayers.surface.organicMatter + neighborShare;
+                        const newN = neighborSoil.nutrientLayers.surface.nitrogen + neighborNShare;
+                        const newP = neighborSoil.nutrientLayers.surface.phosphorus;
+                        const newK = neighborSoil.nutrientLayers.surface.potassium;
+                        
+                        neighborSoil.updateNutrientsLayered('surface', newN, newP, newK, newOM);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * MILESTONE 5: Perform root lift (deep-rooted plants bring nutrients from deep → surface)
+     * Called at end of consumeNutrientsDaily() after leaf litter deposition
+     * @param {Object} soil - Soil cell object
+     * @param {number} gameDaysElapsed - Game days elapsed this frame
+     */
+    performRootLift(soil, gameDaysElapsed) {
+        // Only deep-rooted plants can perform root lift
+        const rootDepth = this.species.environment?.rootDepth;
+        if (rootDepth !== 'deep') {
+            return; // Only deep-rooted plants (e.g., trees)
+        }
+        
+        // Get current stage config
+        const stages = this.species.growthStages;
+        const currentStageIndex = stages.findIndex(stage => stage.name === this.stage);
+        if (currentStageIndex === -1) return;
+        
+        const currentStageConfig = stages[currentStageIndex];
+        const rootLiftConfig = currentStageConfig.rootLift;
+        
+        // Check if root lift is enabled for this stage
+        if (!rootLiftConfig || !rootLiftConfig.enabled) {
+            return;
+        }
+        
+        if (!soil || !soil.nutrientLayers) {
+            return; // No soil or layers available
+        }
+        
+        // Check if deep layer has sufficient nutrients to lift
+        const deepLayer = soil.nutrientLayers.deep;
+        const thresholds = rootLiftConfig.activeWhenDeepExceeds;
+        
+        const canLiftN = deepLayer.nitrogen > thresholds.nitrogen;
+        const canLiftP = deepLayer.phosphorus > thresholds.phosphorus;
+        const canLiftK = deepLayer.potassium > thresholds.potassium;
+        
+        // If none of the nutrients can be lifted, return early
+        if (!canLiftN && !canLiftP && !canLiftK) {
+            return;
+        }
+        
+        // Calculate lift amounts
+        const nLift = canLiftN ? rootLiftConfig.liftPerDay.nitrogen * gameDaysElapsed : 0;
+        const pLift = canLiftP ? rootLiftConfig.liftPerDay.phosphorus * gameDaysElapsed : 0;
+        const kLift = canLiftK ? rootLiftConfig.liftPerDay.potassium * gameDaysElapsed : 0;
+        
+        // Transfer from deep → surface
+        const surfaceN = soil.nutrientLayers.surface.nitrogen + nLift;
+        const surfaceP = soil.nutrientLayers.surface.phosphorus + pLift;
+        const surfaceK = soil.nutrientLayers.surface.potassium + kLift;
+        const surfaceOM = soil.nutrientLayers.surface.organicMatter;
+        
+        const deepN = Math.max(0, deepLayer.nitrogen - nLift);
+        const deepP = Math.max(0, deepLayer.phosphorus - pLift);
+        const deepK = Math.max(0, deepLayer.potassium - kLift);
+        const deepOM = deepLayer.organicMatter;
+        
+        // Update both layers
+        soil.updateNutrientsLayered('surface', surfaceN, surfaceP, surfaceK, surfaceOM);
+        soil.updateNutrientsLayered('deep', deepN, deepP, deepK, deepOM);
     }
 
     /**
@@ -680,19 +919,24 @@ class Plant {
             return false; // Can't reproduce without soil
         }
         
+        // MILESTONE ROOT DEPTH: Use effective nutrients based on root depth
+        // This ensures deep-rooted plants (oaks) can access deep layer nutrients for reproduction
+        const effectiveNutrients = this.getEffectiveNutrients(soil);
+        
         // Check if soil has enough of EACH nutrient
         // Use a small buffer (cost + 5) to ensure soil doesn't hit absolute zero
         const buffer = 5;
-        if (soil.nitrogen < reproductionCost.nitrogen + buffer) return false;
-        if (soil.phosphorus < reproductionCost.phosphorus + buffer) return false;
-        if (soil.potassium < reproductionCost.potassium + buffer) return false;
-        if (soil.organicMatter < reproductionCost.organicMatter + buffer) return false;
+        if (effectiveNutrients.nitrogen < reproductionCost.nitrogen + buffer) return false;
+        if (effectiveNutrients.phosphorus < reproductionCost.phosphorus + buffer) return false;
+        if (effectiveNutrients.potassium < reproductionCost.potassium + buffer) return false;
+        if (effectiveNutrients.organicMatter < reproductionCost.organicMatter + buffer) return false;
         
         return true; // Parent soil can afford reproduction
     }
 
     /**
      * Calculate visual tint color based on nutrient status (Milestone 3: Enhanced)
+     * MILESTONE 2: Updated to use effective nutrients from root depth system
      * Returns RGB tint multiplier with enhanced intensity and starvation stages
      * @returns {Array} [r, g, b, a] color multiplier (0.0-1.0 each)
      */
@@ -705,11 +949,14 @@ class Plant {
         const reqs = this.species?.environment?.nutrientRequirements;
         if (!reqs) return [1, 1, 1, 1]; // No requirements - no tint
         
-        // Calculate individual nutrient scores
-        const nScore = this.nutrientScore(soil.nitrogen, reqs.nitrogen, 'nitrogen');
-        const pScore = this.nutrientScore(soil.phosphorus, reqs.phosphorus, 'phosphorus');
-        const kScore = this.nutrientScore(soil.potassium, reqs.potassium, 'potassium');
-        const omScore = this.nutrientScore(soil.organicMatter, reqs.organicMatter, 'organicMatter');
+        // MILESTONE 2: Use effective nutrients based on root depth
+        const effectiveNutrients = this.getEffectiveNutrients(soil);
+        
+        // Calculate individual nutrient scores using effective values
+        const nScore = this.nutrientScore(effectiveNutrients.nitrogen, reqs.nitrogen, 'nitrogen');
+        const pScore = this.nutrientScore(effectiveNutrients.phosphorus, reqs.phosphorus, 'phosphorus');
+        const kScore = this.nutrientScore(effectiveNutrients.potassium, reqs.potassium, 'potassium');
+        const omScore = this.nutrientScore(effectiveNutrients.organicMatter, reqs.organicMatter, 'organicMatter');
         
         // Find most limiting nutrient (Liebig's Law - visual edition)
         const minScore = Math.min(nScore, pScore, kScore, omScore);
@@ -898,16 +1145,18 @@ class Plant {
         const yOffset = this.getRenderOffset();
         
         // NEW: Calculate starvation stage for size multiplier (Milestone 3)
+        // MILESTONE 2: Updated to use effective nutrients
         const soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
         let sizeMultiplier = 1.0;
         
         if (soil) {
             const reqs = this.species?.environment?.nutrientRequirements;
             if (reqs) {
-                const nScore = this.nutrientScore(soil.nitrogen, reqs.nitrogen, 'nitrogen');
-                const pScore = this.nutrientScore(soil.phosphorus, reqs.phosphorus, 'phosphorus');
-                const kScore = this.nutrientScore(soil.potassium, reqs.potassium, 'potassium');
-                const omScore = this.nutrientScore(soil.organicMatter, reqs.organicMatter, 'organicMatter');
+                const effectiveNutrients = this.getEffectiveNutrients(soil);
+                const nScore = this.nutrientScore(effectiveNutrients.nitrogen, reqs.nitrogen, 'nitrogen');
+                const pScore = this.nutrientScore(effectiveNutrients.phosphorus, reqs.phosphorus, 'phosphorus');
+                const kScore = this.nutrientScore(effectiveNutrients.potassium, reqs.potassium, 'potassium');
+                const omScore = this.nutrientScore(effectiveNutrients.organicMatter, reqs.organicMatter, 'organicMatter');
                 const minScore = Math.min(nScore, pScore, kScore, omScore);
                 
                 const starvationStage = this.getStarvationStage(minScore);
@@ -953,12 +1202,15 @@ class Plant {
             if (soil && this.species?.environment?.nutrientRequirements) {
                 const reqs = this.species.environment.nutrientRequirements;
                 
-                // Check each nutrient individually
+                // MILESTONE 2: Use effective nutrients based on root depth
+                const effectiveNutrients = this.getEffectiveNutrients(soil);
+                
+                // Check each nutrient individually using effective values
                 const insufficientNutrients = [];
-                if (soil.nitrogen < reqs.nitrogen.minimum) insufficientNutrients.push('N');
-                if (soil.phosphorus < reqs.phosphorus.minimum) insufficientNutrients.push('P');
-                if (soil.potassium < reqs.potassium.minimum) insufficientNutrients.push('K');
-                if (soil.organicMatter < reqs.organicMatter.minimum) insufficientNutrients.push('OM');
+                if (effectiveNutrients.nitrogen < reqs.nitrogen.minimum) insufficientNutrients.push('N');
+                if (effectiveNutrients.phosphorus < reqs.phosphorus.minimum) insufficientNutrients.push('P');
+                if (effectiveNutrients.potassium < reqs.potassium.minimum) insufficientNutrients.push('K');
+                if (effectiveNutrients.organicMatter < reqs.organicMatter.minimum) insufficientNutrients.push('OM');
                 
                 if (insufficientNutrients.length > 0) {
                     // Mark plant as stunted - prevent growth due to specific nutrient deficiencies
