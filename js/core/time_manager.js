@@ -31,6 +31,22 @@ class TimeManager {
         // State
         this.isPaused = false;
         this.previousTimeScale = this.timeScale;
+        
+        // Flood event tracking
+        this.daysSinceLastFlood = 0;
+        this.floodConfig = null; // Will be set in initialize()
+    }
+    
+    /**
+     * Initialize flood event configuration
+     * Called after GraphicsEngine is fully initialized
+     * @param {Object} engineConfig - Full config from GraphicsEngine
+     */
+    initialize(engineConfig) {
+        this.floodConfig = engineConfig?.world?.terrain?.water?.floodEvents;
+        if (this.floodConfig && this.floodConfig.enabled) {
+            console.log(`[TIME] Flood events enabled: every ${this.floodConfig.intervalDays} days`);
+        }
     }
     
     /**
@@ -51,6 +67,16 @@ class TimeManager {
         
         // Update current day
         this.currentDay += gameDaysElapsed;
+        
+        // Check for flood events (after day changes)
+        if (this.floodConfig && this.floodConfig.enabled) {
+            this.daysSinceLastFlood += gameDaysElapsed;
+            
+            if (this.daysSinceLastFlood >= this.floodConfig.intervalDays) {
+                this.triggerFloodEvent();
+                this.daysSinceLastFlood = 0;
+            }
+        }
         
         return gameDaysElapsed;
     }
@@ -216,5 +242,46 @@ class TimeManager {
         const hour = Math.floor(this.getHourOfDay());
         const minute = Math.floor((this.getHourOfDay() % 1) * 60);
         return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    }
+    
+    /**
+     * Trigger a flood event
+     * Applies nutrient deposition to soil near rivers
+     */
+    triggerFloodEvent() {
+        if (this.floodConfig.enableLogging) {
+            console.log(`[FLOOD] Flood event triggered (Day ${Math.floor(this.currentDay)})`);
+        }
+        
+        // Get required managers
+        const soilManager = window.graphicsEngine?.soilManager;
+        const terrainGen = soilManager?.terrainGenerator;
+        
+        if (!soilManager || !terrainGen) {
+            console.warn('[FLOOD] Cannot trigger flood - managers not available');
+            return;
+        }
+        
+        // Get river tiles from terrain generator
+        const riverTiles = terrainGen.getRiverTiles();
+        
+        if (!riverTiles || riverTiles.size === 0) {
+            if (this.floodConfig.enableLogging) {
+                console.log('[FLOOD] No river tiles found - skipping flood event');
+            }
+            return;
+        }
+        
+        // Apply flood effects via SoilEffectsManager
+        const updated = soilManager.soilEffectsManager.applyFloodEffects(
+            soilManager.soilGrid,
+            riverTiles,
+            this.floodConfig
+        );
+        
+        // Force texture refresh if cells were updated
+        if (updated) {
+            soilManager.needsRefresh = true;
+        }
     }
 }

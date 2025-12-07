@@ -46,11 +46,36 @@
                     "irregularity": 0.4,
                     "minEdgeDistance": 5
                 },
-                "fertilityBoost": {
+                "riverFertility": {
                     "enabled": true,
                     "radius": 3,
-                    "nitrogenBonus": 20,
-                    "waterRetentionBonus": 30
+                    "nitrogenBonus": 25,
+                    "waterRetentionBonus": 30,
+                    "organicMatterBonus": 5
+                },
+                "lakeFertility": {
+                    "enabled": true,
+                    "radius": 2,
+                    "nitrogenBonus": 15,
+                    "waterRetentionBonus": 25,
+                    "organicMatterBonus": 3
+                },
+                "floodEvents": {
+                    "enabled": true,
+                    "intervalDays": 8,
+                    "radius": 5,
+                    "nitrogenBonus": 25,
+                    "phosphorusBonus": 15,
+                    "potassiumBonus": 10,
+                    "organicMatterBonus": 20,
+                    "enableLogging": true
+                },
+                "waterTable": {
+                    "enabled": true,
+                    "radius": 4,
+                    "seepingRatePerDay": 0.5,
+                    "maxWaterRetention": 90,
+                    "description": "Gradual moisture seeping from water table near water bodies"
                 }
             }
         },
@@ -199,7 +224,21 @@
                     },
                     "cloudy": 1.0,
                     "sunny": 0.7
+                },
+                
+                "riparianZone": {
+                    "enabled": true,
+                    "radius": 2,
+                    "decayMultiplier": 0.5,
+                    "organicInputPerDay": 0.3,
+                    "description": "Riparian zones accumulate more OM from aquatic sources"
                 }
+            },
+            "nitrogenRegeneration": {
+                "enabled": true,
+                "baseRatePerDay": 0.25,
+                "riparianMultiplier": 2.5,
+                "description": "Nitrogen fixation via bacteria and atmospheric deposition"
             },
             "fertility": {
                 "hotspots": 8,
@@ -300,21 +339,27 @@
                 "color": [255, 255, 255, 200]
             },
             
-            "soilEffects": {
+                "soilEffects": {
                 "rainWaterIncreasePerDay": 15,
                 "sunEvaporationPerDay": 5,
                 "cloudyEvaporationPerDay": 2,
-                "rainNitrogenRestorePerDay": 0.5,
+                "rainNitrogenRestorePerDay": 3.0,
                 "leaching": {
-                    "enabled": true,
-                    "nitrogenLeachRate": 0.8,
-                    "phosphorusLeachRate": 0.1,
-                    "potassiumLeachRate": 0.3,
+                    "enabled": false,
+                    "nitrogenLeachRate": 0.03,
+                    "phosphorusLeachRate": 0.005,
+                    "potassiumLeachRate": 0.01,
                     "organicMatterLeachRate": 0.0,
-                    "transferEfficiency": 0.7,
+                    "transferEfficiency": 0.95,
                     "intensityMultiplier": {
-                        "light": 0.5,
-                        "heavy": 1.5
+                        "light": 0.2,
+                        "heavy": 0.6
+                    },
+                    "riparianResistance": {
+                        "enabled": true,
+                        "radius": 3,
+                        "leachingMultiplier": 0.2,
+                        "description": "Floodplain soils resist leaching due to clay content deposited by floods"
                     }
                 }
             }

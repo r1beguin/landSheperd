@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riparian Organic Matter Accumulation Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .milestone-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .test-section {
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #764ba2;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        
+        .metric-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 5px 0;
+        }
+        
+        .metric-change {
+            font-size: 14px;
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .metric-change.negative {
+            color: #dc3545;
+        }
+        
+        .status {
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        
+        .status.pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid transparent;
+        }
+        
+        .log-entry.pass {
+            border-left-color: #4ec9b0;
+            color: #4ec9b0;
+        }
+        
+        .log-entry.fail {
+            border-left-color: #f48771;
+            color: #f48771;
+        }
+        
+        .log-entry.info {
+            border-left-color: #569cd6;
+            color: #569cd6;
+        }
+        
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            color: white;
+        }
+        
+        .timeline-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .timeline-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .timeline-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        .comparison-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌊 Riparian Organic Matter Accumulation Test</h1>
+        <div class="milestone-badge">MILESTONE 4: RIPARIAN ECOLOGY</div>
+        
+        <div class="status info">
+            <strong>Test Objective:</strong> Verify that organic matter accumulates in riparian zones (near water) 
+            due to reduced decay rates and continuous aquatic input. Expected: Darker soil bands along water edges over 14+ days.
+        </div>
+        
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h3>🎮 Test Controls</h3>
+            <div class="controls">
+                <button onclick="startTest()">▶️ Start Long-Term Test</button>
+                <button onclick="advanceTime(7)">⏩ Advance 7 Days</button>
+                <button onclick="advanceTime(14)">⏩⏩ Advance 14 Days</button>
+                <button onclick="sampleRiparianZones()">🔬 Sample Riparian Zones</button>
+                <button onclick="toggleOMOverlay()">👁️ Toggle OM Overlay</button>
+                <button onclick="compareToBaseline()">📊 Compare to Baseline</button>
+                <button onclick="resetTest()">🔄 Reset Test</button>
+            </div>
+        </div>
+        
+        <!-- Timeline Display -->
+        <div class="timeline" id="timeline">
+            <div class="timeline-item">
+                <div class="timeline-label">Current Day</div>
+                <div class="timeline-value" id="currentDay">0</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-label">Time Scale</div>
+                <div class="timeline-value" id="timeScale">5.0x</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-label">Active Cells</div>
+                <div class="timeline-value" id="activeCells">0</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-label">Water Tiles</div>
+                <div class="timeline-value" id="waterTiles">0</div>
+            </div>
+        </div>
+        
+        <!-- Metrics Dashboard -->
+        <div class="test-section">
+            <h3>📊 Riparian vs Non-Riparian Metrics</h3>
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="metric-label">Riparian OM (Avg)</div>
+                    <div class="metric-value" id="riparianOM">--</div>
+                    <div class="metric-change" id="riparianOMChange">+0.0</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="riparianOMProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Non-Riparian OM (Avg)</div>
+                    <div class="metric-value" id="nonRiparianOM">--</div>
+                    <div class="metric-change negative" id="nonRiparianOMChange">-0.0</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="nonRiparianOMProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">OM Difference</div>
+                    <div class="metric-value" id="omDifference">--</div>
+                    <div class="metric-change" id="omDifferenceChange">+0.0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Decay Rate Reduction</div>
+                    <div class="metric-value" id="decayReduction">50%</div>
+                    <div class="metric-change">Riparian Zone</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Comparison Table -->
+        <div class="test-section">
+            <h3>🔬 Sample Locations (Distance from Water)</h3>
+            <table class="comparison-table" id="comparisonTable">
+                <thead>
+                    <tr>
+                        <th>Location</th>
+                        <th>Distance</th>
+                        <th>Zone Type</th>
+                        <th>Initial OM</th>
+                        <th>Current OM</th>
+                        <th>Change</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="comparisonBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #666;">
+                            Click "Sample Riparian Zones" to populate data
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Test Log -->
+        <div class="test-section">
+            <h3>📝 Test Log</h3>
+            <div class="log" id="testLog">
+                <div class="log-entry info">[INFO] Riparian OM test initialized. Ready to start.</div>
+            </div>
+        </div>
+        
+        <!-- Validation Results -->
+        <div class="test-section">
+            <h3>✅ Validation Results</h3>
+            <div id="validationResults">
+                <div class="status info">
+                    Run test and wait 14+ game days to see validation results.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Test state
+        let testState = {
+            startTime: null,
+            startDay: 0,
+            baselineOM: {
+                riparian: [],
+                nonRiparian: []
+            },
+            currentSamples: [],
+            testRunning: false
+        };
+        
+        // Add log entry
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('testLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Update timeline
+        function updateTimeline() {
+            const engine = window.graphicsEngine;
+            if (!engine) return;
+            
+            const timeManager = engine.timeManager;
+            const soilManager = engine.soilManager;
+            const soilEffects = soilManager?.soilEffectsManager;
+            
+            if (timeManager) {
+                document.getElementById('currentDay').textContent = Math.floor(timeManager.getElapsedGameDays());
+                document.getElementById('timeScale').textContent = `${timeManager.timeScale.toFixed(1)}x`;
+            }
+            
+            if (soilEffects) {
+                document.getElementById('activeCells').textContent = soilEffects.getActiveCellCount();
+            }
+            
+            if (soilManager?.terrainGenerator) {
+                const waterTiles = soilManager.terrainGenerator.getWaterTiles();
+                document.getElementById('waterTiles').textContent = waterTiles ? waterTiles.size : 0;
+            }
+        }
+        
+        // Start test
+        function startTest() {
+            addLog('Starting long-term riparian OM accumulation test...', 'info');
+            
+            const engine = window.graphicsEngine;
+            if (!engine) {
+                addLog('ERROR: GraphicsEngine not found', 'fail');
+                return;
+            }
+            
+            // Set time scale to veryFast (5.0x)
+            engine.timeManager.setTimeScale(5.0);
+            addLog('Time scale set to 5.0x (veryFast)', 'pass');
+            
+            // Record baseline
+            testState.startTime = Date.now();
+            testState.startDay = engine.timeManager.getElapsedGameDays();
+            testState.testRunning = true;
+            
+            // Sample initial state
+            sampleRiparianZones();
+            
+            addLog('Baseline recorded. Test running. Check back after 14+ game days.', 'pass');
+            addLog('Use "Sample Riparian Zones" button to track progress.', 'info');
+            
+            // Start update loop
+            setInterval(updateTimeline, 1000);
+        }
+        
+        // Advance time
+        function advanceTime(days) {
+            const engine = window.graphicsEngine;
+            if (!engine) return;
+            
+            addLog(`Advancing time by ${days} days...`, 'info');
+            
+            // Calculate seconds to advance
+            const realSecondsPerGameDay = engine.timeManager.config.realSecondsPerGameDay;
+            const secondsToAdvance = days * (realSecondsPerGameDay / engine.timeManager.timeScale);
+            
+            addLog(`Waiting ${secondsToAdvance.toFixed(1)} real seconds (at ${engine.timeManager.timeScale}x speed)`, 'info');
+            
+            setTimeout(() => {
+                addLog(`Time advanced by approximately ${days} days`, 'pass');
+                sampleRiparianZones();
+            }, secondsToAdvance * 1000);
+        }
+        
+        // Sample riparian zones
+        function sampleRiparianZones() {
+            const engine = window.graphicsEngine;
+            if (!engine) return;
+            
+            const soilManager = engine.soilManager;
+            const terrainGen = soilManager.terrainGenerator;
+            const waterTiles = terrainGen.getWaterTiles();
+            
+            if (!waterTiles || waterTiles.size === 0) {
+                addLog('No water tiles found', 'fail');
+                return;
+            }
+            
+            addLog('Sampling riparian and non-riparian zones...', 'info');
+            
+            // Find sample locations at various distances from water
+            const samples = [];
+            let riparianOMSum = 0;
+            let nonRiparianOMSum = 0;
+            let riparianCount = 0;
+            let nonRiparianCount = 0;
+            
+            // Take first water tile as reference
+            const firstWater = Array.from(waterTiles)[0];
+            const [waterX, waterY] = firstWater.split(',').map(Number);
+            
+            // Sample at distances: 1, 2, 3, 4, 5 cells from water
+            for (let dist = 1; dist <= 5; dist++) {
+                const sampleX = waterX + dist;
+                const sampleY = waterY;
+                const soil = soilManager.getSoilAt(sampleX, sampleY);
+                
+                if (!soil || soil.isWater) continue;
+                
+                const isRiparian = dist <= 2; // Riparian zone radius = 2
+                const om = soil.organicMatter || 0;
+                
+                samples.push({
+                    x: sampleX,
+                    y: sampleY,
+                    distance: dist,
+                    isRiparian: isRiparian,
+                    om: om
+                });
+                
+                if (isRiparian) {
+                    riparianOMSum += om;
+                    riparianCount++;
+                } else {
+                    nonRiparianOMSum += om;
+                    nonRiparianCount++;
+                }
+            }
+            
+            // Calculate averages
+            const riparianOMAvg = riparianCount > 0 ? riparianOMSum / riparianCount : 0;
+            const nonRiparianOMAvg = nonRiparianCount > 0 ? nonRiparianOMSum / nonRiparianCount : 0;
+            const omDiff = riparianOMAvg - nonRiparianOMAvg;
+            
+            // Update metrics
+            document.getElementById('riparianOM').textContent = riparianOMAvg.toFixed(2);
+            document.getElementById('nonRiparianOM').textContent = nonRiparianOMAvg.toFixed(2);
+            document.getElementById('omDifference').textContent = omDiff.toFixed(2);
+            
+            // Update progress bars
+            document.getElementById('riparianOMProgress').style.width = `${Math.min(100, riparianOMAvg)}%`;
+            document.getElementById('nonRiparianOMProgress').style.width = `${Math.min(100, nonRiparianOMAvg)}%`;
+            
+            // Calculate changes from baseline
+            if (testState.baselineOM.riparian.length === 0) {
+                // Store baseline
+                testState.baselineOM.riparian = samples.filter(s => s.isRiparian).map(s => s.om);
+                testState.baselineOM.nonRiparian = samples.filter(s => !s.isRiparian).map(s => s.om);
+                document.getElementById('riparianOMChange').textContent = 'Baseline';
+                document.getElementById('nonRiparianOMChange').textContent = 'Baseline';
+                document.getElementById('omDifferenceChange').textContent = 'Baseline';
+            } else {
+                // Calculate changes
+                const baseRiparianAvg = testState.baselineOM.riparian.reduce((a, b) => a + b, 0) / testState.baselineOM.riparian.length;
+                const baseNonRiparianAvg = testState.baselineOM.nonRiparian.reduce((a, b) => a + b, 0) / testState.baselineOM.nonRiparian.length;
+                const baseDiff = baseRiparianAvg - baseNonRiparianAvg;
+                
+                const riparianChange = riparianOMAvg - baseRiparianAvg;
+                const nonRiparianChange = nonRiparianOMAvg - baseNonRiparianAvg;
+                const diffChange = omDiff - baseDiff;
+                
+                document.getElementById('riparianOMChange').textContent = `${riparianChange >= 0 ? '+' : ''}${riparianChange.toFixed(2)}`;
+                document.getElementById('nonRiparianOMChange').textContent = `${nonRiparianChange >= 0 ? '+' : ''}${nonRiparianChange.toFixed(2)}`;
+                document.getElementById('omDifferenceChange').textContent = `${diffChange >= 0 ? '+' : ''}${diffChange.toFixed(2)}`;
+                
+                // Set color classes
+                document.getElementById('riparianOMChange').className = riparianChange >= 0 ? 'metric-change' : 'metric-change negative';
+                document.getElementById('nonRiparianOMChange').className = nonRiparianChange >= 0 ? 'metric-change' : 'metric-change negative';
+            }
+            
+            // Update comparison table
+            updateComparisonTable(samples);
+            
+            // Store current samples
+            testState.currentSamples = samples;
+            
+            addLog(`Sampled ${samples.length} locations (${riparianCount} riparian, ${nonRiparianCount} non-riparian)`, 'pass');
+            addLog(`Riparian OM avg: ${riparianOMAvg.toFixed(2)}, Non-riparian OM avg: ${nonRiparianOMAvg.toFixed(2)}, Diff: ${omDiff.toFixed(2)}`, 'info');
+            
+            // Run validation if test is running
+            if (testState.testRunning) {
+                validateResults();
+            }
+        }
+        
+        // Update comparison table
+        function updateComparisonTable(samples) {
+            const tbody = document.getElementById('comparisonBody');
+            tbody.innerHTML = '';
+            
+            samples.forEach((sample, idx) => {
+                const row = tbody.insertRow();
+                
+                // Location
+                const locCell = row.insertCell();
+                locCell.textContent = `Sample ${idx + 1} (${sample.x}, ${sample.y})`;
+                
+                // Distance
+                const distCell = row.insertCell();
+                distCell.textContent = `${sample.distance} cells`;
+                
+                // Zone type
+                const zoneCell = row.insertCell();
+                zoneCell.textContent = sample.isRiparian ? 'Riparian' : 'Non-Riparian';
+                zoneCell.style.fontWeight = 'bold';
+                zoneCell.style.color = sample.isRiparian ? '#28a745' : '#6c757d';
+                
+                // Initial OM
+                const initCell = row.insertCell();
+                const baselineIdx = sample.isRiparian ? 
+                    testState.baselineOM.riparian.findIndex((_, i) => i === (sample.isRiparian ? idx : idx - testState.baselineOM.riparian.length)) :
+                    idx - testState.baselineOM.riparian.length;
+                const initialOM = testState.baselineOM.riparian.length > 0 ? 
+                    (sample.isRiparian ? testState.baselineOM.riparian[idx] : testState.baselineOM.nonRiparian[baselineIdx]) : 
+                    sample.om;
+                initCell.textContent = initialOM ? initialOM.toFixed(2) : '--';
+                
+                // Current OM
+                const currentCell = row.insertCell();
+                currentCell.textContent = sample.om.toFixed(2);
+                
+                // Change
+                const changeCell = row.insertCell();
+                if (testState.baselineOM.riparian.length > 0 && initialOM) {
+                    const change = sample.om - initialOM;
+                    changeCell.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}`;
+                    changeCell.style.color = change >= 0 ? '#28a745' : '#dc3545';
+                    changeCell.style.fontWeight = 'bold';
+                } else {
+                    changeCell.textContent = '--';
+                }
+                
+                // Status
+                const statusCell = row.insertCell();
+                if (sample.isRiparian) {
+                    statusCell.textContent = '✓ Accumulating';
+                    statusCell.style.color = '#28a745';
+                } else {
+                    statusCell.textContent = '↓ Decaying';
+                    statusCell.style.color = '#dc3545';
+                }
+                statusCell.style.fontWeight = 'bold';
+            });
+        }
+        
+        // Validate results
+        function validateResults() {
+            const engine = window.graphicsEngine;
+            if (!engine || testState.baselineOM.riparian.length === 0) return;
+            
+            const currentDay = engine.timeManager.getElapsedGameDays();
+            const daysSinceStart = currentDay - testState.startDay;
+            
+            if (daysSinceStart < 14) {
+                // Not enough time elapsed
+                document.getElementById('validationResults').innerHTML = `
+                    <div class="status info">
+                        ⏳ Test in progress. Days elapsed: ${daysSinceStart.toFixed(1)} / 14+ required for validation.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Calculate metrics
+            const riparianSamples = testState.currentSamples.filter(s => s.isRiparian);
+            const nonRiparianSamples = testState.currentSamples.filter(s => !s.isRiparian);
+            
+            const baseRiparianAvg = testState.baselineOM.riparian.reduce((a, b) => a + b, 0) / testState.baselineOM.riparian.length;
+            const baseNonRiparianAvg = testState.baselineOM.nonRiparian.reduce((a, b) => a + b, 0) / testState.baselineOM.nonRiparian.length;
+            
+            const currentRiparianAvg = riparianSamples.reduce((sum, s) => sum + s.om, 0) / riparianSamples.length;
+            const currentNonRiparianAvg = nonRiparianSamples.reduce((sum, s) => sum + s.om, 0) / nonRiparianSamples.length;
+            
+            const riparianChange = currentRiparianAvg - baseRiparianAvg;
+            const nonRiparianChange = currentNonRiparianAvg - baseNonRiparianAvg;
+            
+            // Validation checks
+            const checks = [
+                {
+                    name: 'Riparian OM Accumulation',
+                    condition: riparianChange > 2,
+                    result: riparianChange > 2,
+                    message: `Riparian zones gained ${riparianChange.toFixed(2)} OM (expected > 2)`
+                },
+                {
+                    name: 'Non-Riparian OM Decay',
+                    condition: nonRiparianChange < 1,
+                    result: nonRiparianChange < 1,
+                    message: `Non-riparian zones changed by ${nonRiparianChange.toFixed(2)} OM (expected < 1)`
+                },
+                {
+                    name: 'Riparian > Non-Riparian',
+                    condition: currentRiparianAvg > currentNonRiparianAvg,
+                    result: currentRiparianAvg > currentNonRiparianAvg,
+                    message: `Riparian OM (${currentRiparianAvg.toFixed(2)}) ${currentRiparianAvg > currentNonRiparianAvg ? '>' : '<='} Non-riparian OM (${currentNonRiparianAvg.toFixed(2)})`
+                },
+                {
+                    name: 'Time Elapsed',
+                    condition: daysSinceStart >= 14,
+                    result: daysSinceStart >= 14,
+                    message: `${daysSinceStart.toFixed(1)} days elapsed (required >= 14)`
+                }
+            ];
+            
+            const allPassed = checks.every(c => c.result);
+            
+            let html = `
+                <div class="status ${allPassed ? 'pass' : 'fail'}">
+                    <strong>${allPassed ? '✅ ALL CHECKS PASSED' : '❌ SOME CHECKS FAILED'}</strong>
+                </div>
+            `;
+            
+            checks.forEach(check => {
+                html += `
+                    <div class="status ${check.result ? 'pass' : 'fail'}">
+                        ${check.result ? '✓' : '✗'} ${check.name}: ${check.message}
+                    </div>
+                `;
+            });
+            
+            document.getElementById('validationResults').innerHTML = html;
+            
+            if (allPassed) {
+                addLog('✅ ALL VALIDATION CHECKS PASSED!', 'pass');
+            } else {
+                addLog('❌ Some validation checks failed', 'fail');
+            }
+        }
+        
+        // Toggle OM overlay
+        function toggleOMOverlay() {
+            const engine = window.graphicsEngine;
+            if (!engine) return;
+            
+            const debugManager = engine.debugManager;
+            if (!debugManager) return;
+            
+            const overlayManager = engine.overlayManager;
+            if (!overlayManager) return;
+            
+            // Cycle to organic matter overlay
+            overlayManager.currentOverlay = 'organicMatter';
+            overlayManager.overlayEnabled = true;
+            
+            addLog('OM overlay enabled', 'pass');
+        }
+        
+        // Compare to baseline
+        function compareToBaseline() {
+            if (testState.baselineOM.riparian.length === 0) {
+                addLog('No baseline recorded yet', 'fail');
+                return;
+            }
+            
+            sampleRiparianZones();
+        }
+        
+        // Reset test
+        function resetTest() {
+            testState = {
+                startTime: null,
+                startDay: 0,
+                baselineOM: {
+                    riparian: [],
+                    nonRiparian: []
+                },
+                currentSamples: [],
+                testRunning: false
+            };
+            
+            document.getElementById('validationResults').innerHTML = `
+                <div class="status info">
+                    Run test and wait 14+ game days to see validation results.
+                </div>
+            `;
+            
+            document.getElementById('comparisonBody').innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #666;">
+                        Click "Sample Riparian Zones" to populate data
+                    </td>
+                </tr>
+            `;
+            
+            addLog('Test reset. Ready to start again.', 'info');
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            addLog('Riparian OM test page loaded', 'pass');
+            addLog('Waiting for GraphicsEngine initialization...', 'info');
+            
+            // Wait for engine to initialize
+            const checkEngine = setInterval(() => {
+                if (window.graphicsEngine) {
+                    clearInterval(checkEngine);
+                    addLog('GraphicsEngine initialized', 'pass');
+                    
+                    // Check if riparian config is enabled
+                    const config = window.graphicsEngine.config;
+                    const riparianConfig = config?.world?.soil?.decomposition?.riparianZone;
+                    
+                    if (riparianConfig && riparianConfig.enabled) {
+                        addLog('Riparian zone config: ENABLED ✓', 'pass');
+                        addLog(`  - Radius: ${riparianConfig.radius} cells`, 'info');
+                        addLog(`  - Decay multiplier: ${riparianConfig.decayMultiplier}x`, 'info');
+                        addLog(`  - OM input: ${riparianConfig.organicInputPerDay}/day`, 'info');
+                    } else {
+                        addLog('Riparian zone config: DISABLED ✗', 'fail');
+                    }
+                    
+                    updateTimeline();
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

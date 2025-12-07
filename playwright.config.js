@@ -48,6 +48,8 @@ module.exports = defineConfig({
     ? '**/seed-persistence.spec.js'
     : process.env.TEST_OAK_CANOPY === 'true'
     ? '**/oak-canopy-cropping.spec.js'
+    : process.env.TEST_RIPARIAN_OM === 'true'
+    ? '**/riparian-om.spec.js'
     : process.env.TEST_OAK_PROXIMITY === 'true'
     ? '**/oak-proximity-reproduction.spec.js'
     : process.env.TEST_OAK_ECOSYSTEM === 'true'
@@ -56,6 +58,10 @@ module.exports = defineConfig({
     ? '**/multi-layer-simple.spec.js'
     : process.env.TEST_DAILY_CONSUMPTION === 'true'
     ? '**/daily-consumption.spec.js'
+    : process.env.TEST_FLOOD_LEACHING === 'true'
+    ? '**/flood-leaching-balance.spec.js'
+    : process.env.TEST_LEACHING_DIAGNOSTIC === 'true'
+    ? '**/leaching-diagnostic.spec.js'
     : process.env.TEST_INTERACTIVE === 'true' ||
       process.env.TEST_SCREENSHOT_ONLY === 'true' || 
       process.env.TEST_LOG_ONLY === 'true'
@@ -63,7 +69,7 @@ module.exports = defineConfig({
     : '**/verify.spec.js',
   
   // Test timeout
-  timeout: 30000,
+  timeout: process.env.TEST_LEACHING_DIAGNOSTIC === 'true' ? 180000 : 30000,
   
   // Expect timeout for assertions
   expect: {

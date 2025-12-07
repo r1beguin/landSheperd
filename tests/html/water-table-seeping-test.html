@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Table Seeping Test - Land Shepherd</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            background-color: #1a1a1a;
+            color: #00ff00;
+        }
+        
+        #test-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff00;
+            padding: 15px;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 1000;
+            font-size: 12px;
+        }
+        
+        #test-panel h2 {
+            margin-top: 0;
+            color: #00ff00;
+            font-size: 16px;
+        }
+        
+        .test-section {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 50, 0, 0.3);
+            border-left: 3px solid #00ff00;
+        }
+        
+        .test-result {
+            margin: 5px 0;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .pass {
+            color: #00ff00;
+        }
+        
+        .fail {
+            color: #ff0000;
+        }
+        
+        .warning {
+            color: #ffff00;
+        }
+        
+        button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #00cc00;
+        }
+        
+        button:disabled {
+            background: #666;
+            color: #333;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="test-panel">
+        <h2>WATER TABLE SEEPING TEST</h2>
+        <div class="test-section">
+            <strong>Status:</strong> <span id="test-status">Initializing...</span><br>
+            <strong>Water Tiles:</strong> <span id="water-tile-count">-</span><br>
+            <strong>Config:</strong><br>
+            <div id="config-display" style="margin-left: 10px; font-size: 11px;"></div>
+        </div>
+        
+        <div class="test-section">
+            <button id="btn-run-test" disabled>Run 20-Day Test</button>
+            <button id="btn-reset">Reset View</button>
+        </div>
+        
+        <div id="test-results"></div>
+    </div>
+    
+    <!-- Load dependencies in correct order -->
+    <script src="../../js/core/geometry_manager.js"></script>
+    <script src="../../js/core/shader_manager.js"></script>
+    <script src="../../js/core/texture_generator.js"></script>
+    <script src="../../js/core/procedural_generator.js"></script>
+    <script src="../../js/core/terrain_generator.js"></script>
+    <script src="../../js/entities/soil.js"></script>
+    <script src="../../js/entities/plant.js"></script>
+    <script src="../../js/core/soil_effects_manager.js"></script>
+    <script src="../../js/core/soil_manager.js"></script>
+    <script src="../../js/core/plant_manager.js"></script>
+    <script src="../../js/core/time_manager.js"></script>
+    <script src="../../js/core/weather_manager.js"></script>
+    <script src="../../js/core/lighting_manager.js"></script>
+    <script src="../../js/systems/camera_manager.js"></script>
+    <script src="../../js/systems/input_manager.js"></script>
+    <script src="../../js/systems/overlay_manager.js"></script>
+    <script src="../../js/systems/render_system.js"></script>
+    <script src="../../js/core/debug_manager.js"></script>
+    <script src="../../js/core/main_graphics.js"></script>
+    
+    <script>
+        // Test state
+        let testRunning = false;
+        let initialStates = [];
+        
+        // Wait for engine to initialize
+        let initCheckInterval = setInterval(() => {
+            if (window.graphicsEngine && window.graphicsEngine.initialized) {
+                clearInterval(initCheckInterval);
+                initializeTest();
+            }
+        }, 100);
+        
+        function initializeTest() {
+            const engine = window.graphicsEngine;
+            const config = engine.config.world.terrain.water.waterTable;
+            const waterTiles = engine.soilManager.terrainGenerator.getWaterTiles();
+            
+            // Display config
+            document.getElementById('config-display').innerHTML = `
+                Enabled: ${config.enabled}<br>
+                Radius: ${config.radius} cells<br>
+                Rate: ${config.seepingRatePerDay}/day<br>
+                Max: ${config.maxWaterRetention}
+            `;
+            
+            document.getElementById('water-tile-count').textContent = waterTiles.size;
+            document.getElementById('test-status').textContent = 'Ready';
+            document.getElementById('test-status').className = 'pass';
+            
+            // Enable test button
+            document.getElementById('btn-run-test').disabled = false;
+            
+            // Setup buttons
+            document.getElementById('btn-run-test').onclick = runTest;
+            document.getElementById('btn-reset').onclick = resetView;
+        }
+        
+        function resetView() {
+            const engine = window.graphicsEngine;
+            engine.cameraManager.setPosition(0, 0);
+            engine.cameraManager.setZoom(2.0);
+        }
+        
+        async function runTest() {
+            if (testRunning) return;
+            
+            testRunning = true;
+            document.getElementById('btn-run-test').disabled = true;
+            document.getElementById('test-status').textContent = 'Running...';
+            document.getElementById('test-status').className = 'warning';
+            document.getElementById('test-results').innerHTML = '';
+            
+            const engine = window.graphicsEngine;
+            const soilManager = engine.soilManager;
+            const timeManager = engine.timeManager;
+            const terrainGenerator = soilManager.terrainGenerator;
+            const waterTableConfig = engine.config.world.terrain.water.waterTable;
+            
+            // Find first water tile
+            const waterTiles = terrainGenerator.getWaterTiles();
+            const firstWaterTile = Array.from(waterTiles)[0];
+            const [waterX, waterY] = firstWaterTile.split(',').map(Number);
+            
+            addResult(`Testing near water tile at (${waterX}, ${waterY})`);
+            
+            // Test cells at various distances
+            const testCells = [
+                { x: waterX + 1, y: waterY, dist: 1 },
+                { x: waterX + 2, y: waterY, dist: 2 },
+                { x: waterX + 3, y: waterY, dist: 3 },
+                { x: waterX + 4, y: waterY, dist: 4 },
+                { x: waterX + 5, y: waterY, dist: 5 }
+            ];
+            
+            // Record initial states
+            initialStates = [];
+            addResult('<br><strong>INITIAL STATES:</strong>');
+            for (const cell of testCells) {
+                const soil = soilManager.getSoilAt(cell.x, cell.y);
+                if (!soil || soil.isWater || !soil.isPlantable) {
+                    addResult(`Dist ${cell.dist}: (${cell.x}, ${cell.y}) - SKIP`, 'warning');
+                    initialStates.push(null);
+                    continue;
+                }
+                
+                const state = {
+                    x: cell.x,
+                    y: cell.y,
+                    distance: cell.dist,
+                    waterRetention: soil.waterRetention
+                };
+                initialStates.push(state);
+                addResult(`Dist ${cell.dist}: Water = ${state.waterRetention.toFixed(2)}`);
+            }
+            
+            addResult('<br><strong>Fast-forwarding 20 game days...</strong>', 'warning');
+            
+            // Set fast time scale
+            const originalTimeScale = timeManager.getTimeScale();
+            timeManager.setTimeScale(5.0);
+            
+            // Fast-forward
+            const currentDay = timeManager.getElapsedGameDays();
+            const targetDay = currentDay + 20;
+            
+            while (timeManager.getElapsedGameDays() < targetDay) {
+                const deltaTime = 0.1;
+                timeManager.update(deltaTime);
+                soilManager.update(deltaTime);
+                await new Promise(resolve => requestAnimationFrame(resolve));
+            }
+            
+            timeManager.setTimeScale(originalTimeScale);
+            
+            // Check results
+            addResult('<br><strong>FINAL RESULTS:</strong>');
+            let allPassed = true;
+            
+            for (let i = 0; i < initialStates.length; i++) {
+                const initial = initialStates[i];
+                if (!initial) continue;
+                
+                const soil = soilManager.getSoilAt(initial.x, initial.y);
+                const finalWater = soil.waterRetention;
+                const increase = finalWater - initial.waterRetention;
+                
+                const radius = waterTableConfig.radius;
+                const distance = initial.distance;
+                const falloff = distance <= radius ? (1.0 - (distance / radius)) : 0;
+                const expectedIncrease = waterTableConfig.seepingRatePerDay * 20 * falloff;
+                
+                addResult(`<br>Dist ${distance}:`);
+                addResult(`  Initial: ${initial.waterRetention.toFixed(2)}`);
+                addResult(`  Final: ${finalWater.toFixed(2)}`);
+                addResult(`  Increase: ${increase.toFixed(2)}`);
+                addResult(`  Expected: ~${expectedIncrease.toFixed(2)} (falloff ${falloff.toFixed(2)})`);
+                
+                if (distance <= radius) {
+                    if (increase > 0) {
+                        addResult(`  ✓ PASS - Increase within radius`, 'pass');
+                    } else {
+                        addResult(`  ✗ FAIL - No increase`, 'fail');
+                        allPassed = false;
+                    }
+                    
+                    if (finalWater > waterTableConfig.maxWaterRetention) {
+                        addResult(`  ✗ FAIL - Exceeded max`, 'fail');
+                        allPassed = false;
+                    }
+                } else {
+                    if (Math.abs(increase) < 0.1) {
+                        addResult(`  ✓ PASS - Minimal change outside radius`, 'pass');
+                    } else {
+                        addResult(`  ⚠ WARNING - Unexpected change`, 'warning');
+                    }
+                }
+            }
+            
+            addResult(`<br><strong>SUMMARY:</strong> ${allPassed ? '✓ ALL TESTS PASSED' : '✗ SOME TESTS FAILED'}`, allPassed ? 'pass' : 'fail');
+            
+            document.getElementById('test-status').textContent = allPassed ? 'PASSED' : 'FAILED';
+            document.getElementById('test-status').className = allPassed ? 'pass' : 'fail';
+            document.getElementById('btn-run-test').disabled = false;
+            testRunning = false;
+        }
+        
+        function addResult(text, className = '') {
+            const div = document.createElement('div');
+            div.className = `test-result ${className}`;
+            div.innerHTML = text;
+            document.getElementById('test-results').appendChild(div);
+        }
+    </script>
+</body>
+</html>

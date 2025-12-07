@@ -1,6 +1,6 @@
 # Land Shepherd Documentation Index
 
-**Last updated:** 2025-12-06 (Root Depth & Nutrient Cycling System Complete)
+**Last updated:** 2025-12-07 (Water Fertility Performance Optimization Complete)
 
 Welcome to the Land Shepherd documentation. This index helps you find the information you need quickly.
 
@@ -42,7 +42,8 @@ System design, technical details, and rendering pipeline.
 Feature-specific documentation with implementation details.
 
 - [config-validation-system.md](features/config-validation-system.md) - JSON schema validation for configs
-- [root-depth-nutrient-cycling.md](features/root-depth-nutrient-cycling.md) - 2-layer soil with nutrient cycling (NEW)
+- [water-fertility-performance-optimization.md](features/water-fertility-performance-optimization.md) - Performance optimization case study (9→48 FPS) (NEW)
+- [root-depth-nutrient-cycling.md](features/root-depth-nutrient-cycling.md) - 2-layer soil with nutrient cycling
 - [starvation-visualization-system.md](features/starvation-visualization-system.md) - Multi-stage nutrient deficiency visualization
 - [oak-genetics-system.md](features/oak-genetics-system.md) - Oak genetics, reproduction, and inheritance
 - [plant-generation-system.md](features/plant-generation-system.md) - Procedural plant generation
@@ -50,6 +51,7 @@ Feature-specific documentation with implementation details.
 - [fertility-system.md](features/fertility-system.md) - Soil fertility system
 - [nutrient-system.md](features/nutrient-system.md) - Multi-nutrient system (N, P, K, OM)
 - [terrain-generation-system.md](features/terrain-generation-system.md) - Procedural rivers, lakes, and fertility zones
+- [flood-events-system.md](features/flood-events-system.md) - Periodic flooding with nutrient deposition
 - [context-menu-system.md](features/context-menu-system.md) - Context menu implementation
 - [visual-feedback-system.md](features/visual-feedback-system.md) - Visual feedback mechanics
 - [weather-system.md](features/weather-system.md) - Weather state management and effects

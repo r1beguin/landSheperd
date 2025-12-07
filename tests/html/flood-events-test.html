@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flood Events Manual Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00ffff;
+            border-bottom: 2px solid #00ffff;
+            padding-bottom: 10px;
+        }
+        .status-box {
+            background: #2a2a2a;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .status-box h2 {
+            color: #ffff00;
+            margin-top: 0;
+        }
+        .status-item {
+            margin: 8px 0;
+            padding: 5px;
+            background: #1a1a1a;
+            border-left: 3px solid #00ff00;
+            padding-left: 10px;
+        }
+        .error {
+            border-left-color: #ff0000;
+            color: #ff6666;
+        }
+        .warning {
+            border-left-color: #ffaa00;
+            color: #ffcc66;
+        }
+        .success {
+            border-left-color: #00ff00;
+            color: #66ff66;
+        }
+        button {
+            background: #00aa00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        #log {
+            background: #0a0a0a;
+            border: 2px solid #333;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .log-entry {
+            margin: 3px 0;
+        }
+        .log-flood {
+            color: #00ffff;
+            font-weight: bold;
+        }
+        .log-error {
+            color: #ff6666;
+        }
+        .log-warn {
+            color: #ffaa00;
+        }
+        .nutrient-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .nutrient-table th,
+        .nutrient-table td {
+            border: 1px solid #444;
+            padding: 8px;
+            text-align: left;
+        }
+        .nutrient-table th {
+            background: #333;
+            color: #ffff00;
+        }
+        .increase {
+            color: #66ff66;
+        }
+        .decrease {
+            color: #ff6666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Flood Events Manual Test - Milestone 2</h1>
+        
+        <div class="status-box">
+            <h2>System Status</h2>
+            <div id="status">
+                <div class="status-item">Initializing...</div>
+            </div>
+        </div>
+        
+        <div class="status-box">
+            <h2>Flood Configuration</h2>
+            <div id="flood-config">
+                <div class="status-item">Loading...</div>
+            </div>
+        </div>
+        
+        <div class="status-box">
+            <h2>Test Controls</h2>
+            <button onclick="testManualFlood()">Trigger Manual Flood</button>
+            <button onclick="accelerateTime()">Accelerate Time (5x)</button>
+            <button onclick="normalTime()">Normal Time (0.1x)</button>
+            <button onclick="checkNutrients()">Check Nutrients</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div class="status-box">
+            <h2>Nutrient Values Near River</h2>
+            <table class="nutrient-table" id="nutrient-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Nitrogen</th>
+                        <th>Phosphorus</th>
+                        <th>Potassium</th>
+                        <th>Organic Matter</th>
+                    </tr>
+                </thead>
+                <tbody id="nutrient-data">
+                    <tr>
+                        <td colspan="5">No data yet</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="status-box">
+            <h2>Event Log</h2>
+            <div id="log"></div>
+        </div>
+    </div>
+    
+    <script>
+        let testSoilCell = null;
+        let nutrientHistory = [];
+        
+        // Intercept console.log to capture flood events
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.join(' ');
+            
+            if (message.includes('[FLOOD]')) {
+                addLog(message, 'log-flood');
+            } else {
+                addLog(message);
+            }
+        };
+        
+        const originalError = console.error;
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog(args.join(' '), 'log-error');
+        };
+        
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addLog(args.join(' '), 'log-warn');
+        };
+        
+        function addLog(message, className = '') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + className;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            addLog('Log cleared');
+        }
+        
+        function updateStatus() {
+            const engine = window.graphicsEngine;
+            if (!engine) {
+                document.getElementById('status').innerHTML = 
+                    '<div class="status-item error">❌ Graphics Engine not initialized</div>';
+                return;
+            }
+            
+            const timeManager = engine.timeManager;
+            const soilManager = engine.soilManager;
+            const terrainGen = soilManager?.terrainGenerator;
+            
+            const statusHTML = `
+                <div class="status-item success">✅ Graphics Engine initialized</div>
+                <div class="status-item success">✅ TimeManager ready</div>
+                <div class="status-item success">✅ SoilManager ready</div>
+                <div class="status-item">Current Game Day: ${timeManager.getCurrentDayPrecise().toFixed(2)}</div>
+                <div class="status-item">Time Scale: ${timeManager.getTimeScale()}x</div>
+                <div class="status-item">Days Since Last Flood: ${timeManager.daysSinceLastFlood.toFixed(2)}</div>
+                <div class="status-item">River Tiles: ${terrainGen?.getRiverTiles()?.size || 0}</div>
+                <div class="status-item">Lake Tiles: ${terrainGen?.getLakeTiles()?.size || 0}</div>
+            `;
+            
+            document.getElementById('status').innerHTML = statusHTML;
+        }
+        
+        function updateFloodConfig() {
+            const engine = window.graphicsEngine;
+            if (!engine) return;
+            
+            const floodConfig = engine.config?.world?.terrain?.water?.floodEvents;
+            const tmFloodConfig = engine.timeManager?.floodConfig;
+            
+            if (!floodConfig) {
+                document.getElementById('flood-config').innerHTML = 
+                    '<div class="status-item error">❌ Flood config not found</div>';
+                return;
+            }
+            
+            const configHTML = `
+                <div class="status-item ${floodConfig.enabled ? 'success' : 'error'}">
+                    Enabled: ${floodConfig.enabled ? '✅ YES' : '❌ NO'}
+                </div>
+                <div class="status-item">Interval: ${floodConfig.intervalDays} game days</div>
+                <div class="status-item">Radius: ${floodConfig.radius} cells</div>
+                <div class="status-item">Nitrogen Bonus: ${floodConfig.nitrogenBonus}</div>
+                <div class="status-item">Phosphorus Bonus: ${floodConfig.phosphorusBonus}</div>
+                <div class="status-item">Potassium Bonus: ${floodConfig.potassiumBonus}</div>
+                <div class="status-item">Organic Matter Bonus: ${floodConfig.organicMatterBonus}</div>
+                <div class="status-item ${tmFloodConfig ? 'success' : 'error'}">
+                    TimeManager has config: ${tmFloodConfig ? '✅ YES' : '❌ NO'}
+                </div>
+            `;
+            
+            document.getElementById('flood-config').innerHTML = configHTML;
+        }
+        
+        function findTestSoilCell() {
+            const engine = window.graphicsEngine;
+            const soilManager = engine.soilManager;
+            const terrainGen = soilManager.terrainGenerator;
+            const riverTiles = terrainGen.getRiverTiles();
+            
+            if (riverTiles.size === 0) {
+                addLog('No river tiles found!', 'log-error');
+                return null;
+            }
+            
+            // Get first river tile
+            const firstRiverKey = Array.from(riverTiles)[0];
+            const [riverX, riverY] = firstRiverKey.split(',').map(Number);
+            
+            // Find nearby plantable soil
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const testX = riverX + dx;
+                    const testY = riverY + dy;
+                    const soil = soilManager.getSoilAt(testX, testY);
+                    if (soil && !soil.isWater && soil.isPlantable) {
+                        addLog(`Test cell found at (${testX}, ${testY}) near river (${riverX}, ${riverY})`);
+                        return { x: testX, y: testY, soil: soil };
+                    }
+                }
+            }
+            
+            addLog('No plantable soil found near river!', 'log-error');
+            return null;
+        }
+        
+        function checkNutrients() {
+            if (!testSoilCell) {
+                testSoilCell = findTestSoilCell();
+                if (!testSoilCell) return;
+            }
+            
+            const engine = window.graphicsEngine;
+            const soilManager = engine.soilManager;
+            const soil = soilManager.getSoilAt(testSoilCell.x, testSoilCell.y);
+            
+            if (!soil) {
+                addLog('Test soil cell not found!', 'log-error');
+                return;
+            }
+            
+            const currentDay = engine.timeManager.getCurrentDayPrecise();
+            const record = {
+                day: currentDay.toFixed(2),
+                nitrogen: soil.nitrogen.toFixed(2),
+                phosphorus: soil.phosphorus.toFixed(2),
+                potassium: soil.potassium.toFixed(2),
+                organicMatter: soil.organicMatter.toFixed(2)
+            };
+            
+            nutrientHistory.push(record);
+            updateNutrientTable();
+            
+            addLog(`Nutrients checked: N=${record.nitrogen}, P=${record.phosphorus}, K=${record.potassium}, OM=${record.organicMatter}`);
+        }
+        
+        function updateNutrientTable() {
+            const tbody = document.getElementById('nutrient-data');
+            tbody.innerHTML = '';
+            
+            nutrientHistory.forEach((record, i) => {
+                const row = document.createElement('tr');
+                
+                let deltaHTML = '<td>' + record.day + '</td>';
+                
+                if (i > 0) {
+                    const prev = nutrientHistory[i-1];
+                    const nDelta = (record.nitrogen - prev.nitrogen).toFixed(2);
+                    const pDelta = (record.phosphorus - prev.phosphorus).toFixed(2);
+                    const kDelta = (record.potassium - prev.potassium).toFixed(2);
+                    const omDelta = (record.organicMatter - prev.organicMatter).toFixed(2);
+                    
+                    const nClass = nDelta > 0 ? 'increase' : nDelta < 0 ? 'decrease' : '';
+                    const pClass = pDelta > 0 ? 'increase' : pDelta < 0 ? 'decrease' : '';
+                    const kClass = kDelta > 0 ? 'increase' : kDelta < 0 ? 'decrease' : '';
+                    const omClass = omDelta > 0 ? 'increase' : omDelta < 0 ? 'decrease' : '';
+                    
+                    row.innerHTML = `
+                        ${deltaHTML}
+                        <td class="${nClass}">${record.nitrogen} (${nDelta > 0 ? '+' : ''}${nDelta})</td>
+                        <td class="${pClass}">${record.phosphorus} (${pDelta > 0 ? '+' : ''}${pDelta})</td>
+                        <td class="${kClass}">${record.potassium} (${kDelta > 0 ? '+' : ''}${kDelta})</td>
+                        <td class="${omClass}">${record.organicMatter} (${omDelta > 0 ? '+' : ''}${omDelta})</td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        ${deltaHTML}
+                        <td>${record.nitrogen}</td>
+                        <td>${record.phosphorus}</td>
+                        <td>${record.potassium}</td>
+                        <td>${record.organicMatter}</td>
+                    `;
+                }
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        function testManualFlood() {
+            const engine = window.graphicsEngine;
+            const soilManager = engine.soilManager;
+            const terrainGen = soilManager.terrainGenerator;
+            const riverTiles = terrainGen.getRiverTiles();
+            const floodConfig = engine.config.world.terrain.water.floodEvents;
+            
+            addLog('=== Manually Triggering Flood Event ===', 'log-flood');
+            checkNutrients(); // Record before
+            
+            const startTime = performance.now();
+            const updated = soilManager.soilEffectsManager.applyFloodEffects(
+                soilManager.soilGrid,
+                riverTiles,
+                floodConfig
+            );
+            const endTime = performance.now();
+            
+            if (updated) {
+                soilManager.needsRefresh = true;
+                addLog(`✅ Flood applied successfully (${(endTime - startTime).toFixed(1)}ms)`, 'log-flood');
+            } else {
+                addLog('❌ Flood application failed', 'log-error');
+            }
+            
+            setTimeout(() => {
+                checkNutrients(); // Record after
+            }, 100);
+        }
+        
+        function accelerateTime() {
+            window.graphicsEngine.timeManager.setTimeScalePreset('veryFast');
+            addLog('Time scale set to veryFast (5.0x)');
+            updateStatus();
+        }
+        
+        function normalTime() {
+            window.graphicsEngine.timeManager.setTimeScalePreset('slow');
+            addLog('Time scale set to slow (0.1x)');
+            updateStatus();
+        }
+        
+        // Wait for game to load
+        function initTest() {
+            if (!window.graphicsEngine) {
+                setTimeout(initTest, 100);
+                return;
+            }
+            
+            addLog('Graphics Engine loaded');
+            updateStatus();
+            updateFloodConfig();
+            checkNutrients(); // Initial reading
+            
+            // Update status every 2 seconds
+            setInterval(updateStatus, 2000);
+        }
+        
+        initTest();
+    </script>
+</body>
+</html>

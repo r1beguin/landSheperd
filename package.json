@@ -27,6 +27,8 @@
     "test:splash": "cross-env TEST_SPLASH=true playwright test --headed",
     "test:context-menu": "cross-env TEST_FUNCTIONAL=true playwright test --headed",
     "test:oak-canopy": "cross-env TEST_OAK_CANOPY=true playwright test",
+    "test:riparian-om": "cross-env TEST_RIPARIAN_OM=true playwright test --timeout=180000",
+    "test:leaching-diagnostic": "cross-env TEST_LEACHING_DIAGNOSTIC=true playwright test --timeout=180000 --workers=1",
     "dev": "npx http-server -p 8080",
     "postinstall": "playwright install chromium"
   },

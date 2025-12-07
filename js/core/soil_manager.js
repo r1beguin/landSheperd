@@ -51,6 +51,12 @@ class SoilManager {
         this.terrainGenerator = new TerrainGenerator(this.config, this.proceduralGenerator);
         this.soilEffectsManager = new SoilEffectsManager(this.config.world);
         
+        // P1: Riparian grid (populated by terrain generator after terrain generation)
+        this.riparianGrid = new Map();
+        
+        // P2: Water seeping influence map (populated by terrain generator after terrain generation)
+        this.waterSeepingInfluenceMap = new Map();
+        
         this.initializeSoilGrid();
         this.createSoilGeometry();
     }
@@ -111,6 +117,12 @@ class SoilManager {
         
         // Get water tiles from terrain generator
         this.waterTiles = this.terrainGenerator.getWaterTiles();
+        
+        // P1: Get riparian grid from terrain generator (populated during generateTerrain)
+        this.riparianGrid = this.terrainGenerator.riparianGrid;
+        
+        // P2: Get water seeping influence map from terrain generator (populated during generateTerrain)
+        this.waterSeepingInfluenceMap = this.terrainGenerator.waterSeepingInfluenceMap;
     }
 
     // Check if this location should allow plant placement (more restrictive than soil existence)
@@ -421,20 +433,112 @@ class SoilManager {
             soil.update(deltaTime);
         });
         
-        // Apply weather effects via SoilEffectsManager
-        const weatherUpdated = this.soilEffectsManager.applyWeatherEffects(this.soilGrid, deltaTime);
-        if (weatherUpdated) {
-            this.needsRefresh = true;
+        // Get TimeManager for throttling
+        const timeManager = window.graphicsEngine?.timeManager;
+        if (!timeManager) {
+            return; // Can't throttle without TimeManager
         }
         
-        // Apply organic matter decomposition via SoilEffectsManager
-        const decompositionUpdated = this.soilEffectsManager.applyOrganicMatterDecomposition(
-            this.soilGrid,
-            (x, y) => this.getSoilAt(x, y),
-            deltaTime
-        );
-        if (decompositionUpdated) {
-            this.needsRefresh = true;
+        // === WEATHER EFFECTS THROTTLING (once per game HOUR) ===
+        if (this.lastWeatherEffectsHour === undefined) {
+            this.lastWeatherEffectsHour = -1;
+        }
+        
+        const preciseDay = timeManager.getCurrentDayPrecise(); // Fractional day (e.g., 2.45 = day 2, 45% through)
+        const currentHour = Math.floor((preciseDay % 1) * 24); // Extract hour from fractional part (0-23)
+        const currentDay = timeManager.getCurrentDay();
+        const absoluteHour = currentDay * 24 + currentHour; // Total hours since start
+        
+        // Only run once per game hour
+        if (absoluteHour > this.lastWeatherEffectsHour) {
+            const weatherUpdated = this.soilEffectsManager.applyWeatherEffects(
+                this.soilGrid, 
+                deltaTime,
+                this.riparianGrid  // P1: Pass pre-computed riparian grid
+            );
+            if (weatherUpdated) {
+                this.needsRefresh = true;
+            }
+            this.lastWeatherEffectsHour = absoluteHour;
+            
+            // Debug log (only during rain)
+            const weatherManager = window.graphicsEngine?.weatherManager;
+            if (weatherManager && weatherManager.getCurrentWeather() === 'rainy') {
+                console.log(`[WEATHER] Effects applied at hour ${absoluteHour} (day ${currentDay}, time ${currentHour})`);
+            }
+        }
+        
+        // === DECOMPOSITION THROTTLING (once per game DAY) ===
+        if (this.lastDecompositionDay === undefined) {
+            this.lastDecompositionDay = 0;
+        }
+        
+        if (currentDay > this.lastDecompositionDay) {
+            const decompositionUpdated = this.soilEffectsManager.applyOrganicMatterDecomposition(
+                this.soilGrid,
+                (x, y) => this.getSoilAt(x, y),
+                deltaTime,
+                this.riparianGrid  // P1: Pass pre-computed riparian grid
+            );
+            if (decompositionUpdated) {
+                this.needsRefresh = true;
+            }
+            this.lastDecompositionDay = currentDay;
+            
+            console.log(`[DECOMPOSITION] Applied on day ${currentDay}`);
+        }
+        
+        // === NITROGEN REGENERATION THROTTLING (once per game DAY) ===
+        if (this.lastNitrogenRegenDay === undefined) {
+            this.lastNitrogenRegenDay = 0;
+        }
+        
+        if (currentDay > this.lastNitrogenRegenDay) {
+            const nitrogenRegenUpdated = this.soilEffectsManager.applyNitrogenRegeneration(
+                this.soilGrid, 
+                deltaTime,
+                this.riparianGrid  // P1: Pass pre-computed riparian grid
+            );
+            if (nitrogenRegenUpdated) {
+                this.needsRefresh = true;
+            }
+            this.lastNitrogenRegenDay = currentDay;
+            
+            console.log(`[NITROGEN] Regeneration applied on day ${currentDay}`);
+        }
+        
+        // === WATER SEEPING THROTTLING (once per game DAY) ===
+        const waterTableConfig = this.config.world?.terrain?.water?.waterTable;
+        if (waterTableConfig?.enabled) {
+            // Initialize throttle tracking
+            if (this.lastSeepingDay === undefined) {
+                this.lastSeepingDay = 0;
+            }
+            
+            // Only run seeping once per game day (throttle from 60fps to 1/day)
+            if (currentDay > this.lastSeepingDay) {
+                // Get all water tiles from terrain generator
+                const allWaterTiles = this.terrainGenerator.getWaterTiles();
+                
+                // Convert deltaTime (seconds) to game days
+                const realSecondsPerGameDay = timeManager.config.realSecondsPerGameDay;
+                const gameDaysElapsed = deltaTime / realSecondsPerGameDay;
+                
+                const seepingUpdated = this.soilEffectsManager.applyWaterTableEffects(
+                    this.soilGrid,
+                    allWaterTiles,
+                    gameDaysElapsed,
+                    waterTableConfig,
+                    this.waterSeepingInfluenceMap  // P2: Pass pre-computed influence map
+                );
+                
+                this.lastSeepingDay = currentDay;
+                
+                if (seepingUpdated > 0) {
+                    console.log(`[WATER] Seeping updated ${seepingUpdated} cells on day ${currentDay}`);
+                    this.needsRefresh = true;
+                }
+            }
         }
     }
     

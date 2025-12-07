@@ -16,8 +16,9 @@ class SoilEffectsManager {
      * @param {Object} config - Configuration from config.json
      */
     constructor(config) {
-        this.weatherEffectsConfig = config.weatherEffects || null;
-        this.decompositionConfig = config.decomposition || null;
+        this.weatherEffectsConfig = config.weather?.soilEffects || null;
+        this.decompositionConfig = config.soil?.decomposition || null;
+        this.nitrogenRegenConfig = config.soil?.nitrogenRegeneration || null;
         
         // Decomposition state tracking
         this.decompositionLogCounter = 0;
@@ -31,6 +32,7 @@ class SoilEffectsManager {
         console.log('[SoilEffectsManager] Initialized', {
             weatherEffectsEnabled: !!this.weatherEffectsConfig,
             decompositionEnabled: this.decompositionConfig?.enabled || false,
+            nitrogenRegenEnabled: this.nitrogenRegenConfig?.enabled || false,
             activityWindow: this.decompositionActivityWindow
         });
     }
@@ -38,10 +40,12 @@ class SoilEffectsManager {
     /**
      * Apply weather effects to soil (rain increases water, sun evaporates)
      * MILESTONE 4: Added nutrient leaching during rain (surface → deep transfer)
+     * P1: Added riparianGrid parameter for O(1) riparian zone lookups
      * @param {Map} soilGrid - Map of soil objects keyed by "x,y"
      * @param {number} deltaTime - Time since last frame (seconds)
+     * @param {Map<string, Object>} riparianGrid - Pre-computed riparian grid (P1 optimization)
      */
-    applyWeatherEffects(soilGrid, deltaTime) {
+    applyWeatherEffects(soilGrid, deltaTime, riparianGrid = null) {
         // Check if weather system is available and configured
         if (!this.weatherEffectsConfig) {
             return;
@@ -118,6 +122,7 @@ class SoilEffectsManager {
             let waterCellsUpdated = 0;
             let nitrogenCellsUpdated = 0;
             let leachedCellsCount = 0;
+            let riparianCellsProtected = 0; // Track riparian protection
             
             soilGrid.forEach(soil => {
                 // Apply water changes
@@ -151,11 +156,26 @@ class SoilEffectsManager {
                 if (hasLeaching && soil.nutrientLayers) {
                     const gameDaysElapsed = deltaTime / realSecondsPerGameDay;
                     
-                    // Calculate leach amounts this frame
-                    const nLeach = leachAmountsPerDay.nitrogen * gameDaysElapsed;
-                    const pLeach = leachAmountsPerDay.phosphorus * gameDaysElapsed;
-                    const kLeach = leachAmountsPerDay.potassium * gameDaysElapsed;
-                    const omLeach = leachAmountsPerDay.organicMatter * gameDaysElapsed;
+                    // P1: Check if cell is in riparian zone using pre-computed grid (O(1) lookup)
+                    let leachingMultiplier = 1.0; // Default: normal leaching
+                    let isRiparianZone = false; // Track for logging
+                    
+                    const riparianConfig = leachingConfig.riparianResistance;
+                    if (riparianConfig?.enabled && riparianGrid) {
+                        const cellKey = `${soil.gridX},${soil.gridY}`;
+                        isRiparianZone = riparianGrid.has(cellKey);
+                        
+                        if (isRiparianZone) {
+                            // Riparian zone: Clay-rich floodplain soil resists leaching
+                            leachingMultiplier = riparianConfig.leachingMultiplier || 0.3;
+                        }
+                    }
+                    
+                    // Calculate leach amounts this frame (with riparian multiplier)
+                    const nLeach = leachAmountsPerDay.nitrogen * gameDaysElapsed * leachingMultiplier;
+                    const pLeach = leachAmountsPerDay.phosphorus * gameDaysElapsed * leachingMultiplier;
+                    const kLeach = leachAmountsPerDay.potassium * gameDaysElapsed * leachingMultiplier;
+                    const omLeach = leachAmountsPerDay.organicMatter * gameDaysElapsed * leachingMultiplier;
                     
                     // Transfer from surface to deep (with efficiency loss)
                     const efficiency = leachAmountsPerDay.efficiency;
@@ -178,9 +198,19 @@ class SoilEffectsManager {
                         soil.updateNutrientsLayered('surface', surfaceN, surfaceP, surfaceK, surfaceOM);
                         soil.updateNutrientsLayered('deep', deepN, deepP, deepK, deepOM);
                         leachedCellsCount++;
+                        
+                        // Track riparian protection
+                        if (isRiparianZone) {
+                            riparianCellsProtected++;
+                        }
                     }
                 }
             });
+            
+            // Log riparian protection stats (throttled)
+            if (riparianCellsProtected > 0 && leachedCellsCount > 0) {
+                console.log(`[LEACHING] ${leachedCellsCount} cells leached, ${riparianCellsProtected} riparian protected (${(riparianCellsProtected/leachedCellsCount*100).toFixed(1)}%)`);
+            }
             
             // Return whether cells were updated (for cache invalidation)
             return waterCellsUpdated > 0 || nitrogenCellsUpdated > 0 || leachedCellsCount > 0;
@@ -192,12 +222,14 @@ class SoilEffectsManager {
     /**
      * Apply organic matter decomposition into nitrogen and phosphorus
      * Uses localized decomposition only in active plant zones (Phase 2 optimization)
+     * P1: Added riparianGrid parameter for O(1) riparian zone lookups
      * @param {Map} soilGrid - Map of soil objects keyed by "x,y"
      * @param {Function} getSoilAt - Function to get soil at (x, y)
      * @param {number} deltaTime - Time since last frame (seconds)
+     * @param {Map<string, Object>} riparianGrid - Pre-computed riparian grid (P1 optimization)
      * @returns {boolean} Whether cells were affected (for cache invalidation)
      */
-    applyOrganicMatterDecomposition(soilGrid, getSoilAt, deltaTime) {
+    applyOrganicMatterDecomposition(soilGrid, getSoilAt, deltaTime, riparianGrid = null) {
         // Check if decomposition is enabled
         if (!this.decompositionConfig || !this.decompositionConfig.enabled) {
             return false;
@@ -238,6 +270,9 @@ class SoilEffectsManager {
             }
         }
         
+        // Get riparian zone configuration (Milestone 4) - P1: Now using pre-computed grid
+        const riparianConfig = this.decompositionConfig.riparianZone;
+        
         // Calculate final decay amount with weather modifier
         const decayThisFrame = baseDecayPerDay * weatherMultiplier * gameDaysElapsed;
         
@@ -257,6 +292,8 @@ class SoilEffectsManager {
         let totalNAdded = 0;
         let totalPAdded = 0;
         let cellsExpired = 0;
+        let riparianCellsProcessed = 0;
+        let totalRiparianOMAdded = 0;
         
         // Get plant manager for living plant checks
         const plantManager = window.graphicsEngine?.plantManager;
@@ -265,8 +302,8 @@ class SoilEffectsManager {
         const cellsToCheck = Array.from(this.activeCells);
         
         cellsToCheck.forEach(cellKey => {
-            const [x, y] = cellKey.split(',').map(Number);
-            const soil = getSoilAt(x, y);
+            const [gridX, gridY] = cellKey.split(',').map(Number);
+            const soil = getSoilAt(gridX, gridY);
             
             if (!soil) {
                 this.activeCells.delete(cellKey);
@@ -277,7 +314,7 @@ class SoilEffectsManager {
             // Check if cell still has active decomposition conditions:
             // 1. Has living plant (root zone activity boosts microbes)
             // 2. OR had recent plant death (within activity window)
-            const plants = plantManager && plantManager.getPlantAt(x, y); // Returns array
+            const plants = plantManager && plantManager.getPlantAt(gridX, gridY); // Returns array
             const hasLivingPlant = plants && plants.length > 0;
             const lastActivity = this.cellLastPlantActivity.get(cellKey) || 0;
             const daysSinceActivity = currentGameDay - lastActivity;
@@ -297,6 +334,23 @@ class SoilEffectsManager {
                 this.cellLastPlantActivity.set(cellKey, currentGameDay);
             }
             
+            // P1: Check if cell is in riparian zone using pre-computed grid (O(1) lookup)
+            let isRiparianZone = false;
+            let riparianDecayMultiplier = 1.0; // Default: normal decay
+            let riparianOMInput = 0; // Default: no extra OM input
+            
+            const riparianConfig = this.decompositionConfig.riparianZone;
+            if (riparianConfig?.enabled && riparianGrid) {
+                const cellKey = `${gridX},${gridY}`;
+                isRiparianZone = riparianGrid.has(cellKey);
+                
+                if (isRiparianZone) {
+                    riparianDecayMultiplier = riparianConfig.decayMultiplier || 0.5;
+                    riparianOMInput = riparianConfig.organicInputPerDay || 0.3;
+                    riparianCellsProcessed++;
+                }
+            }
+            
             // Only decompose if OM is above minimum threshold
             if (soil.organicMatter > minimumOM) {
                 // Store old values
@@ -306,12 +360,22 @@ class SoilEffectsManager {
                 
                 // Calculate actual decay (don't go below minimum)
                 const availableOM = soil.organicMatter - minimumOM;
-                const actualDecay = Math.min(decayThisFrame, availableOM);
+                
+                // Apply decay (with riparian modifier)
+                const decayAmount = decayThisFrame * riparianDecayMultiplier;
+                const actualDecay = Math.min(decayAmount, availableOM);
                 
                 // Apply decay
                 soil.organicMatter -= actualDecay;
                 soil.nitrogen += actualDecay * nitrogenRatio;
                 soil.phosphorus += actualDecay * phosphorusRatio;
+                
+                // Add riparian organic input (Milestone 4)
+                if (riparianOMInput > 0) {
+                    const inputAmount = riparianOMInput * gameDaysElapsed;
+                    soil.organicMatter = Math.min(100, soil.organicMatter + inputAmount);
+                    totalRiparianOMAdded += inputAmount;
+                }
                 
                 // Clamp all values to 0-100 range
                 soil.organicMatter = Math.max(0, Math.min(100, soil.organicMatter));
@@ -319,7 +383,7 @@ class SoilEffectsManager {
                 soil.phosphorus = Math.max(0, Math.min(100, soil.phosphorus));
                 
                 // Update derived properties if significant change occurred
-                if (actualDecay > 0.01) {
+                if (actualDecay > 0.01 || riparianOMInput > 0) {
                     soil.fertility = soil.calculateFertility();
                     soil.baseColor = soil.calculateBaseColor();
                     soil.needsUpdate = true;
@@ -346,7 +410,12 @@ class SoilEffectsManager {
                         weatherInfo = ` [Weather: ${weather}, multiplier: ${multiplier}x]`;
                     }
                     
-                    console.log(`[OM DECOMP LOCALIZED] ${cellsAffected}/${this.activeCells.size} active cells decomposed (${cellsExpired} expired) - OM decayed: ${totalOMDecayed.toFixed(2)}, N added: ${totalNAdded.toFixed(2)}, P added: ${totalPAdded.toFixed(2)}${weatherInfo}`);
+                    let riparianInfo = '';
+                    if (riparianCellsProcessed > 0) {
+                        riparianInfo = ` [Riparian: ${riparianCellsProcessed} cells, +${totalRiparianOMAdded.toFixed(2)} OM added]`;
+                    }
+                    
+                    console.log(`[OM DECOMP LOCALIZED] ${cellsAffected}/${this.activeCells.size} active cells decomposed (${cellsExpired} expired) - OM decayed: ${totalOMDecayed.toFixed(2)}, N added: ${totalNAdded.toFixed(2)}, P added: ${totalPAdded.toFixed(2)}${weatherInfo}${riparianInfo}`);
                     this.decompositionLogCounter = 0;
                 }
             }
@@ -386,5 +455,278 @@ class SoilEffectsManager {
     clearActiveCells() {
         this.activeCells.clear();
         this.cellLastPlantActivity.clear();
+    }
+    
+    /**
+     * Apply nitrogen regeneration (nitrogen fixation and atmospheric deposition)
+     * Simulates natural nitrogen inputs that maintain ecosystem fertility
+     * P1: Added riparianGrid parameter for O(1) riparian zone lookups
+     * @param {Map} soilGrid - Map of soil objects keyed by "x,y"
+     * @param {number} deltaTime - Time since last frame (seconds)
+     * @param {Map<string, Object>} riparianGrid - Pre-computed riparian grid (P1 optimization)
+     * @returns {boolean} Whether cells were affected
+     */
+    applyNitrogenRegeneration(soilGrid, deltaTime, riparianGrid = null) {
+        if (!this.nitrogenRegenConfig || !this.nitrogenRegenConfig.enabled) {
+            return false;
+        }
+        
+        const timeManager = window.graphicsEngine?.timeManager;
+        if (!timeManager) {
+            return false;
+        }
+        
+        const realSecondsPerGameDay = timeManager.config.realSecondsPerGameDay;
+        const gameDaysElapsed = deltaTime / realSecondsPerGameDay;
+        const baseRatePerDay = this.nitrogenRegenConfig.baseRatePerDay || 0.15;
+        
+        // Get riparian multiplier from config
+        const riparianMultiplier = this.nitrogenRegenConfig.riparianMultiplier || 2.0;
+        
+        let cellsUpdated = 0;
+        let totalNAdded = 0;
+        let riparianCellsUpdated = 0;
+        
+        soilGrid.forEach(soil => {
+            if (!soil.isPlantable || soil.isWater) return;
+            
+            // P1: Check if in riparian zone using pre-computed grid (O(1) lookup)
+            let isRiparian = false;
+            if (riparianGrid) {
+                const cellKey = `${soil.gridX},${soil.gridY}`;
+                isRiparian = riparianGrid.has(cellKey);
+            }
+            
+            // Calculate regeneration amount (with riparian bonus)
+            const multiplier = isRiparian ? riparianMultiplier : 1.0;
+            const regenAmount = baseRatePerDay * multiplier * gameDaysElapsed;
+            
+            // Only regenerate if below 100 (capped)
+            if (soil.nitrogen < 100) {
+                const oldN = soil.nitrogen;
+                soil.nitrogen = Math.min(100, soil.nitrogen + regenAmount);
+                
+                // Update derived properties
+                soil.fertility = soil.calculateFertility();
+                soil.baseColor = soil.calculateBaseColor();
+                soil.needsUpdate = true;
+                
+                cellsUpdated++;
+                totalNAdded += (soil.nitrogen - oldN);
+                
+                if (isRiparian) {
+                    riparianCellsUpdated++;
+                }
+            }
+        });
+        
+        return cellsUpdated > 0;
+    }
+    
+    /**
+     * Apply water table seeping effects to increase moisture retention near water.
+     * Uses pre-computed influence map for O(N) performance instead of O(N×M).
+     * @param {Map} soilGrid - Soil grid to apply effects to
+     * @param {Set} allWaterTiles - Set of all water tile keys (for fallback)
+     * @param {number} deltaTime - Time elapsed since last update (in game days)
+     * @param {Object} config - Water table configuration
+     * @param {Map<string, {seepingRate, waterType, distance}>} influenceMap - Pre-computed influence (P2 optimization)
+     * @returns {number} Number of cells updated
+     */
+    applyWaterTableEffects(soilGrid, allWaterTiles, deltaTime, config, influenceMap = null) {
+        if (!config || !config.enabled) {
+            return 0;
+        }
+        
+        const radius = config.radius || 4;
+        const seepingRatePerDay = config.seepingRatePerDay || 0.5;
+        const maxWaterRetention = config.maxWaterRetention || 90;
+        
+        let cellsUpdated = 0;
+        
+        // P2 OPTIMIZATION: Use pre-computed influence map if available
+        if (influenceMap && influenceMap.size > 0) {
+            // Fast path: O(N) iteration over affected cells only
+            influenceMap.forEach((influence, cellKey) => {
+                const [cellX, cellY] = cellKey.split(',').map(Number);
+                const soil = soilGrid.get(cellKey);
+                
+                if (!soil) return; // Cell not in grid (shouldn't happen)
+                
+                // Skip if water tile, not plantable, or already at max
+                if (soil.isWater || !soil.isPlantable || soil.waterRetention >= maxWaterRetention) {
+                    return;
+                }
+                
+                // Apply pre-computed seeping rate (already includes falloff)
+                const seepingAmount = influence.seepingRate * deltaTime;
+                
+                // Only apply if significant seeping
+                if (seepingAmount < 0.001) return;
+                
+                // Update water retention (clamped to max)
+                const oldWater = soil.waterRetention;
+                soil.waterRetention = Math.min(maxWaterRetention, soil.waterRetention + seepingAmount);
+                
+                // If water changed significantly, regenerate water pixels
+                if (Math.abs(soil.waterRetention - oldWater) > 0.1) {
+                    soil.waterPixels = soil.generateWaterPixels();
+                    soil.needsUpdate = true;
+                    cellsUpdated++;
+                }
+            });
+            
+            return cellsUpdated;
+        }
+        
+        // FALLBACK: Original O(N×M) nested loop implementation (for backwards compatibility)
+        if (!allWaterTiles || allWaterTiles.size === 0) {
+            return 0;
+        }
+        
+        allWaterTiles.forEach(waterKey => {
+            const [waterX, waterY] = waterKey.split(',').map(Number);
+            
+            // Check cells in radius around water tile
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dy = -radius; dy <= radius; dy++) {
+                    const targetX = waterX + dx;
+                    const targetY = waterY + dy;
+                    const targetKey = `${targetX},${targetY}`;
+                    
+                    // Get soil cell
+                    const soil = soilGrid.get(targetKey);
+                    
+                    // Skip if no soil, is water, or not plantable
+                    if (!soil || soil.isWater || !soil.isPlantable) continue;
+                    
+                    // Skip if already at max water retention
+                    if (soil.waterRetention >= maxWaterRetention) continue;
+                    
+                    // Calculate distance from water tile
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Skip if outside radius
+                    if (distance > radius) continue;
+                    
+                    // Calculate linear falloff: 1.0 at water edge, 0.0 at radius
+                    const falloff = 1.0 - (distance / radius);
+                    
+                    // Calculate seeping amount this frame
+                    const seepingAmount = seepingRatePerDay * deltaTime * falloff;
+                    
+                    // Only apply if significant seeping
+                    if (seepingAmount < 0.001) continue;
+                    
+                    // Update water retention (clamped to max)
+                    const oldWater = soil.waterRetention;
+                    soil.waterRetention = Math.min(maxWaterRetention, soil.waterRetention + seepingAmount);
+                    
+                    // If water changed significantly, regenerate water pixels
+                    if (Math.abs(soil.waterRetention - oldWater) > 0.1) {
+                        soil.waterPixels = soil.generateWaterPixels();
+                        soil.needsUpdate = true;
+                        cellsUpdated++;
+                    }
+                }
+            }
+        });
+        
+        return cellsUpdated;
+    }
+    
+    /**
+     * Apply flood effects to soil near rivers
+     * Simulates seasonal flooding with nutrient deposition
+     * @param {Map} soilGrid - Soil grid to apply effects to
+     * @param {Set} riverTiles - Set of river tile keys
+     * @param {Object} config - Flood event configuration
+     * @returns {boolean} Whether texture refresh is needed
+     */
+    applyFloodEffects(soilGrid, riverTiles, config) {
+        if (!config || !config.enabled) {
+            return false;
+        }
+        
+        if (!riverTiles || riverTiles.size === 0) {
+            if (config.enableLogging) {
+                console.log('[FLOOD] No river tiles found - skipping flood event');
+            }
+            return false;
+        }
+        
+        const startTime = performance.now();
+        const radius = config.radius || 3;
+        const nitrogenBonus = config.nitrogenBonus || 10;
+        const phosphorusBonus = config.phosphorusBonus || 5;
+        const potassiumBonus = config.potassiumBonus || 3;
+        const organicMatterBonus = config.organicMatterBonus || 8;
+        
+        // Track affected cells (use Set to avoid duplicate processing)
+        const affectedCells = new Set();
+        
+        // For each river tile, apply flood effects to surrounding cells
+        riverTiles.forEach(riverKey => {
+            const [riverX, riverY] = riverKey.split(',').map(Number);
+            
+            // Check cells in radius around river tile
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dy = -radius; dy <= radius; dy++) {
+                    const targetX = riverX + dx;
+                    const targetY = riverY + dy;
+                    const targetKey = `${targetX},${targetY}`;
+                    
+                    // Skip if already processed
+                    if (affectedCells.has(targetKey)) continue;
+                    
+                    // Get soil cell
+                    const soil = soilGrid.get(targetKey);
+                    
+                    // Skip if no soil, is water, or not plantable
+                    if (!soil || soil.isWater || !soil.isPlantable) continue;
+                    
+                    // Calculate distance from river tile
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Skip if outside radius (for circular falloff)
+                    if (distance > radius) continue;
+                    
+                    // Calculate linear falloff: 1.0 at river edge, 0.0 at radius
+                    const falloff = 1.0 - (distance / radius);
+                    
+                    // Apply nutrient bonuses with falloff
+                    const nIncrease = nitrogenBonus * falloff;
+                    const pIncrease = phosphorusBonus * falloff;
+                    const kIncrease = potassiumBonus * falloff;
+                    const omIncrease = organicMatterBonus * falloff;
+                    
+                    // Update soil properties (clamped 0-100)
+                    soil.nitrogen = Math.min(100, soil.nitrogen + nIncrease);
+                    soil.phosphorus = Math.min(100, soil.phosphorus + pIncrease);
+                    soil.potassium = Math.min(100, soil.potassium + kIncrease);
+                    soil.organicMatter = Math.min(100, soil.organicMatter + omIncrease);
+                    
+                    // Recalculate derived properties
+                    soil.fertility = soil.calculateFertility();
+                    soil.baseColor = soil.calculateBaseColor();
+                    soil.waterPixels = soil.generateWaterPixels();
+                    soil.needsUpdate = true;
+                    
+                    // Mark as affected
+                    affectedCells.add(targetKey);
+                }
+            }
+        });
+        
+        const endTime = performance.now();
+        const processingTime = (endTime - startTime).toFixed(1);
+        
+        // Log if enabled
+        if (config.enableLogging) {
+            console.log(`[FLOOD] Flood effects applied to ${affectedCells.size} cells near ${riverTiles.size} river tiles (${processingTime}ms)`);
+        }
+        
+        // Return true to signal texture refresh needed
+        return affectedCells.size > 0;
     }
 }

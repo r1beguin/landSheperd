@@ -222,6 +222,7 @@ class GraphicsEngine {
         
         // Time manager with configuration (provide default if config.time is undefined)
         this.timeManager = new TimeManager(this.config.time || {});
+        this.timeManager.initialize(this.config); // Initialize flood events config
         
         // Weather manager with configuration (after TimeManager)
         this.weatherManager = new WeatherManager(this.config.world?.weather || {});

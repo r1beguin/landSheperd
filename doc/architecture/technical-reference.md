@@ -357,6 +357,175 @@ Each generator module should be fully deterministic for a given seed and environ
 
 ---
 
+## Performance Optimization Techniques
+
+### Spatial Caching
+
+Land Shepherd uses **spatial caching** to optimize distance-based queries that would otherwise require expensive nested loops.
+
+**Pattern:**
+1. Pre-compute spatial relationships at terrain generation
+2. Store in Map<cellKey, data> for O(1) access
+3. Pass cache through initialization chain: TerrainGenerator → GraphicsEngine → Manager
+4. Replace O(N×M) nested loops with O(K) direct lookups (where K = affected cells)
+
+**Implementations:**
+- **RiparianGrid:** Maps cells to nearest water distance (radius 2)
+  - Purpose: Identify riparian zone membership for soil effect bonuses
+  - Memory: ~47KB for 900-1000 cells
+  - Speedup: 480x (1.235M distance checks → 2,500 Map lookups per hour)
+  
+- **WaterSeepingInfluenceMap:** Maps cells to seeping rates with falloff (radius 4)
+  - Purpose: Pre-compute water table seeping effects
+  - Memory: ~200KB for 1200-1400 cells
+  - Speedup: 45x (56K nested loop ops → 1,247 direct lookups per day)
+
+**Trade-offs:**
+- ✅ 45-480x performance improvement
+- ✅ Scalable to larger maps (O(K) vs O(N×M))
+- ✅ Predictable memory usage
+- ⚠️ ~250KB memory overhead (acceptable, well under 1MB threshold)
+- ⚠️ +5-7ms startup time (negligible, <1% of load time)
+
+**Code Location:**
+- Generation: `js/core/terrain_generator.js` (`generateRiparianGrid()`, `generateWaterSeepingInfluenceMap()`)
+- Usage: `js/core/soil_effects_manager.js` (all water-related methods)
+
+**Example Implementation:**
+```javascript
+// 1. Generate at terrain initialization
+class TerrainGenerator {
+    generateSpatialCache(sourceItems, radius, effectCallback) {
+        const cache = new Map();
+        
+        sourceItems.forEach(source => {
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const cx = source.x + dx;
+                    const cy = source.y + dy;
+                    
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > radius) continue;
+                    
+                    const cellKey = `${cx},${cy}`;
+                    const effectValue = effectCallback(distance, radius);
+                    
+                    // Store max effect if multiple sources affect same cell
+                    if (!cache.has(cellKey) || effectValue > cache.get(cellKey).value) {
+                        cache.set(cellKey, {
+                            value: effectValue,
+                            distance: distance,
+                            source: source
+                        });
+                    }
+                }
+            }
+        });
+        
+        return cache;
+    }
+}
+
+// 2. Use O(1) lookup in update loop
+class Manager {
+    update() {
+        for (let y = 0; y < gridHeight; y++) {
+            for (let x = 0; x < gridWidth; x++) {
+                const cellKey = `${x},${y}`;
+                
+                if (this.spatialCache.has(cellKey)) {
+                    const data = this.spatialCache.get(cellKey);
+                    // Apply pre-computed effect
+                    this.applyEffect(x, y, data.value);
+                }
+            }
+        }
+    }
+}
+```
+
+**When to Use:**
+- Distance-based effects with fixed radii
+- Spatial relationships that change infrequently (static terrain features)
+- O(N×M) nested loops where N and M are large (>100 items each)
+- Effect calculations that are expensive (trigonometry, falloff curves)
+
+**Case Study:**  
+Water fertility optimization achieved 433% FPS improvement (9 → 48 FPS) by combining spatial caching with update throttling. See [Water Fertility Performance Optimization](../features/water-fertility-performance-optimization.md).
+
+---
+
+### Update Throttling
+
+Match system update frequency to biological/physical timescales to eliminate unnecessary computation.
+
+**Update Intervals:**
+- **Per frame (60 FPS):** Rendering, input handling, camera movement
+- **Per game hour (24x/day):** Weather effects, gradual environmental changes
+- **Per game day (1x/day):** Nutrient cycling, decomposition, water seeping
+- **Per game week:** Slow ecological processes, seasonal changes
+
+**Implementation Pattern:**
+```javascript
+class SoilManager {
+    constructor() {
+        this.lastWeatherHour = 0;
+        this.lastUpdateDay = 0;
+    }
+    
+    update(deltaTime) {
+        const currentHour = timeManager.getHourOfDay();
+        const currentDay = timeManager.getCurrentDay();
+        
+        // Hourly updates (weather effects)
+        if (currentHour !== this.lastWeatherHour) {
+            this.updateWeather();
+            this.lastWeatherHour = currentHour;
+        }
+        
+        // Daily updates (nutrient cycling)
+        if (currentDay > this.lastUpdateDay) {
+            this.updateNutrients();
+            this.updateDecomposition();
+            this.updateWaterSeeping();
+            this.lastUpdateDay = currentDay;
+        }
+    }
+}
+```
+
+**Benefits:**
+- Reduces computation by 95%+ (60 FPS → 24/day = 99.4% reduction)
+- Matches simulation fidelity to real-world processes
+- No impact on simulation accuracy (biological timescales are gradual)
+- Simple to implement and maintain
+
+**Case Study:**  
+Throttling soil effects from 60 FPS to hourly/daily intervals improved FPS from 9 → 43 (+378%). See [Water Fertility Performance Optimization](../features/water-fertility-performance-optimization.md).
+
+---
+
+### Memory Management
+
+**Current Memory Usage:**
+- Soil grid: ~1MB (2,500 cells × 400 bytes/cell)
+- Spatial caches: ~250KB (riparian grid + influence map)
+- Texture cache: Variable (depends on visible entities)
+- Total overhead: <2MB (acceptable for browser-based game)
+
+**Best Practices:**
+- Use Map/Set for sparse data (only store affected cells)
+- Pre-allocate arrays for dense data (grid structures)
+- Clear unused textures when entities are removed
+- Monitor memory in DevTools over 30+ minute sessions
+
+**Memory Thresholds:**
+- Spatial caches: <1MB total
+- Texture memory: <50MB total
+- Acceptable leak rate: <1MB per 10 minutes
+
+---
+
 ## Future Extensions
 
 - **Hybridization system:** Cross two genomes to create mixed offspring.

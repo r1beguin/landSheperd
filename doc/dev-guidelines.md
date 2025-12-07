@@ -364,6 +364,93 @@ For detailed architecture, see [Technical Reference](architecture/technical-refe
 
 See [Architecture Documentation](architecture/) for optimization techniques.
 
+### Spatial Optimization Patterns
+
+For systems that perform spatial queries (distance checks, proximity detection):
+
+1. **Pre-compute at startup** if data is static or changes infrequently
+2. **Use Map/Set for O(1) lookups** instead of nested loops
+3. **Cache results in terrain generator** and pass to managers
+4. **Trade memory for performance** (100-500KB acceptable)
+
+**Example:** Water fertility system uses:
+- Riparian grid: Pre-computed zone membership (radius 2)
+- Influence map: Pre-computed seeping rates with falloff (radius 4)
+- Result: 45-480x speedup, ~250KB memory
+
+**Pattern:**
+```javascript
+// 1. Pre-compute at terrain generation
+class TerrainGenerator {
+    generateSpatialCache() {
+        const cache = new Map();
+        sourceItems.forEach(source => {
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance <= radius) {
+                        const cellKey = `${x},${y}`;
+                        cache.set(cellKey, {
+                            value: calculateEffect(distance),
+                            source: source
+                        });
+                    }
+                }
+            }
+        });
+        return cache;
+    }
+}
+
+// 2. Use O(1) lookup in update loop
+update() {
+    for (let y = 0; y < gridHeight; y++) {
+        for (let x = 0; x < gridWidth; x++) {
+            const cellKey = `${x},${y}`;
+            if (this.spatialCache.has(cellKey)) {
+                const data = this.spatialCache.get(cellKey);
+                // Apply pre-computed effect
+            }
+        }
+    }
+}
+```
+
+**When to use:**
+- Distance-based effects with fixed radii
+- Spatial relationships that don't change frequently
+- Any O(N×M) nested loop where N and M are large
+
+**See:** [Water Fertility Performance Optimization](features/water-fertility-performance-optimization.md) for detailed implementation.
+
+### Throttling Best Practices
+
+Match update frequency to biological/physical timescales:
+
+- **Per frame (60 FPS):** Rendering, input, camera
+- **Per game hour (24x/day):** Weather effects, gradual changes
+- **Per game day (1x/day):** Nutrient cycling, regeneration, decomposition
+- **Per game week:** Slow ecological processes, seasonal changes
+
+**Implementation:**
+```javascript
+// Track last execution
+if (!this.lastUpdateDay) this.lastUpdateDay = 0;
+
+const currentDay = timeManager.getCurrentDay();
+if (currentDay > this.lastUpdateDay) {
+    // Execute expensive operation
+    this.lastUpdateDay = currentDay;
+}
+```
+
+**Benefits:**
+- Reduces unnecessary computation by 95%+
+- Matches simulation fidelity to real-world timescales
+- No impact on simulation accuracy
+
+**See:** [Water Fertility Performance Optimization](features/water-fertility-performance-optimization.md) for case study (9 FPS → 48 FPS).
+
 ---
 
 ## Common Issues
@@ -400,12 +487,69 @@ See [Troubleshooting Documentation](troubleshooting/) for more solutions.
 
 **This is a routing document. For comprehensive information, navigate to the appropriate documentation section above.**
 
-**Last Updated**: 2025-12-03  
-**Total Documentation**: 3000+ lines with PlantGenerator refactor (modular architecture complete)
+**Last Updated**: 2025-12-07  
+**Total Documentation**: 3200+ lines with water fertility performance optimization complete
 
 ---
 
 ## Recent Implementations
+
+### Water Fertility Performance Optimization - 2025-12-07
+
+**Purpose:** Optimize water fertility system for scalability, achieving 433% FPS improvement
+
+**Implementation:**
+- **Phase 0 (P0) - Throttling** (js/core/soil_manager.js): Time-based gating for hourly/daily effects
+- **Phase 1 (P1) - Riparian Grid** (js/core/terrain_generator.js, js/core/soil_effects_manager.js): Pre-computed riparian zone spatial cache
+- **Phase 2 (P2) - Influence Map** (js/core/terrain_generator.js, js/core/soil_effects_manager.js): Pre-computed water seeping zones
+
+**Key Design Decisions:**
+- Throttling matches biological timescales: weather (1x/hour), decomposition (1x/day), seeping (1x/day)
+- Spatial caching eliminates O(N×M) nested loops with O(1) Map lookups
+- Pre-computation at startup trades memory (~250KB) for runtime performance
+- Backwards compatibility maintained with fallback to legacy code paths
+- Linear falloff calculations (1.0 - distance/radius) for simplicity and performance
+
+**Performance Gains:**
+- **P0 Throttling:** 9 → 43 FPS (+378%)
+- **P1 Riparian Grid:** 43 → 48 FPS (+12%), 480x speedup on riparian checks
+- **P2 Influence Map:** 48 FPS stable, 45x reduction in operations per day
+- **Total:** 9 → 48 FPS (+433%)
+
+**Configuration:**
+All systems remain fully configurable via config.json (no breaking changes).
+
+**Testing:**
+- Validation: PASS - All metrics met via `npm run verify`
+- FPS: 48 (target ≥30, exceeded)
+- Load time: 1300-1400ms (acceptable)
+- Memory: ~250KB caches (well under 1MB limit)
+- Console errors: 0
+
+**Usage:**
+```javascript
+// Spatial caches auto-generated at terrain initialization
+const riparianGrid = terrainGenerator.riparianGrid;  // Map<"x,y", {distance, nearestWater}>
+const influenceMap = terrainGenerator.waterSeepingInfluenceMap;  // Map<"x,y", {seepingRate, waterType}>
+
+// O(1) lookup in manager update loops
+if (riparianGrid.has(cellKey)) {
+    const riparianData = riparianGrid.get(cellKey);
+    // Apply riparian bonus
+}
+
+// Throttled updates (no manual intervention needed)
+// Weather: automatically runs 1x per game hour
+// Decomposition: automatically runs 1x per game day
+```
+
+**Related Documentation:**
+- [Water Fertility Performance Optimization](features/water-fertility-performance-optimization.md) - Complete case study with patterns
+- [Flood Events System](features/flood-events-system.md) - Updated with performance section
+- [Technical Reference](architecture/technical-reference.md) - Spatial caching and throttling patterns
+- [Dev Guidelines](#spatial-optimization-patterns) - Reusable optimization patterns above
+
+---
 
 ### PlantGenerator Refactor - Modular Architecture - 2025-12-03
 
