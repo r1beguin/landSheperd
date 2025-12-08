@@ -254,7 +254,8 @@ class GraphicsEngine {
             this.canvas, 
             this.soilManager, 
             this.plantManager, 
-            this.timeManager
+            this.timeManager,
+            this  // Pass graphicsEngine reference for RenderSystem access
         );
         
         // Initialize seed UI after soil manager is ready
@@ -785,12 +786,16 @@ class GraphicsEngine {
             this.renderSystem.renderPlantsByLayer(visiblePlants, viewMatrix, this.lightingManager);
         }
         
-        // 3. Render rain particles (above plants, below UI)
+        // 3. Render cell highlight (above plants, below particles)
+        const cellSize = this.config.world.map.cellSize;
+        this.renderSystem.renderCellHighlight(viewMatrix, this.lightingManager, cellSize);
+        
+        // 4. Render rain particles (above plants, below UI)
         if (this.weatherManager) {
             this.renderSystem.renderParticles(this.weatherManager, this.cameraManager, this.lightingManager);
         }
         
-        // 4. Render other entities on top (character, etc.)
+        // 5. Render other entities on top (character, etc.)
         this.renderSystem.renderBatch(this.entities, viewMatrix, this.lightingManager);
     }
     

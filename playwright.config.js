@@ -8,7 +8,11 @@ module.exports = defineConfig({
   testDir: './tests',
   
   // Use different test files based on mode
-  testMatch: process.env.TEST_CONFIG_VALIDATOR === 'true'
+  testMatch: process.env.TEST_CELL_HIGHLIGHT === 'true'
+    ? '**/cell-highlight.spec.js'
+    : process.env.TEST_CELL_HIGHLIGHT_M2 === 'true'
+    ? '**/cell-highlight-milestone2.spec.js'
+    : process.env.TEST_CONFIG_VALIDATOR === 'true'
     ? '**/config-validator.spec.js'
     : process.env.TEST_GENERATOR_REFACTOR === 'true'
     ? '**/generator-refactor-validation.spec.js'
@@ -32,6 +36,10 @@ module.exports = defineConfig({
     ? '**/context-menu-debug.spec.js'
     : process.env.TEST_FUNCTIONAL === 'true'
     ? '**/context-menu-functional.spec.js'
+    : process.env.TEST_CONTEXT_MENU_DRAGGING === 'true'
+    ? '**/context-menu-dragging.spec.js'
+    : process.env.TEST_CONTEXT_MENU_UX === 'true'
+    ? '**/context-menu-ux-integration.spec.js'
     : process.env.TEST_OVERLAY === 'true'
     ? '**/overlay-cycling.spec.js'
     : process.env.TEST_WEATHER === 'true'

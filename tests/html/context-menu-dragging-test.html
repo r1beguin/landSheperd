@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Menu Dragging Test - Milestone 4</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        #test-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 5000;
+            max-width: 400px;
+        }
+        
+        #test-info h2 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+        
+        #test-info ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        #test-info li {
+            margin: 5px 0;
+        }
+        
+        .status {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        
+        .status.pending {
+            background: #555;
+        }
+        
+        .status.pass {
+            background: #2e7d32;
+        }
+        
+        .status.fail {
+            background: #c62828;
+        }
+        
+        button {
+            margin: 5px 5px 5px 0;
+            padding: 8px 12px;
+            background: #2a2a2a;
+            border: 1px solid #4CAF50;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #3a3a3a;
+        }
+    </style>
+</head>
+<body>
+    <div id="test-info">
+        <h2>Context Menu Dragging Test</h2>
+        <p><strong>Milestone 4:</strong> Draggable context menu</p>
+        
+        <h3>Test Steps:</h3>
+        <ol>
+            <li>Right-click on canvas to open menu</li>
+            <li>Hover over header - cursor should be "move"</li>
+            <li>Drag header to move menu</li>
+            <li>Verify cell highlight stays on original cell</li>
+            <li>Try dragging off-screen - should be clamped</li>
+            <li>Try dragging menu body - should NOT move</li>
+            <li>Close menu with button or click outside</li>
+        </ol>
+        
+        <button onclick="spawnTestPlant()">Spawn Test Plant at (25, 25)</button>
+        <button onclick="clearAllPlants()">Clear All Plants</button>
+        <button onclick="resetTest()">Reset Test</button>
+        
+        <h3>Visual Checks:</h3>
+        <ul id="checks">
+            <li id="check1">Header shows "move" cursor <span class="status pending">Pending</span></li>
+            <li id="check2">Menu drags smoothly <span class="status pending">Pending</span></li>
+            <li id="check3">Highlight persists during drag <span class="status pending">Pending</span></li>
+            <li id="check4">Menu clamped at edges <span class="status pending">Pending</span></li>
+            <li id="check5">Body not draggable <span class="status pending">Pending</span></li>
+            <li id="check6">Close button works <span class="status pending">Pending</span></li>
+        </ul>
+    </div>
+    
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    
+    <!-- Core scripts -->
+    <script src="../../js/core/shader_manager.js"></script>
+    <script src="../../js/core/geometry_manager.js"></script>
+    <script src="../../js/core/lighting_manager.js"></script>
+    <script src="../../js/core/soil_effects_manager.js"></script>
+    <script src="../../js/core/soil_manager.js"></script>
+    <script src="../../js/core/plant_manager.js"></script>
+    <script src="../../js/core/procedural_generator.js"></script>
+    <script src="../../js/core/time_manager.js"></script>
+    <script src="../../js/core/debug_manager.js"></script>
+    <script src="../../js/core/weather_manager.js"></script>
+    
+    <!-- Procedural generation scripts -->
+    <script src="../../js/procedural/utils/river_utils.js"></script>
+    <script src="../../js/procedural/utils/geometry_utils.js"></script>
+    <script src="../../js/procedural/utils/deterministic_random.js"></script>
+    <script src="../../js/procedural/generators/river_generator.js"></script>
+    <script src="../../js/procedural/generators/splash_particle_generator.js"></script>
+    <script src="../../js/procedural/generators/water_flow_generator.js"></script>
+    <script src="../../js/procedural/generators/water_shader_generator.js"></script>
+    <script src="../../js/procedural/plant_generator.js"></script>
+    
+    <!-- System scripts -->
+    <script src="../../js/systems/camera_manager.js"></script>
+    <script src="../../js/systems/input_manager.js"></script>
+    <script src="../../js/systems/context_menu_manager.js"></script>
+    <script src="../../js/systems/overlay_manager.js"></script>
+    <script src="../../js/systems/render_system.js"></script>
+    <script src="../../js/systems/screenshot_manager.js"></script>
+    
+    <!-- Entity scripts -->
+    <script src="../../js/entities/soil.js"></script>
+    <script src="../../js/entities/plant.js"></script>
+    <script src="../../js/entities/character.js"></script>
+    
+    <!-- Main graphics engine -->
+    <script src="../../js/core/main_graphics.js"></script>
+    
+    <script>
+        // Test helper functions
+        function spawnTestPlant() {
+            if (window.graphicsEngine && window.graphicsEngine.plantManager) {
+                const gridX = 25;
+                const gridY = 25;
+                const cellSize = window.graphicsEngine.config.soil.cellSize;
+                const worldX = gridX * cellSize;
+                const worldY = gridY * cellSize;
+                const currentDay = window.graphicsEngine.timeManager.getCurrentDayPrecise();
+                
+                window.graphicsEngine.plantManager.addPlantAtPosition(
+                    gridX, gridY, worldX, worldY, 'urtica_dioica', currentDay
+                );
+                
+                console.log('Spawned test plant at (25, 25)');
+            }
+        }
+        
+        function clearAllPlants() {
+            if (window.graphicsEngine && window.graphicsEngine.plantManager) {
+                window.graphicsEngine.plantManager.plants.clear();
+                console.log('Cleared all plants');
+            }
+        }
+        
+        function resetTest() {
+            clearAllPlants();
+            
+            // Reset all check statuses
+            const checks = document.querySelectorAll('#checks .status');
+            checks.forEach(status => {
+                status.className = 'status pending';
+                status.textContent = 'Pending';
+            });
+            
+            console.log('Test reset');
+        }
+        
+        function markCheck(checkNumber, passed) {
+            const check = document.getElementById(`check${checkNumber}`);
+            if (check) {
+                const status = check.querySelector('.status');
+                if (status) {
+                    status.className = passed ? 'status pass' : 'status fail';
+                    status.textContent = passed ? 'PASS' : 'FAIL';
+                }
+            }
+        }
+        
+        // Auto-check cursor style on header hover
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait for engine initialization
+            setTimeout(() => {
+                const observer = new MutationObserver(() => {
+                    const header = document.querySelector('.context-menu-header');
+                    if (header) {
+                        const style = window.getComputedStyle(header);
+                        if (style.cursor === 'move') {
+                            markCheck(1, true);
+                        }
+                    }
+                });
+                
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            }, 2000);
+        });
+        
+        console.log('%c=== Context Menu Dragging Test ===', 'color: #4CAF50; font-weight: bold; font-size: 14px');
+        console.log('Instructions:');
+        console.log('1. Click "Spawn Test Plant" button');
+        console.log('2. Right-click on the planted cell to open context menu');
+        console.log('3. Try dragging the menu by its header');
+        console.log('4. Verify the cell highlight stays in place');
+        console.log('5. Try dragging menu to viewport edges');
+        console.log('6. Try dragging menu by clicking its body (should not move)');
+        console.log('7. Close menu and verify highlight clears');
+    </script>
+</body>
+</html>

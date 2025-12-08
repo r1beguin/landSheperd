@@ -1,6 +1,6 @@
 # Land Shepherd Documentation Index
 
-**Last updated:** 2025-12-07 (Water Fertility Performance Optimization Complete)
+**Last updated:** 2025-12-08 (Context Menu UX Improvements Complete)
 
 Welcome to the Land Shepherd documentation. This index helps you find the information you need quickly.
 
@@ -52,7 +52,7 @@ Feature-specific documentation with implementation details.
 - [nutrient-system.md](features/nutrient-system.md) - Multi-nutrient system (N, P, K, OM)
 - [terrain-generation-system.md](features/terrain-generation-system.md) - Procedural rivers, lakes, and fertility zones
 - [flood-events-system.md](features/flood-events-system.md) - Periodic flooding with nutrient deposition
-- [context-menu-system.md](features/context-menu-system.md) - Context menu implementation
+- [context-menu-system.md](features/context-menu-system.md) - **UPDATED** - Context menu with cell highlight, scrolling, and dragging
 - [visual-feedback-system.md](features/visual-feedback-system.md) - Visual feedback mechanics
 - [weather-system.md](features/weather-system.md) - Weather state management and effects
 - [lighting-system.md](features/lighting-system.md) - Day/night cycle with weather integration
@@ -75,7 +75,8 @@ Development history, feature implementation logs, and architectural decisions.
 - [devlogs/](devlogs/) - Chronological development logs organized by year-month
 
 #### December 2025
-- [2025-12-05: Milestone 3 - Starvation Visualization](devlogs/2025-12/2025-12-05-milestone3-starvation-visualization.md) - Multi-stage nutrient deficiency visuals (NEW)
+- [2025-12-08: Context Menu UX Improvements](devlogs/2025-12/2025-12-08-context-menu-ux-improvements.md) - Cell highlight, scrolling, dragging (NEW)
+- [2025-12-05: Milestone 3 - Starvation Visualization](devlogs/2025-12/2025-12-05-milestone3-starvation-visualization.md) - Multi-stage nutrient deficiency visuals
 - [2025-12-03: Config Validation System](devlogs/2025-12/2025-12-03-config-validation-system.md) - JSON Schema validation for all configs
 - [2025-12-03: PlantGenerator Modular Refactor](devlogs/2025-12/2025-12-03-generator-refactor.md) - Refactored to plugin architecture
 - [2025-12-03: Nettles Category Bugfix](devlogs/2025-12/2025-12-03-nettles-category-fix.md) - Fixed invalid category causing green rectangle rendering

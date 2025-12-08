@@ -172,7 +172,10 @@ landSheperd/
   - **Multi-layer plant placement**: Plant multiple species on same cell (clover + nettle + oak for full ecosystem stacking)
   - **Root depth system**: Deep-rooted trees access nutrients unavailable to herbs
   - **Forest ecosystems**: Sustainable oak groves with nutrient cycling (leaf litter, root lift, mycorrhizal networks)
-  - Right-click placement and removal with layer-aware context menu
+  - Right-click context menu with layer-aware plant inspection
+    - **Cell highlighting**: Visual green border shows selected cell
+    - **Scrollable menus**: Automatic scrolling for tall menus (>80vh)
+    - **Draggable positioning**: Reposition menu via header drag
   - **Species**: Stinging Nettle (middle layer), Oak Tree (top layer), Clover (bottom layer - ground cover)
   - Currently includes 3 species demonstrating full vertical stratification
 - **Player character** movable on click with animation
@@ -193,7 +196,11 @@ landSheperd/
 
 #### Game
 - **Left click**: Move the character
-- **Right click**: Place/remove plants on soil
+- **Right click**: Open context menu for soil/plant inspection and actions
+  - View soil nutrients and plant status
+  - Cell highlighting shows which cell is selected
+  - Scrollable menus for dense plant clusters
+  - Drag menu header to reposition for better visibility
 - **Mouse wheel**: Centered zoom in/out
 - **Resizing**: Automatic adaptation
 

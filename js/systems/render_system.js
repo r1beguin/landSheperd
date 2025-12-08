@@ -24,6 +24,9 @@ class RenderSystem {
         
         // Cache des programmes actifs
         this.currentProgram = null;
+        
+        // Cell highlight state
+        this.highlightedCell = { x: null, y: null };
     }
     
     beginFrame() {
@@ -356,6 +359,106 @@ class RenderSystem {
             default:
                 console.warn(`Type de rendu non supporté: ${renderType}`);
         }
+    }
+    
+    /**
+     * Render cell highlight at specified grid coordinates
+     * Renders a soft green border around a cell
+     * @param {Object} viewMatrix - Camera view matrix
+     * @param {Object} lightingManager - Lighting manager reference
+     * @param {number} cellSize - Size of one cell (from config)
+     */
+    renderCellHighlight(viewMatrix, lightingManager, cellSize) {
+        // Only render if highlight is active
+        if (this.highlightedCell.x === null || this.highlightedCell.y === null) {
+            return;
+        }
+        
+        // Convert grid coordinates to world space
+        // Grid coordinates are centered, so we need to account for that
+        const worldX = this.highlightedCell.x * cellSize;
+        const worldY = this.highlightedCell.y * cellSize;
+        
+        // Soft green color with transparency
+        const highlightColor = [0.0, 1.0, 0.0, 0.3];
+        
+        // Enable blending for transparency
+        this.gl.enable(this.gl.BLEND);
+        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+        
+        // Get shader program
+        const programInfo = this.shaderManager.useProgram('basic');
+        if (!programInfo) {
+            this.gl.disable(this.gl.BLEND);
+            return;
+        }
+        
+        this.currentProgram = programInfo;
+        
+        // Set uniforms
+        this.setBasicUniforms(programInfo, viewMatrix, lightingManager);
+        this.gl.uniform4f(programInfo.uniforms.u_color, ...highlightColor);
+        
+        // Border thickness in pixels
+        const borderThickness = 2;
+        
+        // Render 4 rectangles forming a border
+        // Top border
+        this.gl.uniform2f(programInfo.uniforms.u_translation, worldX, worldY + cellSize - borderThickness);
+        this.gl.uniform2f(programInfo.uniforms.u_scale, 1.0, 1.0);
+        const topBorder = this.geometryManager.getGeometry(`quad_${cellSize}_${borderThickness}_false`) || 
+                          this.geometryManager.createQuad(cellSize, borderThickness, false);
+        this.drawGeometry(topBorder, programInfo.attributes.a_position);
+        
+        // Bottom border
+        this.gl.uniform2f(programInfo.uniforms.u_translation, worldX, worldY);
+        const bottomBorder = this.geometryManager.getGeometry(`quad_${cellSize}_${borderThickness}_false`) || 
+                             this.geometryManager.createQuad(cellSize, borderThickness, false);
+        this.drawGeometry(bottomBorder, programInfo.attributes.a_position);
+        
+        // Left border
+        this.gl.uniform2f(programInfo.uniforms.u_translation, worldX, worldY);
+        const leftBorder = this.geometryManager.getGeometry(`quad_${borderThickness}_${cellSize}_false`) || 
+                           this.geometryManager.createQuad(borderThickness, cellSize, false);
+        this.drawGeometry(leftBorder, programInfo.attributes.a_position);
+        
+        // Right border
+        this.gl.uniform2f(programInfo.uniforms.u_translation, worldX + cellSize - borderThickness, worldY);
+        const rightBorder = this.geometryManager.getGeometry(`quad_${borderThickness}_${cellSize}_false`) || 
+                            this.geometryManager.createQuad(borderThickness, cellSize, false);
+        this.drawGeometry(rightBorder, programInfo.attributes.a_position);
+        
+        // Disable blending after rendering
+        this.gl.disable(this.gl.BLEND);
+    }
+    
+    /**
+     * Set the highlighted cell coordinates
+     * @param {number} x - Grid X coordinate
+     * @param {number} y - Grid Y coordinate
+     */
+    setHighlightedCell(x, y) {
+        this.highlightedCell.x = x;
+        this.highlightedCell.y = y;
+    }
+    
+    /**
+     * Clear the highlighted cell (disable highlight)
+     */
+    clearHighlightedCell() {
+        this.highlightedCell.x = null;
+        this.highlightedCell.y = null;
+    }
+    
+    /**
+     * Get the currently highlighted cell
+     * @returns {Object|null} Object with {x, y} if cell is highlighted, null otherwise
+     */
+    getHighlightedCell() {
+        if (this.highlightedCell.x !== null && this.highlightedCell.y !== null) {
+            return { x: this.highlightedCell.x, y: this.highlightedCell.y };
+        }
+        return null;
     }
     
     /**

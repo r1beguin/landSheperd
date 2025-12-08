@@ -322,10 +322,41 @@ canvas {
     z-index: 10000;
     min-width: 320px;
     max-width: 400px;
+    max-height: 80vh;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
     font-family: 'Courier New', monospace;
     color: white;
     backdrop-filter: blur(10px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    transition: opacity 0.1s ease;
+}
+
+/* Dragging state for context menu */
+#context-menu.dragging {
+    cursor: move;
+    opacity: 0.9;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9);
+}
+
+/* Custom scrollbar styling for context menu */
+#context-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+#context-menu::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 0 8px 8px 0;
+}
+
+#context-menu::-webkit-scrollbar-thumb {
+    background: rgba(76, 175, 80, 0.4);
+    border-radius: 4px;
+}
+
+#context-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(76, 175, 80, 0.6);
 }
 
 .context-menu-header {
@@ -333,6 +364,8 @@ canvas {
     padding: 12px 15px;
     border-radius: 6px 6px 0 0;
     border-bottom: 1px solid #4CAF50;
+    cursor: move;
+    user-select: none;
 }
 
 .context-menu-title {

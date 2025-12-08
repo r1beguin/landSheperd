@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Menu Scrolling Test - Milestone 3</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .test-controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 20000;
+            min-width: 300px;
+        }
+        
+        .test-controls h2 {
+            margin: 0 0 15px 0;
+            color: #4CAF50;
+            font-size: 16px;
+        }
+        
+        .test-controls button {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 10px;
+            background-color: #2a2a2a;
+            border: 1px solid #4CAF50;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .test-controls button:hover {
+            background-color: #3a3a3a;
+            border-color: #66BB6A;
+        }
+        
+        .test-info {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #444;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        #viewport-info {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #2a2a2a;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-controls">
+        <h2>Context Menu Scrolling Test</h2>
+        <button onclick="showShortMenu()">Test 1: Short Menu (No Scrollbar)</button>
+        <button onclick="showTallMenu()">Test 2: Tall Menu (With Scrollbar)</button>
+        <button onclick="showExtraTallMenu()">Test 3: Extra Tall Menu (10+ Items)</button>
+        <button onclick="resizeViewport(1280, 900)">Set Large Viewport (900px)</button>
+        <button onclick="resizeViewport(1280, 600)">Set Small Viewport (600px)</button>
+        <button onclick="hideMenu()">Close Menu</button>
+        
+        <div class="test-info">
+            <strong>Test Instructions:</strong>
+            <ul style="margin: 8px 0 0 20px; padding: 0;">
+                <li>Click buttons to show different menu sizes</li>
+                <li>Check if scrollbar appears on tall menus</li>
+                <li>Try mouse wheel scrolling over menu</li>
+                <li>Verify menu closes when clicking outside</li>
+                <li>Test viewport resizing with tall menu open</li>
+            </ul>
+        </div>
+        
+        <div id="viewport-info">
+            Viewport: <span id="viewport-size">-</span><br>
+            Menu Height: <span id="menu-height">-</span><br>
+            Max Height (80vh): <span id="max-height">-</span><br>
+            Has Scrollbar: <span id="has-scrollbar">-</span>
+        </div>
+    </div>
+
+    <!-- Context menu will be created dynamically -->
+    
+    <script>
+        // Helper function to create context menu HTML
+        function createContextMenu(itemCount) {
+            const menu = document.getElementById('context-menu') || document.createElement('div');
+            menu.id = 'context-menu';
+            menu.style.display = 'block';
+            menu.style.left = '400px';
+            menu.style.top = '100px';
+            
+            let content = `
+                <div class="context-menu-header">
+                    <div class="context-menu-title">Test Cell (25, 25)</div>
+                </div>
+                
+                <div class="context-menu-section">
+                    <div class="context-menu-subtitle">Soil Properties</div>
+                    <div class="context-menu-grid">
+                        <div class="context-menu-row">
+                            <span class="context-menu-label">Nitrogen</span>
+                            <span class="context-menu-value">75</span>
+                            <div class="context-menu-bar-container">
+                                <div class="context-menu-bar status-good" style="width: 75%"></div>
+                            </div>
+                            <span class="context-menu-status status-good">GOOD</span>
+                        </div>
+                        <div class="context-menu-row">
+                            <span class="context-menu-label">Phosphorus</span>
+                            <span class="context-menu-value">65</span>
+                            <div class="context-menu-bar-container">
+                                <div class="context-menu-bar status-good" style="width: 65%"></div>
+                            </div>
+                            <span class="context-menu-status status-good">GOOD</span>
+                        </div>
+                        <div class="context-menu-row">
+                            <span class="context-menu-label">Potassium</span>
+                            <span class="context-menu-value">80</span>
+                            <div class="context-menu-bar-container">
+                                <div class="context-menu-bar status-good" style="width: 80%"></div>
+                            </div>
+                            <span class="context-menu-status status-good">GOOD</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add plant sections
+            for (let i = 0; i < itemCount; i++) {
+                const speciesName = i === 0 ? 'Oak Tree' : `Nettle Plant #${i}`;
+                const speciesId = i === 0 ? 'quercus_robur' : 'urtica_dioica';
+                const layer = i === 0 ? 'CANOPY' : 'GROUND';
+                
+                content += `
+                    <div class="context-menu-section">
+                        <div class="context-menu-subtitle">
+                            ${speciesName} 
+                            <span class="layer-tag">${layer}</span>
+                        </div>
+                        <div class="context-menu-grid">
+                            <div class="context-menu-row">
+                                <span class="context-menu-label">Age</span>
+                                <span class="context-menu-value">${Math.floor(Math.random() * 100) + 10} days</span>
+                                <div class="context-menu-bar-container">
+                                    <div class="context-menu-bar status-good" style="width: 60%"></div>
+                                </div>
+                                <span class="context-menu-status status-good">ADULT</span>
+                            </div>
+                            <div class="context-menu-row">
+                                <span class="context-menu-label">Health</span>
+                                <span class="context-menu-value">85</span>
+                                <div class="context-menu-bar-container">
+                                    <div class="context-menu-bar status-good" style="width: 85%"></div>
+                                </div>
+                                <span class="context-menu-status status-good">GOOD</span>
+                            </div>
+                        </div>
+                        <div class="context-menu-actions">
+                            <button class="context-menu-btn context-menu-btn-small context-menu-btn-secondary">
+                                Inspect
+                            </button>
+                            <button class="context-menu-btn context-menu-btn-small context-menu-btn-danger">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Add spawn action
+            content += `
+                <div class="context-menu-section">
+                    <div class="context-menu-actions">
+                        <button class="context-menu-btn context-menu-btn-primary">
+                            Spawn New Plant
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            menu.innerHTML = content;
+            
+            if (!document.getElementById('context-menu')) {
+                document.body.appendChild(menu);
+            }
+            
+            updateMenuInfo();
+        }
+        
+        function updateMenuInfo() {
+            const menu = document.getElementById('context-menu');
+            if (!menu) return;
+            
+            const viewportHeight = window.innerHeight;
+            const maxHeightVh = viewportHeight * 0.8;
+            const menuHeight = menu.getBoundingClientRect().height;
+            const hasScrollbar = menu.scrollHeight > menu.clientHeight;
+            
+            document.getElementById('viewport-size').textContent = `${window.innerWidth}x${viewportHeight}px`;
+            document.getElementById('menu-height').textContent = `${menuHeight.toFixed(0)}px`;
+            document.getElementById('max-height').textContent = `${maxHeightVh.toFixed(0)}px`;
+            document.getElementById('has-scrollbar').textContent = hasScrollbar ? 'YES ✓' : 'NO';
+            
+            // Update scrollbar color based on result
+            const scrollbarEl = document.getElementById('has-scrollbar');
+            scrollbarEl.style.color = hasScrollbar ? '#4CAF50' : '#888';
+            scrollbarEl.style.fontWeight = hasScrollbar ? 'bold' : 'normal';
+        }
+        
+        function showShortMenu() {
+            createContextMenu(2);
+        }
+        
+        function showTallMenu() {
+            createContextMenu(6);
+        }
+        
+        function showExtraTallMenu() {
+            createContextMenu(12);
+        }
+        
+        function hideMenu() {
+            const menu = document.getElementById('context-menu');
+            if (menu) {
+                menu.style.display = 'none';
+            }
+            updateMenuInfo();
+        }
+        
+        function resizeViewport(width, height) {
+            window.resizeTo(width, height);
+            setTimeout(updateMenuInfo, 100);
+        }
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('context-menu');
+            const controls = document.querySelector('.test-controls');
+            
+            if (menu && 
+                menu.style.display !== 'none' &&
+                !menu.contains(e.target) && 
+                !controls.contains(e.target)) {
+                hideMenu();
+            }
+        });
+        
+        // Update viewport info on resize
+        window.addEventListener('resize', updateMenuInfo);
+        
+        // Initial update
+        updateMenuInfo();
+        
+        console.log('Context Menu Scrolling Test Ready');
+        console.log('CSS max-height: 80vh applied');
+        console.log('overflow-y: auto applied');
+        console.log('scroll-behavior: smooth applied');
+    </script>
+</body>
+</html>

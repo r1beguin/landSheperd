@@ -3,11 +3,12 @@
  * Displays contextual information and action options based on what was clicked
  */
 class ContextMenuManager {
-    constructor(canvas, soilManager, plantManager, timeManager) {
+    constructor(canvas, soilManager, plantManager, timeManager, graphicsEngine = null) {
         this.canvas = canvas;
         this.soilManager = soilManager;
         this.plantManager = plantManager;
         this.timeManager = timeManager;
+        this.graphicsEngine = graphicsEngine;
         
         this.menuElement = null;
         this.isVisible = false;
@@ -16,9 +17,23 @@ class ContextMenuManager {
         this.currentWorldX = null;
         this.currentWorldY = null;
         
+        // Cell highlight tracking
+        this.highlightedCellCoords = null;
+        
         // Real-time update system
         this.updateIntervalId = null;
         this.updateFrequencyMs = 100; // Update every 100ms for smooth real-time feedback
+        
+        // Dragging state
+        this.isDragging = false;
+        this.dragStartX = 0;
+        this.dragStartY = 0;
+        this.menuStartX = 0;
+        this.menuStartY = 0;
+        
+        // Bound drag handlers for easy cleanup
+        this.boundOnDragMove = this.onDragMove.bind(this);
+        this.boundOnDragEnd = this.onDragEnd.bind(this);
         
         this.createMenuElement();
         this.setupEventListeners();
@@ -61,6 +76,14 @@ class ContextMenuManager {
         
         if (!soil) {
             return; // No soil, no menu
+        }
+        
+        // Enable cell highlight BEFORE showing menu
+        this.highlightedCellCoords = { x: gridX, y: gridY };
+        if (this.graphicsEngine && this.graphicsEngine.renderSystem) {
+            this.graphicsEngine.renderSystem.setHighlightedCell(gridX, gridY);
+        } else {
+            console.warn('ContextMenuManager: RenderSystem not available for cell highlight');
         }
         
         // Build menu content
@@ -274,7 +297,7 @@ class ContextMenuManager {
         const plants = this.plantManager.getPlantAt(this.currentGridX, this.currentGridY); // Get all plants at cell
         const hasPlants = plants && plants.length > 0;
         
-        let html = '<div class="context-menu-header">';
+        let html = '<div class="context-menu-header" data-drag-handle="true">';
         
         if (hasPlants) {
             html += `<div class="context-menu-title">Cell (${this.currentGridX}, ${this.currentGridY})</div>`;
@@ -680,6 +703,96 @@ class ContextMenuManager {
                 this.handleAction(action, plant);
             });
         });
+        
+        // Setup drag handlers for header
+        const header = this.menuElement.querySelector('[data-drag-handle="true"]');
+        if (header) {
+            header.addEventListener('mousedown', (event) => {
+                this.onDragStart(event);
+            });
+        }
+    }
+    
+    /**
+     * Start dragging the context menu
+     * @param {MouseEvent} event - The mousedown event
+     */
+    onDragStart(event) {
+        // Prevent default to avoid text selection
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Store initial positions
+        this.isDragging = true;
+        this.dragStartX = event.clientX;
+        this.dragStartY = event.clientY;
+        this.menuStartX = this.menuElement.offsetLeft;
+        this.menuStartY = this.menuElement.offsetTop;
+        
+        // Add dragging class for visual feedback
+        this.menuElement.classList.add('dragging');
+        
+        // Attach document-level event listeners for drag
+        document.addEventListener('mousemove', this.boundOnDragMove);
+        document.addEventListener('mouseup', this.boundOnDragEnd);
+    }
+    
+    /**
+     * Handle menu dragging
+     * @param {MouseEvent} event - The mousemove event
+     */
+    onDragMove(event) {
+        if (!this.isDragging) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Calculate delta from drag start
+        const dx = event.clientX - this.dragStartX;
+        const dy = event.clientY - this.dragStartY;
+        
+        // Calculate new position
+        let newX = this.menuStartX + dx;
+        let newY = this.menuStartY + dy;
+        
+        // Get menu and viewport dimensions
+        const menuRect = this.menuElement.getBoundingClientRect();
+        const menuWidth = menuRect.width;
+        const menuHeight = menuRect.height;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Clamp to viewport bounds (keep at least 50px visible)
+        const minVisible = 50;
+        newX = Math.max(-menuWidth + minVisible, Math.min(viewportWidth - minVisible, newX));
+        newY = Math.max(0, Math.min(viewportHeight - minVisible, newY));
+        
+        // Update menu position
+        this.menuElement.style.left = newX + 'px';
+        this.menuElement.style.top = newY + 'px';
+    }
+    
+    /**
+     * End dragging
+     * @param {MouseEvent} event - The mouseup event
+     */
+    onDragEnd(event) {
+        if (!this.isDragging) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Reset dragging state
+        this.isDragging = false;
+        
+        // Remove dragging class
+        this.menuElement.classList.remove('dragging');
+        
+        // Remove document-level event listeners
+        document.removeEventListener('mousemove', this.boundOnDragMove);
+        document.removeEventListener('mouseup', this.boundOnDragEnd);
+        
+        // CRITICAL: Do NOT clear highlighted cell - it should persist!
     }
     
     handleAction(action, plant) {
@@ -815,6 +928,20 @@ class ContextMenuManager {
     hide() {
         // Stop real-time updates
         this.stopUpdateLoop();
+        
+        // Clean up drag listeners if still active
+        if (this.isDragging) {
+            this.isDragging = false;
+            this.menuElement.classList.remove('dragging');
+            document.removeEventListener('mousemove', this.boundOnDragMove);
+            document.removeEventListener('mouseup', this.boundOnDragEnd);
+        }
+        
+        // Clear cell highlight
+        if (this.graphicsEngine && this.graphicsEngine.renderSystem) {
+            this.graphicsEngine.renderSystem.clearHighlightedCell();
+        }
+        this.highlightedCellCoords = null;
         
         this.menuElement.style.display = 'none';
         this.isVisible = false;

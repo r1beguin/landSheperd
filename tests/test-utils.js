@@ -311,16 +311,17 @@ async function getGameMetrics(page) {
  * @param {Page} page - Playwright page object
  * @param {number} gridX - Grid X coordinate
  * @param {number} gridY - Grid Y coordinate
+ * @param {string} species - Species ID (default: 'urtica_dioica')
  * @returns {Promise<Object>} Result of spawn operation
  */
-async function spawnPlantAt(page, gridX, gridY) {
+async function spawnPlantAt(page, gridX, gridY, species = 'urtica_dioica') {
     return await page.evaluate((coords) => {
         if (!window.graphicsEngine || !window.graphicsEngine.plantManager) {
             return { success: false, error: 'PlantManager not available' };
         }
         
         const currentDay = window.graphicsEngine.timeManager?.getCurrentDayPrecise() || 0;
-        const plant = window.graphicsEngine.plantManager.addPlant(coords.x, coords.y, 'urtica_dioica', currentDay);
+        const plant = window.graphicsEngine.plantManager.addPlant(coords.x, coords.y, coords.species, currentDay);
         
         if (plant) {
             return { 
@@ -328,13 +329,64 @@ async function spawnPlantAt(page, gridX, gridY) {
                 plant: {
                     position: { x: plant.x, y: plant.y },
                     stage: plant.currentStage,
-                    grid: coords
+                    grid: { x: coords.x, y: coords.y },
+                    species: coords.species
                 }
             };
         }
         
         return { success: false, error: 'Failed to spawn plant' };
+    }, { x: gridX, y: gridY, species });
+}
+
+/**
+ * Right-click at specific grid coordinates
+ * @param {Page} page - Playwright page object
+ * @param {number} gridX - Grid X coordinate
+ * @param {number} gridY - Grid Y coordinate
+ * @returns {Promise<void>}
+ */
+async function rightClickAt(page, gridX, gridY) {
+    // Convert grid coordinates to world coordinates, then to screen coordinates
+    const screenCoords = await page.evaluate((coords) => {
+        if (!window.graphicsEngine) {
+            return null;
+        }
+        
+        const soilManager = window.graphicsEngine.soilManager;
+        const cameraManager = window.graphicsEngine.cameraManager;
+        
+        // Calculate world position from grid coordinates
+        // Grid coordinates map directly to world coordinates via cellSize
+        const cellSize = soilManager.cellSize || 10;
+        const worldX = coords.x * cellSize;
+        const worldY = coords.y * cellSize;
+        
+        // Convert to screen coordinates
+        const screenPos = cameraManager.worldToScreen(worldX, worldY);
+        
+        return screenPos;
     }, { x: gridX, y: gridY });
+    
+    if (!screenCoords) {
+        throw new Error('Failed to convert grid coordinates to screen coordinates');
+    }
+    
+    // Get canvas bounding rect
+    const rect = await page.evaluate(() => {
+        const canvas = document.querySelector('canvas');
+        const rect = canvas.getBoundingClientRect();
+        return { left: rect.left, top: rect.top };
+    });
+    
+    const clientX = rect.left + screenCoords.x;
+    const clientY = rect.top + screenCoords.y;
+    
+    // Perform right-click
+    await page.mouse.click(clientX, clientY, { button: 'right' });
+    
+    // Wait for context menu to appear
+    await waitForRenderFrames(page, 2);
 }
 
 /**
@@ -610,6 +662,7 @@ module.exports = {
     getCameraState,
     getGameMetrics,
     spawnPlantAt,
+    rightClickAt,
     toggleDebugOverlay,
     waitForCondition,
     compareImageData,

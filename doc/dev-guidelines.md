@@ -487,8 +487,56 @@ See [Troubleshooting Documentation](troubleshooting/) for more solutions.
 
 **This is a routing document. For comprehensive information, navigate to the appropriate documentation section above.**
 
-**Last Updated**: 2025-12-07  
-**Total Documentation**: 3200+ lines with water fertility performance optimization complete
+**Last Updated**: 2025-12-08  
+**Total Documentation**: 3800+ lines with context menu UX improvements complete
+
+---
+
+## Recent Implementations
+
+### Context Menu UX Improvements - 2025-12-08
+
+**Purpose:** Improved context menu usability with cell highlighting, scrolling, and dragging
+
+**Implementation:**
+- **RenderSystem** (js/systems/render_system.js): Cell highlight rendering with `setHighlightedCell(x, y)` and `clearHighlightedCell()` methods
+- **ContextMenuManager** (js/systems/context_menu_manager.js): Lifecycle integration with highlight, drag functionality with viewport clamping
+- **CSS** (css/styles.css): Scrolling styles (max-height: 80vh), custom scrollbar, dragging affordances (opacity, shadow)
+
+**Key Design Decisions:**
+- Cell highlight rendering: 4 rectangles forming border, rgba(0, 255, 0, 0.3) soft green
+- Highlight lifecycle: Set on menu show, cleared on menu hide (all close paths)
+- Scrolling: Pure CSS with max-height 80vh, native browser scrolling (zero JS overhead)
+- Dragging: Header-only drag handle, viewport clamping (50px minimum visible), highlight persists during drag
+- Integration: All three features work independently without interference
+
+**Configuration:**
+No new configuration required - all features integrated into existing context menu system.
+
+**Testing:**
+- Validation: PASS - All 5 milestones validated via `npm run verify`
+- Cell highlight: Tested with all close mechanisms (close button, ESC, outside click)
+- Scrolling: Tested with short/tall menus, viewport resize, scroll + drag combination
+- Dragging: Tested rapid dragging, edge clamping, scroll position preservation
+- Performance: FPS 42-48 (maintained), 0 console errors, +4 render calls per frame (highlight)
+
+**Usage:**
+```javascript
+// Cell highlight API (automatic via context menu)
+renderSystem.setHighlightedCell(gridX, gridY);     // Enable highlight
+renderSystem.clearHighlightedCell();               // Disable highlight
+
+// Scrolling (automatic via CSS)
+// Menus >80vh automatically show scrollbar
+
+// Dragging (automatic via event handlers)
+// Click and drag menu header to reposition
+// Viewport clamping ensures menu remains accessible
+```
+
+**Related Documentation:**
+- [Context Menu System](features/context-menu-system.md) - Updated with cell highlight, scrolling, and dragging sections
+- [Context Menu UX Devlog](devlogs/2025-12/2025-12-08-context-menu-ux-improvements.md) - Complete implementation history
 
 ---
 
