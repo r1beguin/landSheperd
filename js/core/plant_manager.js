@@ -208,28 +208,29 @@ class PlantManager {
         
         // Manual placement always allowed - plant will be stunted if nutrients insufficient
         
-        // FIXED: Verify that the exact click position maps back to the intended grid cell
-        // This prevents plants from being created at positions that don't resolve correctly
-        const verifyGrid = this.soilManager.worldToGrid(exactWorldX, exactWorldY);
-        let finalWorldX = exactWorldX;
-        let finalWorldY = exactWorldY;
+        // FIXED: Plant constructor expects orthographic world coordinates
+        // Calculate orthographic world position from grid coordinates
+        // The Plant class internally stores gridX/gridY and handles isometric conversion in getRenderData()
+        const cellSize = this.soilManager.cellSize;
         
-        if (verifyGrid.x !== gridX || verifyGrid.y !== gridY) {
-            console.warn(`[PLANT] Click position (${exactWorldX.toFixed(1)}, ${exactWorldY.toFixed(1)}) maps to grid (${verifyGrid.x}, ${verifyGrid.y}) but expected (${gridX}, ${gridY}). Using cell center instead.`);
-            // Fallback: use cell center to ensure correct grid mapping
-            const cellLeft = gridX * this.soilManager.cellSize;
-            const cellTop = gridY * this.soilManager.cellSize;
-            finalWorldX = cellLeft + this.soilManager.cellSize / 2;
-            finalWorldY = cellTop + this.soilManager.cellSize / 2;
-        }
+        // Add random offset within cell for natural variation
+        // Use ±80% of cell size to create visible scatter (±8 pixels for cellSize=20)
+        // This makes plants appear naturally distributed instead of perfectly centered
+        const maxOffset = cellSize * 0.8;
+        const randomOffsetX = (Math.random() - 0.5) * maxOffset;
+        const randomOffsetY = (Math.random() - 0.5) * maxOffset;
+        
+        const orthoWorldX = gridX * cellSize + cellSize / 2 + randomOffsetX;
+        const orthoWorldY = gridY * cellSize + cellSize / 2 + randomOffsetY;
         
         // Get first growth stage from species config (Seedling for herbs, Sapling for trees)
         const firstStage = speciesConfig.growthStages && speciesConfig.growthStages.length > 0 
             ? speciesConfig.growthStages[0].name 
             : 'Seedling';
         
-        // Place plant at verified position
-        const plant = new Plant(finalWorldX, finalWorldY, speciesConfig, firstStage, currentDay);
+        // Place plant with orthographic world coordinates
+        // Plant constructor will calculate gridX/gridY from these using Math.floor(x / cellSize)
+        const plant = new Plant(orthoWorldX, orthoWorldY, speciesConfig, firstStage, currentDay);
         
         // Get layer from plant's species config
         const layer = plant.getLayer();
@@ -428,9 +429,20 @@ class PlantManager {
     }
     
     getVisiblePlants(bounds) {
+        const isIsometric = window.config?.world?.rendering?.projection === 'isometric';
+        
         return this.getAllPlants().filter(plant => {
-            return plant.x >= bounds.left && plant.x <= bounds.right &&
-                   plant.y >= bounds.top && plant.y <= bounds.bottom;
+            if (isIsometric) {
+                // In isometric mode, getRenderData() returns isometric coordinates
+                // which match the isometric camera bounds
+                const renderData = plant.getRenderData();
+                return renderData.x >= bounds.left && renderData.x <= bounds.right &&
+                       renderData.y >= bounds.top && renderData.y <= bounds.bottom;
+            } else {
+                // In orthographic mode, plant.x/y are world coordinates
+                return plant.x >= bounds.left && plant.x <= bounds.right &&
+                       plant.y >= bounds.top && plant.y <= bounds.bottom;
+            }
         });
     }
     

@@ -4,8 +4,16 @@
  */
 class Plant {
     constructor(x, y, speciesConfig, stage = 'Seedling', currentDay = 0) {
+        // Store grid coordinates for isometric conversion
+        // x and y are world coordinates, convert to grid
+        const cellSize = window.config?.world?.map?.cellSize || 20;
+        this.gridX = Math.floor(x / cellSize);
+        this.gridY = Math.floor(y / cellSize);
+        
+        // Keep world coordinates for legacy compatibility
         this.x = x;
         this.y = y;
+        
         this.species = speciesConfig;
         this.stage = stage;
         this.age = 0; // Age in game days
@@ -1142,7 +1150,44 @@ class Plant {
     }
 
     getRenderData() {
-        const yOffset = this.getRenderOffset();
+        const config = window.config.world.rendering;
+        const isIsometric = config.projection === 'isometric';
+        
+        let x, y;
+        
+        if (isIsometric) {
+            // Isometric projection
+            // Convert orthographic position (with random offset) to isometric
+            const isoConfig = config.isometric;
+            const cellSize = config.cellSize || window.config.world.map.cellSize;
+            
+            // Calculate the fractional offset from cell center
+            // this.x is orthographic world coord, this.gridX is the integer grid cell
+            const cellCenterX = this.gridX * cellSize + cellSize / 2;
+            const cellCenterY = this.gridY * cellSize + cellSize / 2;
+            const offsetX = this.x - cellCenterX;
+            const offsetY = this.y - cellCenterY;
+            
+            // Convert base grid position to isometric
+            const isoBase = IsometricUtils.gridToIso(this.gridX, this.gridY, isoConfig.tileWidth, isoConfig.tileHeight);
+            
+            // Apply the offset in isometric space
+            // In isometric, X offset affects both iso-x and iso-y, same with Y offset
+            const isoOffsetX = (offsetX - offsetY) * (isoConfig.tileWidth / cellSize) * 0.5;
+            const isoOffsetY = (offsetX + offsetY) * (isoConfig.tileHeight / cellSize) * 0.5;
+            
+            x = isoBase.x + isoOffsetX;
+            y = isoBase.y + isoOffsetY;
+            
+            // NOTE: Layer offset is NOT applied in isometric mode
+            // The isometric tile shape provides natural visual layering
+            
+        } else {
+            // Orthographic projection (original)
+            const yOffset = this.getRenderOffset();
+            x = this.x;
+            y = this.y - yOffset;
+        }
         
         // NEW: Calculate starvation stage for size multiplier (Milestone 3)
         // MILESTONE 2: Updated to use effective nutrients
@@ -1169,13 +1214,14 @@ class Plant {
         const wiltedHeight = this.height * sizeMultiplier;
         
         return {
-            x: this.x - wiltedWidth / 2,
-            y: this.y - wiltedHeight - yOffset,
+            x: x - wiltedWidth / 2,
+            y: y - wiltedHeight,
             width: wiltedWidth,
             height: wiltedHeight,
             texture: this.texture,
             tint: this.calculateNutrientTint(),
-            layer: this.getLayer() // Add layer info for rendering system
+            layer: this.getLayer(), // Add layer info for rendering system
+            zOrder: IsometricUtils.getZOrder(this.gridX, this.gridY) // For depth sorting
         };
     }
 

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milestone 3 - Isometric Plant Positioning Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        h1 { color: #00ffff; }
+        .test-section {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #444;
+            border-radius: 5px;
+        }
+        .pass { color: #00ff00; }
+        .fail { color: #ff0000; }
+        .info { color: #ffaa00; }
+        button {
+            background: #004400;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: monospace;
+            margin: 5px;
+        }
+        button:hover {
+            background: #006600;
+        }
+        #viewport {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Milestone 3 - Isometric Plant Positioning Test</h1>
+    
+    <div class="test-section">
+        <h2>Manual Test Instructions</h2>
+        <p>1. Open main application: <a href="http://localhost:8081" target="_blank">http://localhost:8081</a></p>
+        <p>2. Open browser console (F12)</p>
+        <p>3. Copy and run the test script from: <code>tests/manual/test-isometric-plants-m3.js</code></p>
+        <p>4. Or click the button below to run automated tests here:</p>
+        <button onclick="runTests()">Run Automated Tests</button>
+        <button onclick="openMainApp()">Open Main App in New Tab</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="results">Click "Run Automated Tests" to begin...</div>
+    </div>
+
+    <iframe id="viewport" src="http://localhost:8081"></iframe>
+
+    <script>
+        function openMainApp() {
+            window.open('http://localhost:8081', '_blank');
+        }
+
+        async function runTests() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p class="info">Running tests...</p>';
+            
+            try {
+                // Create iframe to load the app
+                const iframe = document.getElementById('viewport');
+                iframe.style.display = 'block';
+                
+                // Wait for app to load
+                await new Promise(resolve => {
+                    iframe.onload = () => setTimeout(resolve, 2000);
+                });
+
+                const win = iframe.contentWindow;
+                
+                if (!win.graphicsEngine) {
+                    throw new Error('GraphicsEngine not initialized');
+                }
+
+                let output = '';
+                const log = (msg, type = 'info') => {
+                    output += `<p class="${type}">${msg}</p>`;
+                };
+
+                log('=== Milestone 3: Isometric Plant Positioning Tests ===', 'info');
+
+                // Test 1: Verify IsometricUtils exists
+                log('\\n[TEST 1] Verifying IsometricUtils...', 'info');
+                if (win.IsometricUtils) {
+                    log('✓ IsometricUtils loaded', 'pass');
+                } else {
+                    log('✗ IsometricUtils NOT loaded', 'fail');
+                    throw new Error('IsometricUtils missing');
+                }
+
+                // Test 2: Spawn plant and check grid coordinates
+                log('\\n[TEST 2] Testing plant grid coordinates...', 'info');
+                const plantManager = win.graphicsEngine.plantManager;
+                plantManager.plants.clear();
+                
+                const testPlant = plantManager.addPlant(10, 10, 'trifolium_repens', 0);
+                if (!testPlant) {
+                    log('✗ Failed to spawn test plant', 'fail');
+                    throw new Error('Plant spawn failed');
+                }
+
+                log(`Plant spawned at grid (${testPlant.gridX}, ${testPlant.gridY})`, 'info');
+                
+                if (testPlant.gridX === 10 && testPlant.gridY === 10) {
+                    log('✓ Grid coordinates stored correctly', 'pass');
+                } else {
+                    log(`✗ Grid coordinates incorrect: (${testPlant.gridX}, ${testPlant.gridY}) expected (10, 10)`, 'fail');
+                }
+
+                // Test 3: Verify isometric conversion
+                log('\\n[TEST 3] Testing isometric coordinate conversion...', 'info');
+                const renderData = testPlant.getRenderData();
+                const config = win.config.world.rendering.isometric;
+                const expectedIso = win.IsometricUtils.gridToIso(testPlant.gridX, testPlant.gridY, config.tileWidth, config.tileHeight);
+                
+                log(`Expected isometric: (${expectedIso.x}, ${expectedIso.y})`, 'info');
+                log(`Render position: (${renderData.x.toFixed(1)}, ${renderData.y.toFixed(1)})`, 'info');
+                
+                if (renderData.hasOwnProperty('zOrder')) {
+                    const expectedZ = testPlant.gridX + testPlant.gridY;
+                    if (renderData.zOrder === expectedZ) {
+                        log(`✓ Z-order correct: ${renderData.zOrder} (expected ${expectedZ})`, 'pass');
+                    } else {
+                        log(`✗ Z-order incorrect: ${renderData.zOrder} (expected ${expectedZ})`, 'fail');
+                    }
+                } else {
+                    log('✗ Render data missing zOrder property', 'fail');
+                }
+
+                // Test 4: Verify depth sorting configuration
+                log('\\n[TEST 4] Testing depth sorting configuration...', 'info');
+                const renderConfig = win.config.world.rendering;
+                log(`Projection: ${renderConfig.projection}`, 'info');
+                log(`Depth sorting: ${renderConfig.isometric.depthSortingEnabled}`, 'info');
+                
+                if (renderConfig.projection === 'isometric' && renderConfig.isometric.depthSortingEnabled) {
+                    log('✓ Isometric mode with depth sorting enabled', 'pass');
+                } else {
+                    log('✗ Isometric or depth sorting not configured', 'fail');
+                }
+
+                // Test 5: Test multiple plants with Z-ordering
+                log('\\n[TEST 5] Testing Z-order calculation with multiple plants...', 'info');
+                plantManager.plants.clear();
+                
+                const testCases = [
+                    { x: 5, y: 5, expectedZ: 10 },
+                    { x: 10, y: 10, expectedZ: 20 },
+                    { x: 15, y: 15, expectedZ: 30 }
+                ];
+
+                let allCorrect = true;
+                for (const testCase of testCases) {
+                    const plant = plantManager.addPlant(testCase.x, testCase.y, 'urtica_dioica', 0);
+                    const zOrder = win.IsometricUtils.getZOrder(plant.gridX, plant.gridY);
+                    if (zOrder === testCase.expectedZ) {
+                        log(`✓ Plant at (${testCase.x}, ${testCase.y}) → Z=${zOrder}`, 'pass');
+                    } else {
+                        log(`✗ Plant at (${testCase.x}, ${testCase.y}) → Z=${zOrder} (expected ${testCase.expectedZ})`, 'fail');
+                        allCorrect = false;
+                    }
+                }
+
+                if (allCorrect) {
+                    log('✓ All Z-order calculations correct', 'pass');
+                }
+
+                log('\\n=== All Tests Complete ===', 'pass');
+                log('Visual validation required: Open main app and verify plants render on isometric tiles', 'info');
+
+                results.innerHTML = output;
+                
+            } catch (error) {
+                results.innerHTML += `<p class="fail">ERROR: ${error.message}</p><pre>${error.stack}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>

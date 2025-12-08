@@ -79,6 +79,15 @@
                 }
             }
         },
+        "rendering": {
+            "projection": "isometric",
+            "isometric": {
+                "tileWidth": 40,
+                "tileHeight": 20,
+                "depthSortingEnabled": true,
+                "description": "2:1 isometric projection with depth sorting"
+            }
+        },
         "map": {
             "gridWidth": 50,
             "gridHeight": 50,

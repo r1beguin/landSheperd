@@ -28,6 +28,9 @@ class CameraManager {
         // Pour le suivi fluide
         this.target = null;
         this.followSpeed = 0.05;
+        
+        // Projection mode (orthographic or isometric)
+        this.projectionMode = 'orthographic';
     }
     
     // Gestion du zoom
@@ -67,8 +70,22 @@ class CameraManager {
     }
     
     move(deltaX, deltaY) {
-        this.position.x += deltaX;
-        this.position.y += deltaY;
+        // Apply isometric pan scale if in isometric mode
+        const panScale = this.getIsometricPanScale();
+        this.position.x += deltaX * panScale;
+        this.position.y += deltaY * panScale;
+    }
+    
+    /**
+     * Get pan scale factor based on projection mode
+     * Isometric tiles are wider (2:1 ratio), so panning feels better with scaled movement
+     * @returns {number} Pan scale multiplier
+     */
+    getIsometricPanScale() {
+        if (this.projectionMode === 'isometric') {
+            return 0.7; // Reduce pan speed for isometric to feel more natural
+        }
+        return 1.0; // No scaling for orthographic
     }
     
     // Suivi d'une cible
@@ -156,5 +173,11 @@ class CameraManager {
             width: bottomRight.x - topLeft.x,
             height: bottomRight.y - topLeft.y
         };
+    }
+    
+    // Projection mode management
+    setProjectionMode(mode) {
+        this.projectionMode = mode;
+        console.log(`CameraManager projection mode: ${this.projectionMode}`);
     }
 }

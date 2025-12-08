@@ -1,117 +1,132 @@
 {
   "logs": [
     {
-      "type": "warning",
-      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A0402800947B0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
-      "timestamp": "2025-12-08T10:33:26.060Z"
+      "type": "log",
+      "text": "IsometricUtils initialized",
+      "timestamp": "2025-12-08T13:59:38.868Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4f440018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-08T10:33:26.060Z"
+      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A0C02700CC7B0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+      "timestamp": "2025-12-08T13:59:38.879Z"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x5a5c00196000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-08T13:59:38.883Z"
     },
     {
       "type": "log",
       "text": "[TIME] Flood events enabled: every 8 days",
-      "timestamp": "2025-12-08T10:33:26.060Z"
+      "timestamp": "2025-12-08T13:59:38.884Z"
     },
     {
       "type": "log",
-      "text": "Seed initialized: 4253414706",
-      "timestamp": "2025-12-08T10:33:26.068Z"
+      "text": "Seed initialized: 4265787534",
+      "timestamp": "2025-12-08T13:59:38.895Z"
     },
     {
       "type": "log",
-      "text": "ProceduralGenerator using seed: 4253414706",
-      "timestamp": "2025-12-08T10:33:26.072Z"
+      "text": "ProceduralGenerator using seed: 4265787534",
+      "timestamp": "2025-12-08T13:59:38.896Z"
     },
     {
       "type": "log",
       "text": "[SoilEffectsManager] Initialized {weatherEffectsEnabled: true, decompositionEnabled: true, nitrogenRegenEnabled: true, activityWindow: 30}",
-      "timestamp": "2025-12-08T10:33:26.073Z"
+      "timestamp": "2025-12-08T13:59:38.896Z"
     },
     {
       "type": "log",
-      "text": "Rivers generated: 2 rivers, 264 total cells (2ms)",
-      "timestamp": "2025-12-08T10:33:26.088Z"
+      "text": "Rivers generated: 2 rivers, 295 total cells (2ms)",
+      "timestamp": "2025-12-08T13:59:38.908Z"
     },
     {
       "type": "log",
-      "text": "Lakes generated: 3 lakes, 262 total cells (1ms)",
-      "timestamp": "2025-12-08T10:33:26.089Z"
+      "text": "Lakes generated: 3 lakes, 377 total cells (1ms)",
+      "timestamp": "2025-12-08T13:59:38.909Z"
     },
     {
       "type": "log",
-      "text": "Fertility boost applied to 289 cells near 264 river tiles (3ms)",
-      "timestamp": "2025-12-08T10:33:26.092Z"
+      "text": "Fertility boost applied to 309 cells near 279 river tiles (1ms)",
+      "timestamp": "2025-12-08T13:59:38.910Z"
     },
     {
       "type": "log",
-      "text": "Fertility boost applied to 108 cells near 244 lake tiles (2ms)",
-      "timestamp": "2025-12-08T10:33:26.094Z"
+      "text": "Fertility boost applied to 250 cells near 356 lake tiles (2ms)",
+      "timestamp": "2025-12-08T13:59:38.912Z"
     },
     {
       "type": "log",
-      "text": "Riparian grid generated: 952 cells cached (2ms)",
-      "timestamp": "2025-12-08T10:33:26.097Z"
+      "text": "Riparian grid generated: 1126 cells cached (2ms)",
+      "timestamp": "2025-12-08T13:59:38.914Z"
     },
     {
       "type": "log",
-      "text": "Water seeping influence map: 1338 cells cached (4ms)",
-      "timestamp": "2025-12-08T10:33:26.101Z"
+      "text": "Water seeping influence map: 1504 cells cached (3ms)",
+      "timestamp": "2025-12-08T13:59:38.918Z"
     },
     {
       "type": "log",
       "text": "Config validated successfully",
-      "timestamp": "2025-12-08T10:33:26.125Z"
+      "timestamp": "2025-12-08T13:59:38.930Z"
+    },
+    {
+      "type": "log",
+      "text": "CameraManager projection mode: isometric",
+      "timestamp": "2025-12-08T13:59:38.941Z"
+    },
+    {
+      "type": "log",
+      "text": "Rendering in isometric mode",
+      "timestamp": "2025-12-08T13:59:38.942Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4f440018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-08T10:33:26.239Z"
+      "text": "[.WebGL-0x5a5c00196000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-08T13:59:39.040Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4f440018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-08T10:33:26.288Z"
+      "text": "[.WebGL-0x5a5c00196000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-08T13:59:39.075Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4f440018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
-      "timestamp": "2025-12-08T10:33:26.298Z"
+      "text": "[.WebGL-0x5a5c00196000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+      "timestamp": "2025-12-08T13:59:39.107Z"
     },
     {
       "type": "log",
       "text": "PlantManager loaded 3 species: urtica_dioica, quercus_robur, trifolium_repens",
-      "timestamp": "2025-12-08T10:33:26.481Z"
+      "timestamp": "2025-12-08T13:59:39.262Z"
     }
   ],
   "errors": [],
   "warnings": [
     {
       "type": "warning",
-      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A0402800947B0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
-      "timestamp": "2025-12-08T10:33:26.060Z"
+      "text": "[GroupMarkerNotSet(crbug.com/242999)!:A0C02700CC7B0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+      "timestamp": "2025-12-08T13:59:38.879Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4f440018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-08T10:33:26.060Z"
+      "text": "[.WebGL-0x5a5c00196000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-08T13:59:38.883Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4f440018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-08T10:33:26.239Z"
+      "text": "[.WebGL-0x5a5c00196000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-08T13:59:39.040Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4f440018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-      "timestamp": "2025-12-08T10:33:26.288Z"
+      "text": "[.WebGL-0x5a5c00196000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "timestamp": "2025-12-08T13:59:39.075Z"
     },
     {
       "type": "warning",
-      "text": "[.WebGL-0x4f440018ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
-      "timestamp": "2025-12-08T10:33:26.298Z"
+      "text": "[.WebGL-0x5a5c00196000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+      "timestamp": "2025-12-08T13:59:39.107Z"
     }
   ]
 }

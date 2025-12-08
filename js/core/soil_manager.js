@@ -19,6 +19,9 @@ class SoilManager {
         this.textureGenerator = textureGenerator;
         this.config = config;
         
+        // Camera manager reference (set later by GraphicsEngine)
+        this.cameraManager = null;
+        
         // Get seed from config or generate random
         const configSeed = this.config.world?.terrain?.seed;
         this.seed = configSeed !== undefined && configSeed !== null ? configSeed : this.generateRandomSeed();
@@ -59,6 +62,14 @@ class SoilManager {
         
         this.initializeSoilGrid();
         this.createSoilGeometry();
+    }
+    
+    /**
+     * Set camera manager reference (called by GraphicsEngine after initialization)
+     * @param {Object} cameraManager - Camera manager instance
+     */
+    setCameraManager(cameraManager) {
+        this.cameraManager = cameraManager;
     }
     
     /**
@@ -353,6 +364,22 @@ class SoilManager {
     
     // Optimized rendering of visible cells
     renderSoil(renderSystem, viewMatrix, cameraManager, lightingManager) {
+        const config = this.config.world.rendering;
+        const isIsometric = config.projection === 'isometric';
+        
+        if (isIsometric) {
+            const timeManager = window.graphicsEngine?.timeManager;
+            const time = timeManager ? timeManager.getCurrentDayPrecise() : 0;
+            this.renderIsometricSoils(renderSystem, viewMatrix, lightingManager, time);
+        } else {
+            this.renderOrthographicSoils(renderSystem, viewMatrix, cameraManager, lightingManager);
+        }
+    }
+    
+    /**
+     * Render soils in orthographic mode (original square tiles)
+     */
+    renderOrthographicSoils(renderSystem, viewMatrix, cameraManager, lightingManager) {
         // Update visible cells if necessary
         if (this.needsRefresh) {
             this.updateVisibleCells(cameraManager);
@@ -374,6 +401,69 @@ class SoilManager {
         this.visibleCells.forEach(soil => {
             this.renderSoilCellWithLOD(soil, renderSystem, viewMatrix, lightingManager, renderDetailLevel);
         });
+        
+        this.visibleCellsCount = this.visibleCells.length;
+    }
+    
+    /**
+     * Render soils in isometric mode (diamond tiles with depth sorting)
+     */
+    renderIsometricSoils(renderSystem, viewMatrix, lightingManager, time) {
+        // Log once when first switching to isometric mode
+        if (!this.isometricLogged) {
+            console.log('Rendering in isometric mode');
+            this.isometricLogged = true;
+        }
+        
+        const isoConfig = this.config.world.rendering.isometric;
+        const tileWidth = isoConfig.tileWidth;
+        const tileHeight = isoConfig.tileHeight;
+        
+        // Get visible bounds
+        const bounds = this.cameraManager.getVisibleBounds();
+        
+        // Convert bounds to grid coordinates (approximate, with margin)
+        const margin = 5;
+        const minGridX = Math.floor(-this.gridWidth / 2) - margin;
+        const maxGridX = Math.ceil(this.gridWidth / 2) + margin;
+        const minGridY = Math.floor(-this.gridHeight / 2) - margin;
+        const maxGridY = Math.ceil(this.gridHeight / 2) + margin;
+        
+        // Collect all soils in visible area
+        const visibleSoils = [];
+        for (let gridY = minGridY; gridY <= maxGridY; gridY++) {
+            for (let gridX = minGridX; gridX <= maxGridX; gridX++) {
+                const soil = this.getSoilAt(gridX, gridY);
+                if (soil) {
+                    visibleSoils.push(soil);
+                }
+            }
+        }
+        
+        // Depth sort: back-to-front (painter's algorithm)
+        if (isoConfig.depthSortingEnabled) {
+            visibleSoils.sort((a, b) => {
+                const zA = IsometricUtils.getZOrder(a.gridX, a.gridY);
+                const zB = IsometricUtils.getZOrder(b.gridX, b.gridY);
+                return zA - zB;  // Render back rows first
+            });
+        }
+        
+        // Update the visible cells cache for context menu checks
+        this.visibleCells = visibleSoils;
+        
+        // Render each soil tile as isometric diamond
+        visibleSoils.forEach(soil => {
+            const isoPos = IsometricUtils.gridToIso(soil.gridX, soil.gridY, tileWidth, tileHeight);
+            
+            if (soil.isWater) {
+                renderSystem.renderWaterDiamond(isoPos.x, isoPos.y, tileWidth, tileHeight, soil.baseColor, viewMatrix, lightingManager, time);
+            } else {
+                renderSystem.renderIsoDiamond(isoPos.x, isoPos.y, tileWidth, tileHeight, soil.baseColor, viewMatrix, lightingManager);
+            }
+        });
+        
+        this.visibleCellsCount = visibleSoils.length;
     }
     
     // Render a cell with levels of detail

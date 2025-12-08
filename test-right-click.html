@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Right-Click Debug Test - Land Shepherd</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        #instructions {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        #console-log {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+            border: 1px solid #333;
+            margin-bottom: 10px;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .log-error {
+            color: #f00;
+        }
+        .log-warn {
+            color: #ff0;
+        }
+        .log-info {
+            color: #0ff;
+        }
+        iframe {
+            border: 2px solid #333;
+            width: 100%;
+            height: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <h2>Right-Click Debug Test - Isometric Mode</h2>
+        <p><strong>Instructions:</strong></p>
+        <ol>
+            <li>Wait for game to load (see console below)</li>
+            <li>Right-click on any visible tile in the isometric grid</li>
+            <li>Check console logs to trace execution</li>
+            <li>Expected: Context menu should appear with tile info</li>
+        </ol>
+        <p><strong>What to look for:</strong></p>
+        <ul>
+            <li>[InputManager] Right-click detected at canvas coords</li>
+            <li>[GraphicsEngine] Right-click handler triggered</li>
+            <li>[GraphicsEngine] Screen/World/Grid coords logged</li>
+            <li>[GraphicsEngine] Soil exists + Visible checks</li>
+            <li>[ContextMenuManager] show() called</li>
+        </ul>
+    </div>
+    
+    <div id="console-log"></div>
+    
+    <iframe src="http://localhost:8081" id="game-frame"></iframe>
+    
+    <script>
+        const consoleLog = document.getElementById('console-log');
+        
+        function addLog(type, message) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toISOString().split('T')[1].slice(0, -1)}] ${message}`;
+            consoleLog.appendChild(entry);
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+        
+        // Override console methods to capture logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = function(...args) {
+            addLog('info', args.join(' '));
+            originalLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            addLog('error', args.join(' '));
+            originalError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            addLog('warn', args.join(' '));
+            originalWarn.apply(console, args);
+        };
+        
+        // Listen to iframe console messages
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'console') {
+                addLog(event.data.level, event.data.message);
+            }
+        });
+        
+        addLog('info', 'Test page loaded. Waiting for game to initialize...');
+        addLog('info', 'Right-click on tiles in the game below to test context menu.');
+    </script>
+</body>
+</html>

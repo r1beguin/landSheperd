@@ -355,7 +355,8 @@ class WeatherManager {
             const particle = this.activeParticles[i];
             
             if (particle.type === 'rain') {
-                // Rain falls downward
+                // Rain falls downward (and diagonally for isometric)
+                particle.x += particle.velocityX * deltaTime; // Apply horizontal velocity
                 particle.y += particle.velocityY * deltaTime;
                 
                 // Check if reached ground level
@@ -430,15 +431,40 @@ class WeatherManager {
         const speedMin = particleConfig.fallSpeedMin || 200;
         const speedMax = particleConfig.fallSpeedMax || 400;
         
+        // Check if isometric projection is enabled
+        const projection = window.config?.world?.rendering?.projection || 'orthographic';
+        const isIsometric = projection === 'isometric';
+        
         // Spawn particles
         for (let i = 0; i < spawnCount; i++) {
             const particle = this.particlePool.pop();
             
-            // Randomize particle properties
-            particle.x = bounds.left + Math.random() * bounds.width;
-            particle.y = spawnHeight + Math.random() * spawnHeightOffset; // Stagger spawn height
-            particle.velocityX = 0;  // Rain has no horizontal velocity
-            particle.velocityY = speedMin + Math.random() * (speedMax - speedMin);
+            // Calculate spawn position
+            if (isIsometric) {
+                // For isometric: spawn particles more widely to cover diamond-shaped visible area
+                // Extend spawn area by ~40% to cover the rotated perspective
+                const extraWidth = bounds.width * 0.4;
+                particle.x = (bounds.left - extraWidth) + Math.random() * (bounds.width + extraWidth * 2);
+                particle.y = spawnHeight + Math.random() * spawnHeightOffset;
+            } else {
+                // Orthographic: spawn in rectangular area
+                particle.x = bounds.left + Math.random() * bounds.width;
+                particle.y = spawnHeight + Math.random() * spawnHeightOffset;
+            }
+            
+            // Calculate velocity
+            const fallSpeed = speedMin + Math.random() * (speedMax - speedMin);
+            if (isIsometric) {
+                // Add horizontal drift to simulate isometric perspective
+                // Rain appears to fall at ~17 degree angle leftward (matching isometric perspective)
+                particle.velocityY = fallSpeed;
+                particle.velocityX = -fallSpeed * 0.3; // Leftward drift proportional to fall speed
+            } else {
+                // Orthographic: no horizontal velocity
+                particle.velocityX = 0;
+                particle.velocityY = fallSpeed;
+            }
+            
             particle.size = sizeMin + Math.random() * (sizeMax - sizeMin);
             particle.alpha = 0.7 + Math.random() * 0.3; // Slight alpha variation
             particle.active = true;

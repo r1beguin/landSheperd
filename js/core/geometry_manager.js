@@ -162,6 +162,120 @@ class GeometryManager {
         return geometry;
     }
 
+    /**
+     * Create diamond-shaped quad for isometric tiles
+     * Uses 2 triangles to form a diamond (rhombus) shape
+     * @param {number} tileWidth - Tile width in pixels (e.g., 40)
+     * @param {number} tileHeight - Tile height in pixels (e.g., 20)
+     * @returns {Object} Geometry with diamond vertices
+     */
+    createIsoDiamond(tileWidth, tileHeight) {
+        const key = `iso_diamond_${tileWidth}_${tileHeight}`;
+        
+        if (this.geometries.has(key)) {
+            return this.geometries.get(key);
+        }
+        
+        const halfW = tileWidth / 2;
+        const halfH = tileHeight / 2;
+        
+        // Diamond vertices (4 corners forming rhombus)
+        // Top vertex (0, halfH), Right vertex (halfW, 0)
+        // Bottom vertex (0, -halfH), Left vertex (-halfW, 0)
+        const vertices = new Float32Array([
+            // Triangle 1 (top half)
+            0, halfH,        // Top vertex
+            -halfW, 0,       // Left vertex
+            halfW, 0,        // Right vertex
+            
+            // Triangle 2 (bottom half)
+            0, -halfH,       // Bottom vertex
+            halfW, 0,        // Right vertex
+            -halfW, 0        // Left vertex
+        ]);
+        
+        const buffer = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, vertices, this.gl.STATIC_DRAW);
+        
+        const geometry = {
+            buffer: buffer,
+            vertexCount: 6,
+            width: tileWidth,
+            height: tileHeight,
+            shape: 'diamond'
+        };
+        
+        this.geometries.set(key, geometry);
+        return geometry;
+    }
+
+    /**
+     * Create diamond-shaped quad with texture coordinates for isometric tiles
+     * @param {number} tileWidth - Tile width in pixels
+     * @param {number} tileHeight - Tile height in pixels
+     * @returns {Object} Geometry with diamond vertices and texture coords
+     */
+    createIsoDiamondWithTexCoords(tileWidth, tileHeight) {
+        const key = `iso_diamond_tex_${tileWidth}_${tileHeight}`;
+        
+        if (this.geometries.has(key)) {
+            return this.geometries.get(key);
+        }
+        
+        const halfW = tileWidth / 2;
+        const halfH = tileHeight / 2;
+        
+        // Diamond vertices
+        const vertices = new Float32Array([
+            // Triangle 1 (top half)
+            0, halfH,        // Top vertex
+            -halfW, 0,       // Left vertex
+            halfW, 0,        // Right vertex
+            
+            // Triangle 2 (bottom half)
+            0, -halfH,       // Bottom vertex
+            halfW, 0,        // Right vertex
+            -halfW, 0        // Left vertex
+        ]);
+        
+        // Texture coordinates (map diamond to square texture)
+        const texCoords = new Float32Array([
+            // Triangle 1
+            0.5, 1.0,  // Top vertex
+            0.0, 0.5,  // Left vertex
+            1.0, 0.5,  // Right vertex
+            
+            // Triangle 2
+            0.5, 0.0,  // Bottom vertex
+            1.0, 0.5,  // Right vertex
+            0.0, 0.5   // Left vertex
+        ]);
+        
+        // Buffer for positions
+        const positionBuffer = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, vertices, this.gl.STATIC_DRAW);
+        
+        // Buffer for texture coordinates
+        const texCoordBuffer = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, texCoordBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
+        
+        const geometry = {
+            positionBuffer: positionBuffer,
+            texCoordBuffer: texCoordBuffer,
+            vertexCount: 6,
+            width: tileWidth,
+            height: tileHeight,
+            shape: 'diamond',
+            hasTexCoords: true
+        };
+        
+        this.geometries.set(key, geometry);
+        return geometry;
+    }
+
     getGeometry(key) {
         return this.geometries.get(key);
     }

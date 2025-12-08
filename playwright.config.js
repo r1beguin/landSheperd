@@ -40,6 +40,8 @@ module.exports = defineConfig({
     ? '**/context-menu-dragging.spec.js'
     : process.env.TEST_CONTEXT_MENU_UX === 'true'
     ? '**/context-menu-ux-integration.spec.js'
+    : process.env.TEST_RIGHTCLICK_FIX === 'true'
+    ? '**/isometric-rightclick-fix.spec.js'
     : process.env.TEST_OVERLAY === 'true'
     ? '**/overlay-cycling.spec.js'
     : process.env.TEST_WEATHER === 'true'

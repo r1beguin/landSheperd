@@ -13,10 +13,11 @@
  */
 
 class RenderSystem {
-    constructor(gl, shaderManager, geometryManager) {
+    constructor(gl, shaderManager, geometryManager, config = null) {
         this.gl = gl;
         this.shaderManager = shaderManager;
         this.geometryManager = geometryManager;
+        this.config = config;
         
         // Compteurs pour le debug
         this.renderCallsThisFrame = 0;
@@ -27,6 +28,14 @@ class RenderSystem {
         
         // Cell highlight state
         this.highlightedCell = { x: null, y: null };
+    }
+    
+    /**
+     * Set config reference (called after config is loaded)
+     * @param {Object} config - Game configuration object
+     */
+    setConfig(config) {
+        this.config = config;
     }
     
     beginFrame() {
@@ -164,6 +173,88 @@ class RenderSystem {
         // Dessiner avec le mode approprié pour le cercle
         this.gl.drawArrays(geometry.drawMode || this.gl.TRIANGLES, 0, geometry.vertexCount);
         this.renderCallsThisFrame++;
+        this.entitiesRendered++;
+    }
+    
+    /**
+     * Render isometric diamond-shaped tile
+     * @param {number} x - World X coordinate
+     * @param {number} y - World Y coordinate
+     * @param {number} tileWidth - Tile width in pixels
+     * @param {number} tileHeight - Tile height in pixels
+     * @param {Array} color - RGBA color array
+     * @param {Object} viewMatrix - Camera view matrix
+     * @param {Object} lightingManager - Lighting manager reference
+     */
+    renderIsoDiamond(x, y, tileWidth, tileHeight, color, viewMatrix, lightingManager) {
+        const programInfo = this.shaderManager.useProgram('basic');
+        if (!programInfo) return;
+        
+        this.currentProgram = programInfo;
+        
+        // Get diamond geometry
+        const geometry = this.geometryManager.createIsoDiamond(tileWidth, tileHeight);
+        
+        // Set uniforms
+        this.setBasicUniforms(programInfo, viewMatrix, lightingManager);
+        this.gl.uniform2f(programInfo.uniforms.u_translation, x, y);
+        this.gl.uniform2f(programInfo.uniforms.u_scale, 1.0, 1.0);
+        this.gl.uniform4f(programInfo.uniforms.u_color, ...color);
+        
+        // Draw geometry
+        this.drawGeometry(geometry, programInfo.attributes.a_position);
+        
+        this.entitiesRendered++;
+    }
+
+    /**
+     * Render isometric water diamond with animated shader
+     * @param {number} x - World X coordinate
+     * @param {number} y - World Y coordinate
+     * @param {number} tileWidth - Tile width in pixels
+     * @param {number} tileHeight - Tile height in pixels
+     * @param {Array} baseColor - RGBA color array
+     * @param {Object} viewMatrix - Camera view matrix
+     * @param {Object} lightingManager - Lighting manager reference
+     * @param {number} time - Current time in seconds
+     */
+    renderWaterDiamond(x, y, tileWidth, tileHeight, baseColor, viewMatrix, lightingManager, time) {
+        const programInfo = this.shaderManager.useProgram('water');
+        if (!programInfo) {
+            // Fallback to basic rendering if water shader unavailable
+            return this.renderIsoDiamond(x, y, tileWidth, tileHeight, baseColor, viewMatrix, lightingManager);
+        }
+        
+        this.currentProgram = programInfo;
+        
+        // Get diamond geometry with texture coordinates
+        const geometry = this.geometryManager.createIsoDiamondWithTexCoords(tileWidth, tileHeight);
+        
+        // Set uniforms
+        this.gl.uniform2f(programInfo.uniforms.u_resolution, viewMatrix.resolution.width, viewMatrix.resolution.height);
+        this.gl.uniform1f(programInfo.uniforms.u_zoom, viewMatrix.zoom);
+        this.gl.uniform2f(programInfo.uniforms.u_camera, viewMatrix.position.x, viewMatrix.position.y);
+        this.gl.uniform2f(programInfo.uniforms.u_translation, x, y);
+        this.gl.uniform2f(programInfo.uniforms.u_scale, 1.0, 1.0);
+        
+        // Water shader uniforms
+        this.gl.uniform4f(programInfo.uniforms.u_baseColor, baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
+        this.gl.uniform1f(programInfo.uniforms.u_time, time);
+        this.gl.uniform2f(programInfo.uniforms.u_worldPos, x, y);
+        
+        // Apply lighting
+        if (programInfo.uniforms.u_ambientLight) {
+            if (lightingManager && lightingManager.isEnabled()) {
+                const ambientColor = lightingManager.getAmbientColor();
+                this.gl.uniform3f(programInfo.uniforms.u_ambientLight, ambientColor[0], ambientColor[1], ambientColor[2]);
+            } else {
+                this.gl.uniform3f(programInfo.uniforms.u_ambientLight, 1.0, 1.0, 1.0);
+            }
+        }
+        
+        // Draw geometry
+        this.drawTexturedGeometry(geometry, programInfo.attributes.a_position, programInfo.attributes.a_texCoord);
+        
         this.entitiesRendered++;
     }
     
@@ -374,8 +465,31 @@ class RenderSystem {
             return;
         }
         
+        // Check projection mode - use this.config if available, otherwise skip
+        if (!this.config || !this.config.world || !this.config.world.rendering) {
+            console.warn('RenderSystem: config not available for renderCellHighlight');
+            return;
+        }
+        
+        const isIsometric = this.config.world.rendering.projection === 'isometric';
+        
+        if (isIsometric) {
+            // ISOMETRIC: Render diamond-shaped highlight
+            this.renderIsometricCellHighlight(viewMatrix, lightingManager);
+        } else {
+            // ORTHOGRAPHIC: Render square highlight
+            this.renderOrthographicCellHighlight(viewMatrix, lightingManager, cellSize);
+        }
+    }
+    
+    /**
+     * Render orthographic cell highlight (square border)
+     * @param {Object} viewMatrix - Camera view matrix
+     * @param {Object} lightingManager - Lighting manager reference
+     * @param {number} cellSize - Size of one cell
+     */
+    renderOrthographicCellHighlight(viewMatrix, lightingManager, cellSize) {
         // Convert grid coordinates to world space
-        // Grid coordinates are centered, so we need to account for that
         const worldX = this.highlightedCell.x * cellSize;
         const worldY = this.highlightedCell.y * cellSize;
         
@@ -433,6 +547,44 @@ class RenderSystem {
     }
     
     /**
+     * Render isometric cell highlight (diamond border)
+     * @param {Object} viewMatrix - Camera view matrix
+     * @param {Object} lightingManager - Lighting manager reference
+     */
+    renderIsometricCellHighlight(viewMatrix, lightingManager) {
+        if (!this.config || !this.config.world || !this.config.world.rendering || !this.config.world.rendering.isometric) {
+            console.warn('RenderSystem: isometric config not available');
+            return;
+        }
+        
+        const isoConfig = this.config.world.rendering.isometric;
+        const tileWidth = isoConfig.tileWidth;
+        const tileHeight = isoConfig.tileHeight;
+        
+        // Convert grid coords to isometric world coords
+        const isoPos = IsometricUtils.gridToIso(
+            this.highlightedCell.x, 
+            this.highlightedCell.y, 
+            tileWidth, 
+            tileHeight
+        );
+        
+        // White color with transparency (more visible than green on varied backgrounds)
+        const highlightColor = [1.0, 1.0, 1.0, 0.3];
+        
+        // Render diamond outline using renderIsoDiamond
+        this.renderIsoDiamond(
+            isoPos.x, 
+            isoPos.y, 
+            tileWidth, 
+            tileHeight, 
+            highlightColor, 
+            viewMatrix, 
+            lightingManager
+        );
+    }
+    
+    /**
      * Set the highlighted cell coordinates
      * @param {number} x - Grid X coordinate
      * @param {number} y - Grid Y coordinate
@@ -464,12 +616,22 @@ class RenderSystem {
     /**
      * Render plants sorted by layer for proper Z-ordering
      * Renders in order: bottom → middle → top
+     * In isometric mode, also sorts by Z-order within each layer
      * @param {Array} plants - Array of plant entities
-     * @param {Array} viewMatrix - Camera view matrix
+     * @param {Object} viewMatrix - Camera view matrix
      * @param {Object} lightingManager - Lighting manager reference
      */
     renderPlantsByLayer(plants, viewMatrix, lightingManager) {
         if (!plants || plants.length === 0) return;
+        
+        // Use this.config instead of window.config
+        if (!this.config || !this.config.world || !this.config.world.rendering) {
+            console.warn('RenderSystem: config not available for renderPlantsByLayer');
+            return;
+        }
+        
+        const config = this.config.world.rendering;
+        const isIsometric = config.projection === 'isometric';
         
         // Group plants by layer
         const layerGroups = {
@@ -492,12 +654,21 @@ class RenderSystem {
             const layerPlants = layerGroups[layerName];
             if (layerPlants.length === 0) return;
             
-            // Log layer rendering for debugging (can be disabled via config)
-            if (window.config?.world?.plants?.layers?.renderLogging) {
-                console.log(`Rendering ${layerPlants.length} plants in ${layerName} layer`);
+            // ISOMETRIC: Sort by Z-order within each layer (back-to-front)
+            if (isIsometric && config.isometric && config.isometric.depthSortingEnabled) {
+                layerPlants.sort((a, b) => {
+                    const zA = IsometricUtils.getZOrder(a.gridX, a.gridY);
+                    const zB = IsometricUtils.getZOrder(b.gridX, b.gridY);
+                    return zA - zB;  // Render back plants first
+                });
             }
             
-            // Render all plants in this layer
+            // Log layer rendering for debugging (can be disabled via config)
+            if (this.config?.world?.plants?.layers?.renderLogging) {
+                console.log(`Rendering ${layerPlants.length} plants in ${layerName} layer (isometric: ${isIsometric})`);
+            }
+            
+            // Render all plants in this layer (back-to-front if isometric)
             layerPlants.forEach(plant => {
                 this.renderPlant(plant, viewMatrix, lightingManager);
             });

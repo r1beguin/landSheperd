@@ -488,7 +488,91 @@ See [Troubleshooting Documentation](troubleshooting/) for more solutions.
 **This is a routing document. For comprehensive information, navigate to the appropriate documentation section above.**
 
 **Last Updated**: 2025-12-08  
-**Total Documentation**: 3800+ lines with context menu UX improvements complete
+**Total Documentation**: 4200+ lines with isometric rendering system complete
+
+---
+
+## Recent Implementations
+
+### Isometric Rendering System - 2025-12-08
+
+**Purpose:** Transform Land Shepherd to isometric 2.5D projection with depth sorting for visual immersion
+
+**Implementation:**
+- **IsometricUtils** (js/utils/isometric_utils.js): Coordinate conversion utilities - gridToIso(), isoToGrid(), getZOrder()
+- **RenderSystem** (js/systems/render_system.js): Diamond tile rendering, isometric cell highlighting, depth sorting integration
+- **SoilManager** (js/core/soil_manager.js): Isometric soil tile positioning with Z-order sorting
+- **PlantManager** (js/core/plant_manager.js): Plant depth sorting by layer (bottom → middle → top)
+- **WeatherManager** (js/core/weather_manager.js): Diagonal particle fall (~17° angle), extended diamond spawn area
+- **InputManager** (js/systems/input_manager.js): Mouse-to-isometric-grid conversion with IsometricUtils
+- **ContextMenuManager** (js/systems/context_menu_manager.js): Diamond-shaped cell highlighting
+- **CameraManager** (js/systems/camera_manager.js): Projection mode detection and coordinate transforms
+- **config.json**: Added world.rendering section with projection mode and isometric parameters
+- **schemas/config.schema.json**: Validation for projection enum and isometric config
+
+**Key Design Decisions:**
+- 2:1 ratio isometric (tileWidth: 40, tileHeight: 20) for standard ~26.5° angle
+- Z-order depth sorting: gridX + gridY (back-to-front rendering)
+- Painter's algorithm: sort entities by Z-order within each layer
+- Coordinate conversion on render (not cached) to avoid memory overhead
+- Config-driven projection mode: "orthographic" or "isometric" with hot reload
+- Diagonal rain particles: velocityX = -velocityY * 0.3 for natural fall angle
+- Diamond spawn area extended +40% to cover rotated visible area
+- Backward compatible: orthographic mode fully preserved
+- Performance target: ≥30 FPS with 2500 tiles + 500 plants (achieved 34-38 FPS)
+
+**Configuration:**
+```json
+{
+    "world": {
+        "rendering": {
+            "projection": "isometric",
+            "isometric": {
+                "tileWidth": 40,
+                "tileHeight": 20,
+                "depthSortingEnabled": true
+            }
+        }
+    }
+}
+```
+
+**Testing:**
+- Validation: PASS - All 6 milestones validated via `npm run verify`
+- Automated tests: 15 tests via `npx playwright test isometric-rendering-complete`
+- M1 (Coordinate system): Conversion accuracy verified (round-trip tests)
+- M2 (Soil tiles): Diamond rendering, no gaps, depth sorted
+- M3 (Plant positioning): Correct isometric coords, Z-order sorting
+- M4 (Input/camera): Mouse clicks accurate, cell highlighting diamond-shaped
+- M5 (Weather particles): Diagonal fall angle, splash positioning correct
+- M6 (Documentation): Comprehensive docs, automated tests, schema validation
+- Performance: 34-38 FPS (target ≥30), 1044ms load time, 0 console errors
+- Bugfixes: Config access errors, right-click visibility cache
+
+**Usage:**
+```javascript
+// Convert grid to isometric screen coordinates
+const isoPos = IsometricUtils.gridToIso(gridX, gridY, 40, 20);
+
+// Convert screen coordinates to grid
+const gridPos = IsometricUtils.isoToGrid(screenX, screenY, 40, 20);
+
+// Get Z-order for depth sorting
+const zOrder = IsometricUtils.getZOrder(gridX, gridY);
+
+// Sort entities by Z-order (back to front)
+entities.sort((a, b) => {
+    const zA = IsometricUtils.getZOrder(a.gridX, a.gridY);
+    const zB = IsometricUtils.getZOrder(b.gridX, b.gridY);
+    return zA - zB;
+});
+```
+
+**Related Documentation:**
+- [Isometric Rendering System](features/isometric-rendering-system.md) - Complete feature documentation
+- [Rendering Workflow](architecture/rendering-workflow.md) - Updated with isometric pipeline
+- [Feature Plan](../FEATURE_PLAN_ISOMETRIC_RENDERING.md) - All 6 milestones complete
+- Milestone Summaries: MILESTONE1-5_ISOMETRIC_*.md, MILESTONE6_SUMMARY.md
 
 ---
 

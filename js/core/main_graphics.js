@@ -210,6 +210,9 @@ class GraphicsEngine {
         const debugEnabled = await this.debugManager.initialize();
         this.config = this.debugManager.getConfig();
         
+        // Make config globally accessible for entities and managers
+        window.config = this.config;
+        
         // Get seed from URL, localStorage, or config
         const seedFromSources = GraphicsEngine.getSeedFromSources(this.config);
         if (seedFromSources !== null) {
@@ -247,7 +250,11 @@ class GraphicsEngine {
         this.inputManager = new InputManager(this.canvas);
         this.cameraManager = new CameraManager(this.canvas.width, this.canvas.height);
         this.renderSystem = new RenderSystem(this.gl, this.shaderManager, this.geometryManager);
+        this.renderSystem.setConfig(this.config); // Pass config reference for projection mode
         this.overlayManager = new OverlayManager();
+        
+        // Set camera manager reference in soil manager for isometric rendering
+        this.soilManager.setCameraManager(this.cameraManager);
         
         // Context menu manager (initialized after other managers are ready)
         this.contextMenuManager = new ContextMenuManager(
@@ -521,6 +528,10 @@ class GraphicsEngine {
         // Set plant manager reference for species palette
         this.inputManager.setPlantManager(this.plantManager);
         
+        // Set camera projection mode from config
+        const projectionMode = this.config.world?.rendering?.projection || 'orthographic';
+        this.cameraManager.setProjectionMode(projectionMode);
+        
         this.setupInputHandlers();
         this.setupCameraControls();
     }
@@ -545,22 +556,55 @@ class GraphicsEngine {
                     
                     const worldCoords = this.cameraManager.screenToWorld(event.x, event.y);
                     
-                    // Use soil manager's worldToGrid method for proper coordinate conversion
-                    const gridCoords = this.soilManager.worldToGrid(worldCoords.x, worldCoords.y);
-                    const gridX = gridCoords.x;
-                    const gridY = gridCoords.y;
+                    // Use projection-aware coordinate conversion
+                    let gridX, gridY;
+                    const projection = this.config.world.rendering.projection;
+                    
+                    if (projection === 'isometric') {
+                        // ISOMETRIC: Use IsometricUtils for screen-to-grid conversion
+                        const isoConfig = this.config.world.rendering.isometric;
+                        const gridCoords = IsometricUtils.isoToGrid(
+                            worldCoords.x, 
+                            worldCoords.y, 
+                            isoConfig.tileWidth, 
+                            isoConfig.tileHeight
+                        );
+                        gridX = gridCoords.x;
+                        gridY = gridCoords.y;
+                    } else {
+                        // ORTHOGRAPHIC: Use traditional worldToGrid conversion
+                        const gridCoords = this.soilManager.worldToGrid(worldCoords.x, worldCoords.y);
+                        gridX = gridCoords.x;
+                        gridY = gridCoords.y;
+                    }
                     
                     // Check if there's actually soil at this location AND if it's currently being rendered
                     const soil = this.soilManager.getSoilAt(gridX, gridY);
                     const isCurrentlyVisible = this.soilManager.isSoilCurrentlyVisible(gridX, gridY);
                     
                     if (soil && isCurrentlyVisible) {
+                        // FIXED: Calculate actual world position from grid coordinates
+                        // This ensures plants are spawned at correct grid cell centers
+                        let cellWorldX, cellWorldY;
+                        if (projection === 'isometric') {
+                            // In isometric, convert grid back to isometric world coords
+                            const isoConfig = this.config.world.rendering.isometric;
+                            const isoPos = IsometricUtils.gridToIso(gridX, gridY, isoConfig.tileWidth, isoConfig.tileHeight);
+                            cellWorldX = isoPos.x;
+                            cellWorldY = isoPos.y;
+                        } else {
+                            // In orthographic, use cell center
+                            const cellSize = this.soilManager.cellSize;
+                            cellWorldX = gridX * cellSize + cellSize / 2;
+                            cellWorldY = gridY * cellSize + cellSize / 2;
+                        }
+                        
                         // Show context menu at cursor position
                         this.contextMenuManager.show(
                             event.x, 
                             event.y, 
-                            worldCoords.x, 
-                            worldCoords.y, 
+                            cellWorldX, 
+                            cellWorldY, 
                             gridX, 
                             gridY
                         );
@@ -634,8 +678,8 @@ class GraphicsEngine {
                         }
                     }
                     break;
-                case 'w':
-                case 'W': // Cycle weather manually
+                case 'm':
+                case 'M': // Cycle weather manually
                     if (this.weatherManager && this.timeManager) {
                         const currentWeather = this.weatherManager.getCurrentWeather();
                         const currentDay = this.timeManager.getCurrentDay();
@@ -739,9 +783,26 @@ class GraphicsEngine {
     }
     
     update(deltaTime) {
-        // Update time manager and get game days elapsed
+        // Update time system
         const gameDaysElapsed = this.timeManager.update(deltaTime);
         const currentDay = this.timeManager.getCurrentDayPrecise();
+        
+        // Handle camera movement with arrow keys or WASD
+        const panSpeed = 0.3; // Pixels per millisecond
+        const panDelta = panSpeed * deltaTime;
+        
+        if (this.inputManager.isKeyPressed('ArrowLeft') || this.inputManager.isKeyPressed('KeyA')) {
+            this.cameraManager.move(-panDelta, 0);
+        }
+        if (this.inputManager.isKeyPressed('ArrowRight') || this.inputManager.isKeyPressed('KeyD')) {
+            this.cameraManager.move(panDelta, 0);
+        }
+        if (this.inputManager.isKeyPressed('ArrowUp') || this.inputManager.isKeyPressed('KeyW')) {
+            this.cameraManager.move(0, -panDelta);
+        }
+        if (this.inputManager.isKeyPressed('ArrowDown') || this.inputManager.isKeyPressed('KeyS')) {
+            this.cameraManager.move(0, panDelta);
+        }
         
         // Update weather
         if (this.weatherManager) {

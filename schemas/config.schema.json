@@ -276,6 +276,37 @@
             }
           }
         },
+        "rendering": {
+          "type": "object",
+          "properties": {
+            "projection": {
+              "type": "string",
+              "enum": ["orthographic", "isometric"],
+              "description": "Rendering projection mode"
+            },
+            "isometric": {
+              "type": "object",
+              "properties": {
+                "tileWidth": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 100
+                },
+                "tileHeight": {
+                  "type": "integer",
+                  "minimum": 10,
+                  "maximum": 50
+                },
+                "depthSortingEnabled": {
+                  "type": "boolean"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
         "weather": {
           "$ref": "#/definitions/weatherConfig"
         },
