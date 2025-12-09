@@ -136,13 +136,15 @@ class TreeGenerator extends BaseGenerator {
         const modules = speciesConfig.proceduralModules;
         const colors = speciesConfig.appearance.colorPalette;
         
-        // Apply genetics to dimensions
+        // Apply genetics to dimensions with 1.5x height multiplier for mature stage
+        const heightMultiplier = 1.5; // 50% taller
         const dimensions = GeneticsUtils.applyGeneticDimensions(baseDimensions, genetics, 1.0); // Mature is 100%
+        const canvasHeight = Math.round(dimensions.height * heightMultiplier);
         
         // Increase canvas width to prevent horizontal cropping of canopy
         const canvasWidth = Math.max(50, dimensions.width + 10); // Ensure room for canopy
         
-        const { canvas, ctx } = this.createCanvas(canvasWidth, dimensions.height);
+        const { canvas, ctx } = this.createCanvas(canvasWidth, canvasHeight);
         
         // Apply genetics to visual features
         const widthModifier = genetics ? GeneticsUtils.getDimensionMultiplier(genetics.widthFactor) : 1.0;
@@ -153,11 +155,11 @@ class TreeGenerator extends BaseGenerator {
         const trunkColors = hueTint !== 0 ? colors.trunk.map(c => ColorUtils.shiftHue(c, hueTint * 0.3)) : colors.trunk;
         const leafColors = hueTint !== 0 ? colors.leaf.map(c => ColorUtils.shiftHue(c, hueTint)) : colors.leaf;
         
-        // Draw trunk (apply widthModifier) - centered in canvas
-        const trunkHeight = dimensions.height * 0.4;
+        // Draw trunk (apply widthModifier) - centered in canvas with more visible height
+        const trunkHeight = canvasHeight * 0.55; // Increased from 0.4 to 0.55 for more visible trunk
         const trunkWidth = Math.max(6, Math.round(8 * widthModifier));
         const trunkX = canvasWidth / 2 - trunkWidth / 2;
-        const trunkY = dimensions.height - trunkHeight;
+        const trunkY = canvasHeight - trunkHeight;
         
         // Draw trunk with segments
         const segments = modules.trunk?.segments || 5;
