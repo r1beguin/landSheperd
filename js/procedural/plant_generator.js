@@ -21,7 +21,8 @@ class PlantGenerator {
         matureTreeGeneration: 'generateMatureTree',
         cloverSproutGeneration: 'generateSprout',
         cloverSpreadingGeneration: 'generateSpreading',
-        cloverFloweringGeneration: 'generateFlowering'
+        cloverFloweringGeneration: 'generateFlowering',
+        cloverWitheredGeneration: 'generateWithered'
     };
     
     /**

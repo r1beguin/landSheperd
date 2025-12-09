@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Clover Adjustments</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: monospace;
+            background: #222;
+            color: #0f0;
+        }
+        #test-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border: 1px solid #0f0;
+            max-width: 400px;
+            z-index: 1000;
+        }
+        button {
+            background: #0a0;
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            margin: 4px;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #0f0;
+        }
+        .section {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #0a0;
+        }
+        h3 {
+            margin: 0 0 8px 0;
+            color: #0ff;
+        }
+        .result {
+            background: #111;
+            padding: 5px;
+            margin: 5px 0;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="glCanvas"></canvas>
+    <div id="test-panel">
+        <h2>🧪 Clover Adjustment Tests</h2>
+        
+        <div class="section">
+            <h3>Adjustment 1: Weathering Rates</h3>
+            <button onclick="testWeathering()">Test Weathering (5 days)</button>
+            <div id="weathering-result" class="result">Not tested yet</div>
+        </div>
+        
+        <div class="section">
+            <h3>Adjustment 2: Faster Death</h3>
+            <button onclick="testFasterDeath()">Spawn Clover on Depleted Soil</button>
+            <button onclick="advanceTime()">Advance 3 Days</button>
+            <div id="death-result" class="result">Not tested yet</div>
+        </div>
+        
+        <div class="section">
+            <h3>Adjustment 3: Withered Sprite</h3>
+            <button onclick="testWitheredSprite()">Spawn & Force Wither</button>
+            <div id="sprite-result" class="result">Not tested yet</div>
+        </div>
+        
+        <div class="section">
+            <h3>Quick Actions</h3>
+            <button onclick="clearAll()">Clear All Plants</button>
+            <button onclick="window.location.reload()">Reload</button>
+        </div>
+    </div>
+
+    <!-- Load all dependencies in correct order -->
+    <script src="js/utils/color_utils.js"></script>
+    <script src="js/utils/coordinate_utils.js"></script>
+    <script src="js/utils/shader_utils.js"></script>
+    
+    <script src="js/core/time_manager.js"></script>
+    <script src="js/core/camera_manager.js"></script>
+    <script src="js/core/input_manager.js"></script>
+    <script src="js/core/context_menu_manager.js"></script>
+    <script src="js/core/overlay_manager.js"></script>
+    <script src="js/core/debug_manager.js"></script>
+    <script src="js/core/soil_manager.js"></script>
+    <script src="js/core/plant_manager.js"></script>
+    <script src="js/core/weather_manager.js"></script>
+    <script src="js/core/lighting_manager.js"></script>
+    
+    <script src="js/procedural/noise.js"></script>
+    <script src="js/procedural/terrain_generator.js"></script>
+    <script src="js/procedural/generators/base_generator.js"></script>
+    <script src="js/procedural/generators/herb_generator.js"></script>
+    <script src="js/procedural/generators/tree_generator.js"></script>
+    <script src="js/procedural/generators/groundcover_generator.js"></script>
+    <script src="js/procedural/plant_generator.js"></script>
+    
+    <script src="js/systems/render_system.js"></script>
+    <script src="js/systems/geometry_manager.js"></script>
+    <script src="js/systems/layer_system.js"></script>
+    <script src="js/systems/isometric/isometric_renderer.js"></script>
+    <script src="js/systems/isometric/tile_renderer.js"></script>
+    <script src="js/systems/isometric/plant_renderer.js"></script>
+    <script src="js/systems/isometric/particle_renderer.js"></script>
+    
+    <script src="js/entities/soil.js"></script>
+    <script src="js/entities/plant.js"></script>
+    <script src="js/entities/particle.js"></script>
+    
+    <script src="js/graphics_engine.js"></script>
+    
+    <script>
+        let engine;
+        let testCloverPos = { x: 25, y: 25 };
+        
+        // Initialize
+        window.addEventListener('load', async () => {
+            const canvas = document.getElementById('glCanvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            engine = new GraphicsEngine(canvas);
+            await engine.initialize();
+            
+            console.log('Test harness ready');
+            console.log('Config weathering rates:', window.config.world.soil.weathering.baseRatePerDay);
+        });
+        
+        function testWeathering() {
+            const soil = engine.soilManager.getSoilAt(25, 25);
+            const beforeP = soil.nutrientLayers.surface.phosphorus;
+            const beforeK = soil.nutrientLayers.surface.potassium;
+            
+            // Advance 5 days
+            engine.timeManager.advanceGameDays(5);
+            
+            const afterP = soil.nutrientLayers.surface.phosphorus;
+            const afterK = soil.nutrientLayers.surface.potassium;
+            
+            const pGain = afterP - beforeP;
+            const kGain = afterK - beforeK;
+            const pRatePerDay = pGain / 5;
+            const kRatePerDay = kGain / 5;
+            
+            const result = `BEFORE: P=${beforeP.toFixed(2)} K=${beforeK.toFixed(2)}
+AFTER 5 days: P=${afterP.toFixed(2)} K=${afterK.toFixed(2)}
+GAIN: P=${pGain.toFixed(2)} (+${pRatePerDay.toFixed(3)}/day) K=${kGain.toFixed(2)} (+${kRatePerDay.toFixed(3)}/day)
+EXPECTED: ~0.02/day each
+STATUS: ${Math.abs(pRatePerDay - 0.02) < 0.01 && Math.abs(kRatePerDay - 0.02) < 0.01 ? '✅ PASS' : '❌ FAIL'}`;
+            
+            document.getElementById('weathering-result').textContent = result;
+            console.log('Weathering test:', result);
+        }
+        
+        function testFasterDeath() {
+            // Clear existing plants
+            clearAll();
+            
+            // Deplete soil completely
+            const soil = engine.soilManager.getSoilAt(testCloverPos.x, testCloverPos.y);
+            soil.updateNutrients(0, 0, 0, 10);
+            
+            // Spawn clover
+            engine.plantManager.spawnPlantAt(testCloverPos.x, testCloverPos.y, 'trifolium_repens');
+            
+            const result = `Spawned clover on depleted soil (N=0, P=0, K=0, OM=10)
+Expected: Should die within 2 days (grace period)
+Action: Click "Advance 3 Days" button to test`;
+            
+            document.getElementById('death-result').textContent = result;
+            console.log('Death test setup:', result);
+        }
+        
+        function advanceTime() {
+            const beforeCount = engine.plantManager.plants.size;
+            const plants = engine.plantManager.getPlantAt(testCloverPos.x, testCloverPos.y);
+            const beforeStage = plants.length > 0 ? plants[0].stage : 'none';
+            const beforeDaysStunted = plants.length > 0 ? plants[0].daysStunted : 0;
+            
+            engine.timeManager.advanceGameDays(3);
+            
+            const afterCount = engine.plantManager.plants.size;
+            const plantsAfter = engine.plantManager.getPlantAt(testCloverPos.x, testCloverPos.y);
+            const afterStage = plantsAfter.length > 0 ? plantsAfter[0].stage : 'none';
+            
+            const result = `BEFORE: ${beforeCount} plants, stage=${beforeStage}, stunted=${beforeDaysStunted} days
+AFTER 3 days: ${afterCount} plants, stage=${afterStage}
+EXPECTED: Should be Withered or removed
+STATUS: ${afterStage === 'Withered' || plantsAfter.length === 0 ? '✅ PASS - Died as expected!' : '❌ FAIL - Still alive'}`;
+            
+            document.getElementById('death-result').textContent = result;
+            console.log('Death test result:', result);
+        }
+        
+        function testWitheredSprite() {
+            // Clear and spawn fresh clover
+            clearAll();
+            const soil = engine.soilManager.getSoilAt(testCloverPos.x, testCloverPos.y);
+            soil.updateNutrients(50, 50, 50, 50); // Healthy soil
+            
+            engine.plantManager.spawnPlantAt(testCloverPos.x, testCloverPos.y, 'trifolium_repens');
+            
+            // Force to withered
+            const plants = engine.plantManager.getPlantAt(testCloverPos.x, testCloverPos.y);
+            if (plants.length > 0) {
+                const plant = plants[0];
+                plant.forceWither(engine.timeManager.getCurrentGameDay());
+                
+                const result = `Clover forced to Withered stage
+Generator: cloverWitheredGeneration
+Look for: Brown 3-leaf clover pattern
+STATUS: ${plant.stage === 'Withered' ? '✅ Check visually' : '❌ Failed to wither'}`;
+                
+                document.getElementById('sprite-result').textContent = result;
+                console.log('Withered sprite test:', result);
+                
+                // Center camera on the plant
+                engine.cameraManager.centerOn(testCloverPos.x * 20, testCloverPos.y * 20);
+            }
+        }
+        
+        function clearAll() {
+            engine.plantManager.plants.clear();
+            console.log('Cleared all plants');
+        }
+    </script>
+</body>
+</html>

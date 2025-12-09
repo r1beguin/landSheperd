@@ -19,6 +19,7 @@ class SoilEffectsManager {
         this.weatherEffectsConfig = config.weather?.soilEffects || null;
         this.decompositionConfig = config.soil?.decomposition || null;
         this.nitrogenRegenConfig = config.soil?.nitrogenRegeneration || null;
+        this.weatheringConfig = config.soil?.weathering || null;
         
         // Decomposition state tracking
         this.decompositionLogCounter = 0;
@@ -33,6 +34,7 @@ class SoilEffectsManager {
             weatherEffectsEnabled: !!this.weatherEffectsConfig,
             decompositionEnabled: this.decompositionConfig?.enabled || false,
             nitrogenRegenEnabled: this.nitrogenRegenConfig?.enabled || false,
+            weatheringEnabled: this.weatheringConfig?.enabled || false,
             activityWindow: this.decompositionActivityWindow
         });
     }
@@ -517,6 +519,69 @@ class SoilEffectsManager {
                 if (isRiparian) {
                     riparianCellsUpdated++;
                 }
+            }
+        });
+        
+        return cellsUpdated > 0;
+    }
+    
+    /**
+     * Apply P/K weathering from parent rock material (universal regeneration)
+     * Simulates slow mineral weathering that prevents total P/K depletion
+     * @param {Map} soilGrid - Map of soil objects keyed by "x,y"
+     * @param {number} deltaTime - Time since last frame (seconds)
+     * @returns {boolean} Whether cells were affected
+     */
+    applyWeathering(soilGrid, deltaTime) {
+        if (!this.weatheringConfig || !this.weatheringConfig.enabled) {
+            return false;
+        }
+        
+        const timeManager = window.graphicsEngine?.timeManager;
+        if (!timeManager) {
+            return false;
+        }
+        
+        const realSecondsPerGameDay = timeManager.config.realSecondsPerGameDay;
+        const gameDaysElapsed = deltaTime / realSecondsPerGameDay;
+        const pRatePerDay = this.weatheringConfig.baseRatePerDay?.phosphorus || 0.02;
+        const kRatePerDay = this.weatheringConfig.baseRatePerDay?.potassium || 0.02;
+        
+        let cellsUpdated = 0;
+        let totalPAdded = 0;
+        let totalKAdded = 0;
+        
+        soilGrid.forEach(soil => {
+            if (!soil.isPlantable || soil.isWater) return;
+            
+            // Calculate regeneration amounts
+            const pRegenAmount = pRatePerDay * gameDaysElapsed;
+            const kRegenAmount = kRatePerDay * gameDaysElapsed;
+            
+            // Only regenerate if below 100 (capped)
+            const needsP = soil.phosphorus < 100;
+            const needsK = soil.potassium < 100;
+            
+            if (needsP || needsK) {
+                const oldP = soil.phosphorus;
+                const oldK = soil.potassium;
+                
+                if (needsP) {
+                    soil.phosphorus = Math.min(100, soil.phosphorus + pRegenAmount);
+                }
+                
+                if (needsK) {
+                    soil.potassium = Math.min(100, soil.potassium + kRegenAmount);
+                }
+                
+                // Update derived properties
+                soil.fertility = soil.calculateFertility();
+                soil.baseColor = soil.calculateBaseColor();
+                soil.needsUpdate = true;
+                
+                cellsUpdated++;
+                totalPAdded += (soil.phosphorus - oldP);
+                totalKAdded += (soil.potassium - oldK);
             }
         });
         

@@ -201,7 +201,13 @@ class Plant {
             
             // Get grace period from config or use default
             const config = window.config?.world?.plants || {};
-            const gracePeriod = config.stuntGracePeriod || 7;
+            const stages = this.species.growthStages;
+            const currentStageIndex = stages.findIndex(stage => stage.name === this.stage);
+            const currentStageConfig = currentStageIndex !== -1 ? stages[currentStageIndex] : null;
+            
+            // Check for stage-specific grace period, then global config default
+            const gracePeriod = currentStageConfig?.starvation?.gracePeriod || 
+                              config.stuntGracePeriod || 7;
             
             // After grace period, force plant to wither from nutrient starvation
             if (this.daysStunted >= gracePeriod && this.stage !== 'Withered') {
@@ -240,6 +246,13 @@ class Plant {
         }
         
         const currentStageConfig = stages[currentStageIndex];
+        
+        // NEW: Check for age-based death (maxAge in stage config)
+        if (currentStageConfig.maxAge && this.age >= currentStageConfig.maxAge) {
+            console.log(`${this.species.commonName} died of old age (${this.age.toFixed(1)} days, max ${currentStageConfig.maxAge})`);
+            this.forceWither(currentDay);
+            return; // Skip further updates
+        }
         
         // Check if there's a next stage
         if (currentStageIndex < stages.length - 1) {
@@ -693,6 +706,38 @@ class Plant {
             return;
         }
         
+        // NEW: Check for zero-fertility instant death (all nutrients depleted)
+        // If ALL major nutrients are at 0, force immediate death (no grace period)
+        if (soil.nutrientLayers) {
+            // Check both layers for shallow-rooted plants like clover
+            const surfaceN = soil.nutrientLayers.surface.nitrogen;
+            const surfaceP = soil.nutrientLayers.surface.phosphorus;
+            const surfaceK = soil.nutrientLayers.surface.potassium;
+            const deepN = soil.nutrientLayers.deep.nitrogen;
+            const deepP = soil.nutrientLayers.deep.phosphorus;
+            const deepK = soil.nutrientLayers.deep.potassium;
+            
+            // Get root access profile to determine which layers matter
+            const rootProfile = this.getRootAccessProfile();
+            
+            // Calculate effective nutrient availability
+            const effectiveN = (surfaceN * rootProfile.surface) + (deepN * rootProfile.deep);
+            const effectiveP = (surfaceP * rootProfile.surface) + (deepP * rootProfile.deep);
+            const effectiveK = (surfaceK * rootProfile.surface) + (deepK * rootProfile.deep);
+            
+            // If all nutrients are critically low (< 1.0), force immediate death
+            if (effectiveN < 1.0 && effectiveP < 1.0 && effectiveK < 1.0) {
+                console.log(`${this.species.commonName} died from complete nutrient depletion (N:${effectiveN.toFixed(1)} P:${effectiveP.toFixed(1)} K:${effectiveK.toFixed(1)})`);
+                this.forceWither(window.graphicsEngine?.timeManager?.getCurrentGameDay() || 0);
+                return;
+            }
+        } else if (soil.nitrogen < 1.0 && soil.phosphorus < 1.0 && soil.potassium < 1.0) {
+            // Fallback for legacy single-layer soil
+            console.log(`${this.species.commonName} died from complete nutrient depletion (legacy soil)`);
+            this.forceWither(window.graphicsEngine?.timeManager?.getCurrentGameDay() || 0);
+            return;
+        }
+        
         // Get base daily consumption rates
         const baseRates = config.baseDailyRate;
         
@@ -768,6 +813,9 @@ class Plant {
         
         // MILESTONE 5: Call root lift after leaf litter
         this.performRootLift(soil, gameDaysElapsed);
+        
+        // MILESTONE 6: Call nitrogen-fixing after other nutrient cycling
+        this.performNitrogenFixing(soil, gameDaysElapsed);
     }
     
     /**
@@ -797,6 +845,8 @@ class Plant {
         // Calculate deposition amounts
         const omDeposit = leafLitterConfig.depositPerDay.organicMatter * gameDaysElapsed;
         const nDeposit = leafLitterConfig.depositPerDay.nitrogen * gameDaysElapsed;
+        const pDeposit = (leafLitterConfig.depositPerDay.phosphorus || 0) * gameDaysElapsed;
+        const kDeposit = (leafLitterConfig.depositPerDay.potassium || 0) * gameDaysElapsed;
         
         // Get grid coordinates for this plant
         const soilManager = window.graphicsEngine?.soilManager;
@@ -809,8 +859,8 @@ class Plant {
         if (treeSoil && treeSoil.nutrientLayers) {
             const newOM = treeSoil.nutrientLayers.surface.organicMatter + omDeposit;
             const newN = treeSoil.nutrientLayers.surface.nitrogen + nDeposit;
-            const newP = treeSoil.nutrientLayers.surface.phosphorus;
-            const newK = treeSoil.nutrientLayers.surface.potassium;
+            const newP = treeSoil.nutrientLayers.surface.phosphorus + pDeposit;
+            const newK = treeSoil.nutrientLayers.surface.potassium + kDeposit;
             
             treeSoil.updateNutrientsLayered('surface', newN, newP, newK, newOM);
         }
@@ -821,6 +871,8 @@ class Plant {
             const neighborCount = (radius * 2 + 1) * (radius * 2 + 1) - 1; // Exclude center cell
             const neighborShare = omDeposit / neighborCount;
             const neighborNShare = nDeposit / neighborCount;
+            const neighborPShare = pDeposit / neighborCount;
+            const neighborKShare = kDeposit / neighborCount;
             
             for (let dx = -radius; dx <= radius; dx++) {
                 for (let dy = -radius; dy <= radius; dy++) {
@@ -831,8 +883,8 @@ class Plant {
                     if (neighborSoil && neighborSoil.nutrientLayers) {
                         const newOM = neighborSoil.nutrientLayers.surface.organicMatter + neighborShare;
                         const newN = neighborSoil.nutrientLayers.surface.nitrogen + neighborNShare;
-                        const newP = neighborSoil.nutrientLayers.surface.phosphorus;
-                        const newK = neighborSoil.nutrientLayers.surface.potassium;
+                        const newP = neighborSoil.nutrientLayers.surface.phosphorus + neighborPShare;
+                        const newK = neighborSoil.nutrientLayers.surface.potassium + neighborKShare;
                         
                         neighborSoil.updateNutrientsLayered('surface', newN, newP, newK, newOM);
                     }
@@ -903,6 +955,39 @@ class Plant {
         // Update both layers
         soil.updateNutrientsLayered('surface', surfaceN, surfaceP, surfaceK, surfaceOM);
         soil.updateNutrientsLayered('deep', deepN, deepP, deepK, deepOM);
+    }
+    
+    /**
+     * MILESTONE 6: Perform nitrogen-fixing (legumes fix atmospheric N2 into soil)
+     * Called at end of consumeNutrientsDaily() after root lift
+     * Makes clover nitrogen-positive (enriches soil nitrogen over time)
+     * @param {Object} soil - Soil cell object
+     * @param {number} gameDaysElapsed - Game days elapsed this frame
+     */
+    performNitrogenFixing(soil, gameDaysElapsed) {
+        // Get current stage config
+        const stages = this.species.growthStages;
+        const currentStageIndex = stages.findIndex(stage => stage.name === this.stage);
+        if (currentStageIndex === -1) return;
+        
+        const currentStageConfig = stages[currentStageIndex];
+        const nFixingConfig = currentStageConfig.nitrogenFixing;
+        
+        // Check if N-fixing is enabled for this stage
+        if (!nFixingConfig || !nFixingConfig.enabled) {
+            return;
+        }
+        
+        if (!soil || !soil.nutrientLayers) {
+            return;
+        }
+        
+        // Calculate fixation amount (atmospheric N2 → soil NH4+/NO3-)
+        const nFixation = nFixingConfig.fixationRatePerDay * gameDaysElapsed;
+        
+        // Add to DEEP layer (root nodules with Rhizobium bacteria are deep in soil)
+        const newN = Math.min(100, soil.nutrientLayers.deep.nitrogen + nFixation);
+        soil.updateNutrientsLayered('deep', newN, soil.nutrientLayers.deep.phosphorus, soil.nutrientLayers.deep.potassium, soil.nutrientLayers.deep.organicMatter);
     }
 
     /**

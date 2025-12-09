@@ -132,11 +132,14 @@
         "enabled": true,
         "depositPerDay": {
           "organicMatter": 20,
-          "nitrogen": 8
+          "nitrogen": 8,
+          "phosphorus": 0.5,
+          "potassium": 0.5
         },
         "targetLayer": "surface",
         "radius": 1,
-        "spreadToNeighbors": true
+        "spreadToNeighbors": true,
+        "description": "Deep-rooted oaks mine P/K from subsoil and return to surface via leaf fall"
       },
       "rootLift": {
         "enabled": true,

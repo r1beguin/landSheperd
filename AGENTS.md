@@ -1,5 +1,19 @@
 # Agent Guidelines for Land Shepherd
 
+## Shared Agent Principles (READ FIRST)
+
+**ALL agents must follow these three principles:** See [.opencode/shared-principles.md](.opencode/shared-principles.md) for full details.
+
+1. **Never Be Overconfident** - Question assumptions, acknowledge uncertainties, ask clarifying questions
+2. **Always Test Yourself Before Asking User to Test** - Self-validate with npm run verify before reporting completion
+3. **Always Ask User to Test at End Before Confirming Success** - User validation mandatory even when automated tests pass
+
+**Workflow Pattern:** `IMPLEMENT → SELF-TEST → REPORT + REQUEST USER TEST → WAIT FOR USER → CONFIRM COMPLETE`
+
+These principles ensure quality, prevent overreach, and create collaborative validation workflows.
+
+---
+
 ## OpenCode Agentic Workflow
 
 Land Shepherd uses **OpenCode's specialized agent system** for efficient development. Agents automatically route requests based on keywords, or you can use slash commands for explicit workflows.

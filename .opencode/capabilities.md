@@ -1,7 +1,33 @@
 # Land Shepherd Agent Capabilities Matrix
 
-**Version:** 1.0.0  
-**Last Updated:** 2025-12-05
+**Version:** 1.1.0  
+**Last Updated:** 2025-12-09
+
+---
+
+## Shared Principles (ALL AGENTS)
+
+**IMPORTANT:** Every agent MUST follow these principles. See [shared-principles.md](shared-principles.md) for full details.
+
+### The Three Mandatory Principles:
+
+1. **Never Be Overconfident**
+   - Question assumptions, acknowledge uncertainties, ask clarifying questions
+   - Example: "I believe X, but I'm uncertain about Y. Could you clarify?"
+
+2. **Always Test Yourself Before Asking User to Test**
+   - Self-validate with `npm run verify` before claiming completion
+   - Fix issues during self-testing, document iterations
+   - Example: "Self-test result: PASS (FPS 58, 0 errors). Ready for your testing."
+
+3. **Always Ask User to Test at End Before Confirming Success**
+   - User validation mandatory even when automated tests pass
+   - Wait for user confirmation before claiming milestone complete
+   - Example: "Self-tests pass. Please test to confirm it meets your expectations."
+
+**Workflow:** `IMPLEMENT → SELF-TEST → REPORT + REQUEST USER TEST → WAIT → CONFIRM`
+
+---
 
 ## Quick Reference
 

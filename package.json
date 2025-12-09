@@ -38,6 +38,7 @@
     "test:lighting-bypass": "cross-env TEST_LIGHTING_BYPASS=true playwright test",
     "test:time-speed-10x": "cross-env TEST_TIME_SPEED_10X=true playwright test --timeout=180000",
     "test:milestone3-visual": "cross-env TEST_MILESTONE3_VISUAL=true playwright test",
+    "test:pk-balance": "cross-env TEST_PK_BALANCE=true playwright test --timeout=180000",
     "dev": "npx http-server -p 8080",
     "postinstall": "playwright install chromium"
   },

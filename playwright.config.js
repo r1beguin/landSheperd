@@ -78,6 +78,8 @@ module.exports = defineConfig({
     ? '**/time-speed-10x-integration.spec.js'
     : process.env.TEST_MILESTONE3_VISUAL === 'true'
     ? '**/milestone3-visual-validation.spec.js'
+    : process.env.TEST_PK_BALANCE === 'true'
+    ? '**/pk-balance-fix.spec.js'
     : process.env.TEST_INTERACTIVE === 'true' ||
       process.env.TEST_SCREENSHOT_ONLY === 'true' || 
       process.env.TEST_LOG_ONLY === 'true'

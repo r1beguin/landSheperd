@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P/K Regeneration Manual Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-panel {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .test-panel h2 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #444;
+        }
+        .metric.initial { color: #ff9800; }
+        .metric.final { color: #4CAF50; }
+        .metric.delta { color: #2196F3; font-weight: bold; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .instructions {
+            background: #1e3a5f;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌱 P/K Regeneration System - Manual Validation</h1>
+    
+    <div class="instructions">
+        <h3>Test Instructions:</h3>
+        <ol>
+            <li>Load the game at <a href="http://localhost:8081" target="_blank">localhost:8081</a></li>
+            <li>Open browser console (F12)</li>
+            <li>Run each test below and observe P/K increases</li>
+            <li>Expected results:
+                <ul>
+                    <li><strong>Weathering:</strong> +0.02 P/K per day (universal)</li>
+                    <li><strong>Oak Leaf Litter:</strong> +0.5 P/K per day (under mature oaks)</li>
+                    <li><strong>Floods:</strong> +3 P/K per event (riparian zones, every 8 days)</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+    
+    <div class="test-panel">
+        <h2>Test 1: Base Weathering (Universal P/K Regeneration)</h2>
+        <p>Validates that all soil cells slowly regenerate P/K from mineral weathering.</p>
+        <button onclick="testWeathering()">Run Test</button>
+        <div id="weathering-results"></div>
+    </div>
+    
+    <div class="test-panel">
+        <h2>Test 2: Oak Leaf Litter (Enhanced P/K Return)</h2>
+        <p>Validates that mature oak trees deposit P/K via leaf fall.</p>
+        <button onclick="testOakLeafLitter()">Run Test</button>
+        <div id="oak-results"></div>
+    </div>
+    
+    <div class="test-panel">
+        <h2>Test 3: Flood Event P/K Deposition</h2>
+        <p>Validates that floods deposit P/K nutrients in riparian zones.</p>
+        <button onclick="testFloodDeposition()">Run Test</button>
+        <div id="flood-results"></div>
+    </div>
+    
+    <script>
+        // Test 1: Base Weathering
+        async function testWeathering() {
+            const resultsDiv = document.getElementById('weathering-results');
+            resultsDiv.innerHTML = '<p>⏳ Testing weathering (10 game days)...</p>';
+            
+            try {
+                // Get test soil cell
+                const testCell = { x: 5, y: 5 };
+                const soilManager = window.graphicsEngine?.soilManager;
+                if (!soilManager) throw new Error('SoilManager not found');
+                
+                const soil = soilManager.getSoilAt(testCell.x, testCell.y);
+                if (!soil) throw new Error('Soil cell not found');
+                
+                // Record initial P/K
+                const initialP = soil.phosphorus;
+                const initialK = soil.potassium;
+                
+                // Advance 10 game days
+                const timeManager = window.graphicsEngine?.timeManager;
+                if (!timeManager) throw new Error('TimeManager not found');
+                
+                for (let i = 0; i < 10; i++) {
+                    timeManager.setTimeScale(20.0); // Fast forward
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second = ~2 game days at 20x
+                }
+                timeManager.setTimeScale(0); // Pause
+                
+                // Record final P/K
+                const finalP = soil.phosphorus;
+                const finalK = soil.potassium;
+                
+                const deltaP = finalP - initialP;
+                const deltaK = finalK - initialK;
+                
+                // Display results
+                resultsDiv.innerHTML = `
+                    <div class="metric initial"><span>Initial P:</span><span>${initialP.toFixed(2)}</span></div>
+                    <div class="metric initial"><span>Initial K:</span><span>${initialK.toFixed(2)}</span></div>
+                    <div class="metric final"><span>Final P:</span><span>${finalP.toFixed(2)}</span></div>
+                    <div class="metric final"><span>Final K:</span><span>${finalK.toFixed(2)}</span></div>
+                    <div class="metric delta"><span>ΔP (10 days):</span><span>+${deltaP.toFixed(2)}</span></div>
+                    <div class="metric delta"><span>ΔK (10 days):</span><span>+${deltaK.toFixed(2)}</span></div>
+                    <p><strong>Expected:</strong> ~0.2 per nutrient (0.02/day × 10 days)</p>
+                    <p><strong>Result:</strong> ${deltaP > 0.1 && deltaK > 0.1 ? '✅ PASS' : '❌ FAIL'}</p>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: #f44336;">❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Test 2: Oak Leaf Litter
+        async function testOakLeafLitter() {
+            const resultsDiv = document.getElementById('oak-results');
+            resultsDiv.innerHTML = '<p>⏳ Testing oak leaf litter (20 game days)...</p>';
+            
+            try {
+                const plantManager = window.graphicsEngine?.plantManager;
+                const soilManager = window.graphicsEngine?.soilManager;
+                if (!plantManager || !soilManager) throw new Error('Managers not found');
+                
+                // Spawn mature oak at (0, 0)
+                const oakPos = { x: 0, y: 0 };
+                await plantManager.spawnPlant('quercus_robur', oakPos.x, oakPos.y, 'MatureTree');
+                
+                // Get soil under oak
+                const gridCoords = soilManager.worldToGrid(oakPos.x, oakPos.y);
+                const soil = soilManager.getSoilAt(gridCoords.x, gridCoords.y);
+                if (!soil || !soil.nutrientLayers) throw new Error('Soil or nutrient layers not found');
+                
+                // Record initial surface P/K
+                const initialP = soil.nutrientLayers.surface.phosphorus;
+                const initialK = soil.nutrientLayers.surface.potassium;
+                
+                // Advance 20 game days
+                const timeManager = window.graphicsEngine?.timeManager;
+                if (!timeManager) throw new Error('TimeManager not found');
+                
+                for (let i = 0; i < 20; i++) {
+                    timeManager.setTimeScale(20.0);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                timeManager.setTimeScale(0);
+                
+                // Record final surface P/K
+                const finalP = soil.nutrientLayers.surface.phosphorus;
+                const finalK = soil.nutrientLayers.surface.potassium;
+                
+                const deltaP = finalP - initialP;
+                const deltaK = finalK - initialK;
+                
+                resultsDiv.innerHTML = `
+                    <div class="metric initial"><span>Initial Surface P:</span><span>${initialP.toFixed(2)}</span></div>
+                    <div class="metric initial"><span>Initial Surface K:</span><span>${initialK.toFixed(2)}</span></div>
+                    <div class="metric final"><span>Final Surface P:</span><span>${finalP.toFixed(2)}</span></div>
+                    <div class="metric final"><span>Final Surface K:</span><span>${finalK.toFixed(2)}</span></div>
+                    <div class="metric delta"><span>ΔP (20 days):</span><span>+${deltaP.toFixed(2)}</span></div>
+                    <div class="metric delta"><span>ΔK (20 days):</span><span>+${deltaK.toFixed(2)}</span></div>
+                    <p><strong>Expected:</strong> ~10 per nutrient (0.5/day × 20 days)</p>
+                    <p><strong>Result:</strong> ${deltaP > 5.0 && deltaK > 5.0 ? '✅ PASS' : '❌ FAIL'}</p>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: #f44336;">❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Test 3: Flood Deposition
+        async function testFloodDeposition() {
+            const resultsDiv = document.getElementById('flood-results');
+            resultsDiv.innerHTML = '<p>⏳ Testing flood deposition (9 game days)...</p>';
+            
+            try {
+                const soilManager = window.graphicsEngine?.soilManager;
+                if (!soilManager) throw new Error('SoilManager not found');
+                
+                // Find a river tile
+                const terrainGen = soilManager.terrainGenerator;
+                const riverTiles = terrainGen.getRiverTiles();
+                if (!riverTiles || riverTiles.size === 0) throw new Error('No rivers found');
+                
+                const firstRiverKey = Array.from(riverTiles)[0];
+                const [riverX, riverY] = firstRiverKey.split(',').map(Number);
+                
+                // Get a floodplain cell near river
+                const floodplainCell = { x: riverX + 2, y: riverY + 2 };
+                const soil = soilManager.getSoilAt(floodplainCell.x, floodplainCell.y);
+                if (!soil) throw new Error('Floodplain soil not found');
+                
+                // Record initial P/K
+                const initialP = soil.phosphorus;
+                const initialK = soil.potassium;
+                
+                // Advance 9 game days (flood interval = 8 days, should trigger 1 flood)
+                const timeManager = window.graphicsEngine?.timeManager;
+                if (!timeManager) throw new Error('TimeManager not found');
+                
+                for (let i = 0; i < 9; i++) {
+                    timeManager.setTimeScale(20.0);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                timeManager.setTimeScale(0);
+                
+                // Record final P/K
+                const finalP = soil.phosphorus;
+                const finalK = soil.potassium;
+                
+                const deltaP = finalP - initialP;
+                const deltaK = finalK - initialK;
+                
+                resultsDiv.innerHTML = `
+                    <div class="metric initial"><span>Initial P:</span><span>${initialP.toFixed(2)}</span></div>
+                    <div class="metric initial"><span>Initial K:</span><span>${initialK.toFixed(2)}</span></div>
+                    <div class="metric final"><span>Final P:</span><span>${finalP.toFixed(2)}</span></div>
+                    <div class="metric final"><span>Final K:</span><span>${finalK.toFixed(2)}</span></div>
+                    <div class="metric delta"><span>ΔP (1 flood):</span><span>+${deltaP.toFixed(2)}</span></div>
+                    <div class="metric delta"><span>ΔK (1 flood):</span><span>+${deltaK.toFixed(2)}</span></div>
+                    <p><strong>Expected:</strong> ~1-2 per nutrient (3 base × falloff)</p>
+                    <p><strong>Result:</strong> ${deltaP > 0.5 && deltaK > 0.5 ? '✅ PASS' : '❌ FAIL'}</p>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: #f44336;">❌ Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

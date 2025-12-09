@@ -166,6 +166,65 @@ class GroundcoverGenerator extends BaseGenerator {
         
         return canvas;
     }
+    
+    /**
+     * Generate withered stage sprite for clover (brown spreading form)
+     * Reuses spreading layout but with withered colors
+     * @param {object} speciesConfig - Species configuration object
+     * @returns {HTMLCanvasElement} Generated sprite canvas
+     */
+    static generateWithered(speciesConfig) {
+        const dimensions = speciesConfig.appearance?.dimensions || {width: 16, height: 16};
+        const { canvas, ctx } = this.createCanvas(dimensions.width, dimensions.height);
+        
+        const colors = speciesConfig.appearance.colorPalette;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        // Scale features based on canvas size
+        const scale = canvas.width / 16;
+        
+        // Use withered colors (brown) instead of green
+        const witheredStem = colors.witheredStem || ['#6b5c3d', '#5a4d30'];
+        const witheredLeaf = colors.witheredLeaf || ['#8b7355', '#7a6245'];
+        
+        // Draw characteristic 3-leaf clover pattern with smaller, withered leaves
+        const leafRadius = 1.5 * scale;  // Same as spreading stage
+        const stemLength = 2 * scale;     // Same as spreading stage
+        
+        // Withered stem (thin and brown)
+        ctx.fillStyle = witheredStem[Math.floor(Math.random() * witheredStem.length)];
+        ctx.fillRect(centerX - 0.5, centerY + leafRadius, 1, stemLength);
+        
+        // Three withered leaves in clover pattern (same positions as spreading)
+        const leafPositions = [
+            { x: centerX, y: centerY - stemLength },          // Top leaf
+            { x: centerX - stemLength, y: centerY + 0.5 },    // Bottom left
+            { x: centerX + stemLength, y: centerY + 0.5 }     // Bottom right
+        ];
+        
+        // Pick withered leaf color
+        ctx.fillStyle = witheredLeaf[Math.floor(Math.random() * witheredLeaf.length)];
+        
+        for (const pos of leafPositions) {
+            // Draw heart-shaped withered clover leaf (same shape as spreading, brown color)
+            ctx.beginPath();
+            ctx.arc(pos.x - 0.7 * scale, pos.y, leafRadius, 0, 2 * Math.PI);
+            ctx.arc(pos.x + 0.7 * scale, pos.y, leafRadius, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Add darker center (more brown)
+            const darkerBrown = witheredStem[0];
+            ctx.fillStyle = darkerBrown;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, leafRadius * 0.4, 0, 2 * Math.PI);
+            ctx.fill();
+            // Reset to leaf color for next leaf
+            ctx.fillStyle = witheredLeaf[Math.floor(Math.random() * witheredLeaf.length)];
+        }
+        
+        return canvas;
+    }
 }
 
 // Make available globally

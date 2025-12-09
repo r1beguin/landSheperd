@@ -597,6 +597,28 @@ class SoilManager {
             console.log(`[NITROGEN] Regeneration applied on day ${currentDay}`);
         }
         
+        // === P/K WEATHERING THROTTLING (once per game DAY) ===
+        if (this.lastWeatheringDay === undefined) {
+            this.lastWeatheringDay = 0;
+        }
+        
+        if (currentDay > this.lastWeatheringDay) {
+            const weatheringUpdated = this.soilEffectsManager.applyWeathering(
+                this.soilGrid,
+                deltaTime
+            );
+            if (weatheringUpdated) {
+                this.needsRefresh = true;
+            }
+            this.lastWeatheringDay = currentDay;
+            
+            // Log weathering if enabled in config
+            const weatheringConfig = this.config.world?.soil?.weathering;
+            if (weatheringConfig?.enableLogging) {
+                console.log(`[WEATHERING] P/K weathering applied on day ${currentDay}`);
+            }
+        }
+        
         // === WATER SEEPING THROTTLING (once per game DAY) ===
         const waterTableConfig = this.config.world?.terrain?.water?.waterTable;
         if (waterTableConfig?.enabled) {

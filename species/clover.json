@@ -81,6 +81,7 @@
     {
       "name": "Flowering",
       "daysToGrow": null,
+      "maxAge": 365,
       "generator": "cloverFloweringGeneration",
       "visibleOrgans": ["stem", "leaf", "flower"],
       "nutrientConsumption": {
@@ -106,12 +107,21 @@
           "weight": 0.15,
           "description": "Overall plant health"
         }
+      },
+      "nitrogenFixing": {
+        "enabled": true,
+        "fixationRatePerDay": 0.8,
+        "description": "Rhizobium bacteria in root nodules fix atmospheric N2 into soil-available forms"
+      },
+      "starvation": {
+        "gracePeriod": 2,
+        "description": "Clover dies quickly when starved (annual behavior)"
       }
     },
     {
       "name": "Withered",
       "daysToGrow": 5,
-      "generator": "witheredGeneration",
+      "generator": "cloverWitheredGeneration",
       "visibleOrgans": ["stem", "leaf"],
       "nutrientReturn": {
         "nitrogen": 5,

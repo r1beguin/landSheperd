@@ -67,10 +67,11 @@
                     "intervalDays": 8,
                     "radius": 5,
                     "nitrogenBonus": 25,
-                    "phosphorusBonus": 15,
-                    "potassiumBonus": 10,
+                    "phosphorusBonus": 3,
+                    "potassiumBonus": 3,
                     "organicMatterBonus": 20,
-                    "enableLogging": true
+                    "enableLogging": true,
+                    "description": "Seasonal floods deposit nutrients in riparian floodplains"
                 },
                 "waterTable": {
                     "enabled": true,
@@ -250,6 +251,15 @@
                 "baseRatePerDay": 0.25,
                 "riparianMultiplier": 2.5,
                 "description": "Nitrogen fixation via bacteria and atmospheric deposition"
+            },
+            "weathering": {
+                "enabled": true,
+                "enableLogging": true,
+                "baseRatePerDay": {
+                    "phosphorus": 0.02,
+                    "potassium": 0.02
+                },
+                "description": "Mineral weathering releases P/K from bedrock - slow natural rate creates boom-bust cycles with clover mortality"
             },
             "fertility": {
                 "hotspots": 8,
