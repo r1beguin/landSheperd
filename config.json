@@ -91,6 +91,14 @@
                 "description": "2:1 isometric projection with depth sorting"
             }
         },
+        "character": {
+            "transparencyCircle": {
+                "enabled": true,
+                "radius": 60,
+                "falloffCurve": 2.0,
+                "description": "Circular transparency area around character for see-through effect on top layer plants (trees)"
+            }
+        },
         "map": {
             "gridWidth": 50,
             "gridHeight": 50,

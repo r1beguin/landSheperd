@@ -28,6 +28,9 @@ class RenderSystem {
         
         // Cell highlight state
         this.highlightedCell = { x: null, y: null };
+        
+        // Character position for transparency calculation
+        this.characterPosition = { x: 0, y: 0 };
     }
     
     /**
@@ -259,7 +262,7 @@ class RenderSystem {
     }
     
     // Rendu d'un rectangle avec texture
-    renderTexturedRect(x, y, width, height, texture, viewMatrix, lightingManager, tint = [1, 1, 1, 1]) {
+    renderTexturedRect(x, y, width, height, texture, viewMatrix, lightingManager, tint = [1, 1, 1, 1], layer = 'middle') {
         const programInfo = this.shaderManager.useProgram('texture');
         if (!programInfo) return;
         
@@ -287,6 +290,9 @@ class RenderSystem {
         this.gl.uniform1i(programInfo.uniforms.u_texture, 0); // Texture unit 0
         this.gl.uniform4f(programInfo.uniforms.u_tint, tint[0], tint[1], tint[2], tint[3]);
         
+        // Set transparency uniforms (only for top layer)
+        this.setTransparencyUniforms(programInfo, layer);
+        
         // Configurer et dessiner la géométrie avec coordonnées de texture
         this.drawTexturedGeometry(geometry, programInfo.attributes.a_position, programInfo.attributes.a_texCoord);
         
@@ -310,6 +316,9 @@ class RenderSystem {
         }
         
         if (webglTexture) {
+            // Get plant layer for transparency calculation
+            const layer = plant.getLayer ? plant.getLayer() : 'middle';
+            
             this.renderTexturedRect(
                 renderData.x, 
                 renderData.y, 
@@ -318,7 +327,8 @@ class RenderSystem {
                 webglTexture, 
                 viewMatrix,
                 lightingManager,
-                renderData.tint || [1, 1, 1, 1]
+                renderData.tint || [1, 1, 1, 1],
+                layer
             );
         }
     }
@@ -374,6 +384,45 @@ class RenderSystem {
                 this.gl.uniform3f(programInfo.uniforms.u_ambientLight, 1.0, 1.0, 1.0);
             }
         }
+    }
+    
+    /**
+     * Set transparency uniforms for character see-through effect
+     * Only applies to top layer plants
+     * @param {Object} programInfo - Shader program info
+     * @param {string} layer - Entity layer (bottom, middle, or top)
+     */
+    setTransparencyUniforms(programInfo, layer) {
+        // Check if uniforms exist (shader may not have them)
+        if (!programInfo.uniforms.u_transparencyEnabled) return;
+        
+        // Get character position from stored reference
+        const characterPos = this.characterPosition || { x: 0, y: 0 };
+        
+        // Get transparency config
+        const config = this.config?.world?.character?.transparencyCircle;
+        const enabled = config?.enabled && layer === 'top';
+        
+        if (enabled) {
+            const radius = config.radius || 60;
+            const falloff = config.falloffCurve || 2.0;
+            
+            this.gl.uniform2f(programInfo.uniforms.u_characterPos, characterPos.x, characterPos.y);
+            this.gl.uniform1f(programInfo.uniforms.u_transparencyRadius, radius);
+            this.gl.uniform1f(programInfo.uniforms.u_transparencyFalloff, falloff);
+            this.gl.uniform1f(programInfo.uniforms.u_transparencyEnabled, 1.0);
+        } else {
+            this.gl.uniform1f(programInfo.uniforms.u_transparencyEnabled, 0.0);
+        }
+    }
+    
+    /**
+     * Update character position for transparency calculation
+     * Called from render loop to keep character position in sync
+     * @param {Object} position - Character position {x, y}
+     */
+    setCharacterPosition(position) {
+        this.characterPosition = position;
     }
     
     // Méthode utilitaire pour dessiner une géométrie

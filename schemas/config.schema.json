@@ -315,6 +315,35 @@
             }
           }
         },
+        "character": {
+          "type": "object",
+          "properties": {
+            "transparencyCircle": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable see-through transparency for top layer plants near character"
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 10,
+                  "maximum": 200,
+                  "description": "Radius of transparency circle in pixels"
+                },
+                "falloffCurve": {
+                  "type": "number",
+                  "minimum": 0.5,
+                  "maximum": 5.0,
+                  "description": "Power curve for transparency falloff (higher = sharper edge)"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
         "weather": {
           "$ref": "#/definitions/weatherConfig"
         },

@@ -56,7 +56,8 @@ Feature-specific documentation with implementation details.
 - [visual-feedback-system.md](features/visual-feedback-system.md) - Visual feedback mechanics
 - [weather-system.md](features/weather-system.md) - Weather state management and effects
 - [lighting-system.md](features/lighting-system.md) - Day/night cycle with weather integration
-- [time-system.md](features/time-system.md) - **NEW** - Time system with 10x speed and lighting bypass
+- [time-system.md](features/time-system.md) - Time system with 10x speed and lighting bypass
+- [character-transparency-system.md](features/character-transparency-system.md) - **NEW** - See-through transparency for character under tree cover
 
 ### Testing
 Testing strategy, verification workflows, and test framework documentation.

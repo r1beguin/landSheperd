@@ -331,6 +331,7 @@ class GraphicsEngine {
             uniform vec2 u_camera;
             
             varying vec2 v_texCoord;
+            varying vec2 v_worldPos;
             
             void main() {
                 // Apply scale to geometry
@@ -356,6 +357,7 @@ class GraphicsEngine {
                 
                 gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
                 v_texCoord = a_texCoord;
+                v_worldPos = worldPosition;
             }
         `;
         
@@ -364,7 +366,12 @@ class GraphicsEngine {
             uniform sampler2D u_texture;
             uniform vec4 u_tint;
             uniform vec3 u_ambientLight;
+            uniform vec2 u_characterPos;
+            uniform float u_transparencyRadius;
+            uniform float u_transparencyFalloff;
+            uniform float u_transparencyEnabled;
             varying vec2 v_texCoord;
+            varying vec2 v_worldPos;
             
             void main() {
                 vec4 texColor = texture2D(u_texture, v_texCoord);
@@ -372,7 +379,23 @@ class GraphicsEngine {
                 
                 // Apply ambient lighting (multiply RGB, preserve alpha)
                 vec3 litColor = tintedColor.rgb * u_ambientLight;
-                gl_FragColor = vec4(litColor, tintedColor.a);
+                
+                // Calculate transparency based on distance to character (top layer only)
+                float alpha = tintedColor.a;
+                if (u_transparencyEnabled > 0.5) {
+                    // Calculate distance from fragment world position to character
+                    float dist = distance(v_worldPos, u_characterPos);
+                    
+                    // Apply smooth falloff curve
+                    if (dist < u_transparencyRadius) {
+                        float normalizedDist = dist / u_transparencyRadius;
+                        // Use power curve for smooth falloff (closer = more transparent)
+                        float transparency = pow(normalizedDist, u_transparencyFalloff);
+                        alpha = alpha * transparency;
+                    }
+                }
+                
+                gl_FragColor = vec4(litColor, alpha);
             }
         `;
         
@@ -844,19 +867,27 @@ class GraphicsEngine {
         const cellSize = this.config.world.map.cellSize;
         this.renderSystem.renderCellHighlight(viewMatrix, this.lightingManager, cellSize);
         
-        // 3. Render plants by layer for proper Z-ordering (bottom → middle → top)
+        // 3. Update character position for transparency circle (before rendering plants)
+        if (this.player) {
+            this.renderSystem.setCharacterPosition({
+                x: this.player.position.x + this.player.size / 2,
+                y: this.player.position.y + this.player.size / 2
+            });
+        }
+        
+        // 4. Render plants by layer for proper Z-ordering (bottom → middle → top)
         const visibleBounds = this.cameraManager.getVisibleBounds();
         const visiblePlants = this.plantManager.getVisiblePlants(visibleBounds);
         if (visiblePlants.length > 0) {
             this.renderSystem.renderPlantsByLayer(visiblePlants, viewMatrix, this.lightingManager);
         }
         
-        // 4. Render rain particles (above plants, below UI)
+        // 5. Render rain particles (above plants, below UI)
         if (this.weatherManager) {
             this.renderSystem.renderParticles(this.weatherManager, this.cameraManager, this.lightingManager);
         }
         
-        // 5. Render other entities on top (character, etc.)
+        // 6. Render other entities on top (character, etc.)
         this.renderSystem.renderBatch(this.entities, viewMatrix, this.lightingManager);
     }
     
