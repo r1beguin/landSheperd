@@ -840,16 +840,16 @@ class GraphicsEngine {
         // 1. Render soil first (background)
         this.soilManager.renderSoil(this.renderSystem, viewMatrix, this.cameraManager, this.lightingManager);
         
-        // 2. Render plants by layer for proper Z-ordering (bottom → middle → top)
+        // 2. Render cell highlight (on soil, before plants)
+        const cellSize = this.config.world.map.cellSize;
+        this.renderSystem.renderCellHighlight(viewMatrix, this.lightingManager, cellSize);
+        
+        // 3. Render plants by layer for proper Z-ordering (bottom → middle → top)
         const visibleBounds = this.cameraManager.getVisibleBounds();
         const visiblePlants = this.plantManager.getVisiblePlants(visibleBounds);
         if (visiblePlants.length > 0) {
             this.renderSystem.renderPlantsByLayer(visiblePlants, viewMatrix, this.lightingManager);
         }
-        
-        // 3. Render cell highlight (above plants, below particles)
-        const cellSize = this.config.world.map.cellSize;
-        this.renderSystem.renderCellHighlight(viewMatrix, this.lightingManager, cellSize);
         
         // 4. Render rain particles (above plants, below UI)
         if (this.weatherManager) {
