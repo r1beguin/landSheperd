@@ -13,7 +13,18 @@ class PlantManager {
         this.schemaLoader = null;
         this.speciesSchema = null;
         
+        // Occlusion manager reference (set externally)
+        this.occlusionManager = null;
+        
         this.loadSpeciesConfigs();
+    }
+    
+    /**
+     * Set occlusion manager reference for cache invalidation
+     * @param {OcclusionManager} occlusionManager - Occlusion manager instance
+     */
+    setOcclusionManager(occlusionManager) {
+        this.occlusionManager = occlusionManager;
     }
     
     async loadSpeciesConfigs() {
@@ -184,6 +195,11 @@ class PlantManager {
         // Store plant in nested structure
         layerMap.set(layer, plant);
         
+        // Invalidate occlusion cache when tree is added
+        if (layer === 'top' && this.occlusionManager) {
+            this.occlusionManager.invalidateCache();
+        }
+        
         return plant;
     }
 
@@ -249,6 +265,11 @@ class PlantManager {
         // Store plant in nested structure
         layerMap.set(layer, plant);
         
+        // Invalidate occlusion cache when tree is added
+        if (layer === 'top' && this.occlusionManager) {
+            this.occlusionManager.invalidateCache();
+        }
+        
         return plant;
     }
     
@@ -268,6 +289,9 @@ class PlantManager {
         }
         
         if (layer !== null) {
+            // Check if we're removing a tree (top layer)
+            const wasTree = layer === 'top';
+            
             // Remove specific layer only
             const removed = layerMap.delete(layer);
             
@@ -276,10 +300,25 @@ class PlantManager {
                 this.plants.delete(key);
             }
             
+            // Invalidate occlusion cache when tree is removed
+            if (wasTree && removed && this.occlusionManager) {
+                this.occlusionManager.invalidateCache();
+            }
+            
             return removed;
         } else {
+            // Check if any top layer plants exist before removal
+            const hadTree = layerMap.has('top');
+            
             // Remove all plants at this cell
-            return this.plants.delete(key);
+            const removed = this.plants.delete(key);
+            
+            // Invalidate occlusion cache if we removed a tree
+            if (hadTree && removed && this.occlusionManager) {
+                this.occlusionManager.invalidateCache();
+            }
+            
+            return removed;
         }
     }
     

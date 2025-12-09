@@ -246,6 +246,10 @@ class GraphicsEngine {
         // Initialize plant manager after soil manager
         this.plantManager = new PlantManager(this.soilManager);
         
+        // Initialize occlusion manager (NEW: for performance optimization)
+        this.occlusionManager = new OcclusionManager(this.config);
+        this.plantManager.setOcclusionManager(this.occlusionManager);
+        
         // System managers
         this.inputManager = new InputManager(this.canvas);
         this.cameraManager = new CameraManager(this.canvas.width, this.canvas.height);
@@ -869,17 +873,30 @@ class GraphicsEngine {
         
         // 3. Update character position for transparency circle (before rendering plants)
         if (this.player) {
-            this.renderSystem.setCharacterPosition({
+            const charPos = {
                 x: this.player.position.x + this.player.size / 2,
                 y: this.player.position.y + this.player.size / 2
-            });
+            };
+            this.renderSystem.setCharacterPosition(charPos);
+            
+            // Also update occlusion manager for see-through integration
+            if (this.occlusionManager) {
+                this.occlusionManager.setCharacterPosition(charPos);
+            }
         }
         
-        // 4. Render plants by layer for proper Z-ordering (bottom → middle → top)
+        // 4. Get visible plants and apply occlusion culling
         const visibleBounds = this.cameraManager.getVisibleBounds();
         const visiblePlants = this.plantManager.getVisiblePlants(visibleBounds);
-        if (visiblePlants.length > 0) {
-            this.renderSystem.renderPlantsByLayer(visiblePlants, viewMatrix, this.lightingManager);
+        
+        // Apply occlusion culling to reduce render calls (NEW: performance optimization)
+        const nonOccludedPlants = this.occlusionManager ? 
+            this.occlusionManager.cullOccludedPlants(visiblePlants) : 
+            visiblePlants;
+        
+        // Render non-occluded plants by layer for proper Z-ordering (bottom → middle → top)
+        if (nonOccludedPlants.length > 0) {
+            this.renderSystem.renderPlantsByLayer(nonOccludedPlants, viewMatrix, this.lightingManager);
         }
         
         // 5. Render rain particles (above plants, below UI)
@@ -927,6 +944,12 @@ class GraphicsEngine {
         
         // Update plant count
         this.debugManager.updatePlantCount(this.plantManager.plants.size);
+        
+        // Update occlusion culling stats (NEW: performance monitoring)
+        if (this.occlusionManager) {
+            const occlusionStats = this.occlusionManager.getStats();
+            this.debugManager.updateOcclusionStats(occlusionStats);
+        }
         
         // Update weather metrics
         this.debugManager.updateWeatherMetrics(this.weatherManager, this.timeManager);

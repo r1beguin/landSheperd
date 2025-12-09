@@ -125,6 +125,10 @@ class DebugManager {
                     <span class="debug-label">Plantes:</span>
                     <span id="debug-plant-count">0</span>
                 </div>
+                <div class="debug-metric">
+                    <span class="debug-label">Occlusion:</span>
+                    <span id="debug-occlusion-stats">0/0 (0%)</span>
+                </div>
                 <div class="debug-controls">
                     <button id="toggle-water-layer" class="debug-toggle-btn inactive">Water</button>
                     <button id="toggle-pollution-layer" class="debug-toggle-btn inactive">Pollution</button>
@@ -614,20 +618,23 @@ class DebugManager {
     }
 
     updatePlantCount(count) {
+        const plantCountElement = document.getElementById('plant-count');
+        if (plantCountElement) {
+            plantCountElement.textContent = count;
+        }
+    }
+    
+    /**
+     * Update occlusion culling statistics
+     * @param {Object} stats - Occlusion stats from OcclusionManager
+     */
+    updateOcclusionStats(stats) {
         if (!this.isEnabled) return;
         
-        const element = document.getElementById('debug-plant-count');
-        if (element) {
-            element.textContent = count;
-            
-            // Color based on plant population
-            if (count === 0) {
-                element.style.color = '#888888'; // Gray for no plants
-            } else if (count < 10) {
-                element.style.color = '#ffff00'; // Yellow for few plants
-            } else {
-                element.style.color = '#00ff00'; // Green for many plants
-            }
+        const occlusionStatsElement = document.getElementById('debug-occlusion-stats');
+        if (occlusionStatsElement) {
+            occlusionStatsElement.textContent = 
+                `${stats.plantsOccludedThisFrame}/${stats.plantsTestedThisFrame} (${stats.cullPercentage})`;
         }
     }
 
