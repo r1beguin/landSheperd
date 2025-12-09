@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LOD Generator Quick Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #222;
+            color: #eee;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #333;
+            border-left: 4px solid #888;
+        }
+        .test-result.pass {
+            border-left-color: #0f0;
+        }
+        .test-result.fail {
+            border-left-color: #f00;
+        }
+        canvas {
+            border: 2px solid #444;
+            margin: 5px;
+            image-rendering: pixelated;
+        }
+        .sprite-display {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .sprite-item {
+            text-align: center;
+        }
+        .sprite-item strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #0ff;
+        }
+        .sprite-item .dimensions {
+            color: #ff0;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LOD Generator Quick Test</h1>
+    <p>Testing if BaseGenerator.getLODMultiplier() returns correct values...</p>
+    
+    <div id="results"></div>
+    
+    <h2>Visual Comparison</h2>
+    <div id="sprites" class="sprite-display"></div>
+    
+    <script>
+        // Mock minimal dependencies
+        window.ColorUtils = {
+            shiftHue: (color, degrees) => color // Passthrough for test
+        };
+        
+        window.GeneticsUtils = {
+            getHueTint: (colorTint) => 0,
+            getDimensionMultiplier: (factor) => 1.0,
+            getFoliageMultiplier: (density) => 1.0,
+            applyGeneticDimensions: (baseDims, genetics, sizeMultiplier) => ({
+                width: Math.round(baseDims.width * sizeMultiplier),
+                height: Math.round(baseDims.height * sizeMultiplier)
+            })
+        };
+        
+        // BaseGenerator implementation (minimal)
+        class BaseGenerator {
+            static createCanvas(width, height) {
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, width, height);
+                return { canvas, ctx };
+            }
+            
+            static getLODMultiplier(lodLevel) {
+                const multipliers = {
+                    high: 2.0,
+                    medium: 1.0,
+                    low: 0.5,
+                    impostor: 0.2
+                };
+                return multipliers[lodLevel] || 1.0;
+            }
+            
+            static applyLODDimensions(baseDimensions, lodLevel = 'medium') {
+                const multiplier = this.getLODMultiplier(lodLevel);
+                return {
+                    width: Math.round(baseDimensions.width * multiplier),
+                    height: Math.round(baseDimensions.height * multiplier)
+                };
+            }
+            
+            static generateImpostor(speciesConfig, stage) {
+                const { canvas, ctx } = this.createCanvas(4, 4);
+                ctx.fillStyle = '#4a7c3c'; // Green
+                ctx.fillRect(0, 0, 4, 4);
+                return canvas;
+            }
+        }
+        
+        // TreeGenerator implementation (minimal)
+        class TreeGenerator extends BaseGenerator {
+            static generateMatureTree(speciesConfig, genetics = null, lodLevel = 'medium') {
+                if (lodLevel === 'impostor') {
+                    return BaseGenerator.generateImpostor(speciesConfig, 'MatureTree');
+                }
+                
+                const baseDimensions = speciesConfig.appearance?.dimensions || {width: 40, height: 50};
+                const lodDimensions = this.applyLODDimensions(baseDimensions, lodLevel);
+                const heightMultiplier = 1.5;
+                const dimensions = window.GeneticsUtils.applyGeneticDimensions(lodDimensions, genetics, 1.0);
+                const canvasHeight = Math.round(dimensions.height * heightMultiplier);
+                const canvasWidth = Math.max(50, dimensions.width + 10);
+                
+                const { canvas, ctx } = this.createCanvas(canvasWidth, canvasHeight);
+                
+                // Draw simple tree
+                const trunkWidth = 8;
+                const trunkHeight = canvasHeight * 0.55;
+                const trunkX = canvasWidth / 2 - trunkWidth / 2;
+                const trunkY = canvasHeight - trunkHeight;
+                
+                // Trunk
+                ctx.fillStyle = '#3d2817';
+                ctx.fillRect(trunkX, trunkY, trunkWidth, trunkHeight);
+                
+                // Canopy
+                const canopyRadius = dimensions.width * 0.2;
+                const canopyY = trunkY + trunkHeight * 0.2;
+                
+                ctx.fillStyle = '#4a7c3c';
+                ctx.beginPath();
+                ctx.arc(canvasWidth / 2, canopyY, canopyRadius * 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                return canvas;
+            }
+        }
+        
+        // Mock oak config
+        const oakConfig = {
+            name: 'Oak',
+            appearance: {
+                dimensions: { width: 40, height: 50 },
+                colorPalette: {
+                    trunk: ['#3d2817'],
+                    leaf: ['#4a7c3c']
+                }
+            }
+        };
+        
+        // Run tests
+        const results = [];
+        const lodLevels = ['high', 'medium', 'low', 'impostor'];
+        const expectedMultipliers = {
+            high: 2.0,
+            medium: 1.0,
+            low: 0.5,
+            impostor: 0.2
+        };
+        
+        // Test 1: Verify multipliers
+        results.push('<h2>Test 1: LOD Multipliers</h2>');
+        for (const lod of lodLevels) {
+            const actual = BaseGenerator.getLODMultiplier(lod);
+            const expected = expectedMultipliers[lod];
+            const pass = actual === expected;
+            
+            results.push(`
+                <div class="test-result ${pass ? 'pass' : 'fail'}">
+                    <strong>${lod} LOD:</strong> 
+                    Expected ${expected}x, Got ${actual}x
+                    ${pass ? ' ✓ PASS' : ' ✗ FAIL'}
+                </div>
+            `);
+        }
+        
+        // Test 2: Verify dimension application
+        results.push('<h2>Test 2: Dimension Application</h2>');
+        const baseDims = { width: 40, height: 50 };
+        const expectedDimensions = {
+            high: { width: 80, height: 100 },
+            medium: { width: 40, height: 50 },
+            low: { width: 20, height: 25 },
+            impostor: { width: 8, height: 10 }
+        };
+        
+        for (const lod of lodLevels) {
+            const actual = BaseGenerator.applyLODDimensions(baseDims, lod);
+            const expected = expectedDimensions[lod];
+            const pass = actual.width === expected.width && actual.height === expected.height;
+            
+            results.push(`
+                <div class="test-result ${pass ? 'pass' : 'fail'}">
+                    <strong>${lod} dimensions:</strong> 
+                    Expected ${expected.width}x${expected.height}, 
+                    Got ${actual.width}x${actual.height}
+                    ${pass ? ' ✓ PASS' : ' ✗ FAIL'}
+                </div>
+            `);
+        }
+        
+        // Test 3: Generate sprites
+        results.push('<h2>Test 3: Sprite Generation</h2>');
+        const sprites = {};
+        
+        for (const lod of lodLevels) {
+            try {
+                const sprite = TreeGenerator.generateMatureTree(oakConfig, null, lod);
+                sprites[lod] = sprite;
+                
+                // For impostor, expect 4x4
+                // For others, calculate expected based on heightMultiplier
+                let expectedWidth, expectedHeight;
+                if (lod === 'impostor') {
+                    expectedWidth = 4;
+                    expectedHeight = 4;
+                } else {
+                    const lodDims = BaseGenerator.applyLODDimensions(baseDims, lod);
+                    expectedWidth = Math.max(50, lodDims.width + 10);
+                    expectedHeight = Math.round(lodDims.height * 1.5); // heightMultiplier
+                }
+                
+                const pass = Math.abs(sprite.width - expectedWidth) <= 2 && 
+                             Math.abs(sprite.height - expectedHeight) <= 2;
+                
+                results.push(`
+                    <div class="test-result ${pass ? 'pass' : 'fail'}">
+                        <strong>${lod} sprite:</strong> 
+                        Expected ~${expectedWidth}x${expectedHeight}, 
+                        Got ${sprite.width}x${sprite.height}
+                        ${pass ? ' ✓ PASS' : ' ✗ FAIL (±2px tolerance)'}
+                    </div>
+                `);
+            } catch (error) {
+                sprites[lod] = null;
+                results.push(`
+                    <div class="test-result fail">
+                        <strong>${lod} sprite:</strong> 
+                        Generation failed: ${error.message}
+                        ✗ FAIL
+                    </div>
+                `);
+            }
+        }
+        
+        // Display results
+        document.getElementById('results').innerHTML = results.join('');
+        
+        // Display sprites
+        const spritesHtml = [];
+        for (const lod of lodLevels) {
+            const sprite = sprites[lod];
+            if (sprite) {
+                // Scale up for visibility
+                const displayCanvas = document.createElement('canvas');
+                const scale = lod === 'impostor' ? 20 : 4;
+                displayCanvas.width = sprite.width * scale;
+                displayCanvas.height = sprite.height * scale;
+                const displayCtx = displayCanvas.getContext('2d');
+                displayCtx.imageSmoothingEnabled = false;
+                displayCtx.drawImage(sprite, 0, 0, displayCanvas.width, displayCanvas.height);
+                
+                spritesHtml.push(`
+                    <div class="sprite-item">
+                        <strong>${lod.toUpperCase()}</strong>
+                        <div>${displayCanvas.outerHTML}</div>
+                        <div class="dimensions">${sprite.width}x${sprite.height}px (${scale}x zoom)</div>
+                    </div>
+                `);
+            }
+        }
+        document.getElementById('sprites').innerHTML = spritesHtml.join('');
+    </script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOD Performance Scaling Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #2c2c2c;
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        #renderCanvas {
+            display: block;
+            background-color: #1a1a1a;
+        }
+        
+        .hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            min-width: 250px;
+        }
+        
+        .hud-line {
+            margin: 5px 0;
+        }
+        
+        .hud-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+        
+        .console-output {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            color: #00ff00;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-running {
+            background-color: #ffaa00;
+            animation: pulse 1s infinite;
+        }
+        
+        .status-complete {
+            background-color: #00ff00;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    
+    <div class="hud">
+        <div class="hud-line">
+            <span class="status-indicator" id="status-indicator"></span>
+            Status: <span class="hud-value" id="status">Ready</span>
+        </div>
+        <div class="hud-line">Plant Count: <span class="hud-value" id="plant-count">0</span></div>
+        <div class="hud-line">Zoom: <span class="hud-value" id="zoom">1.0x</span></div>
+        <div class="hud-line">LOD Level: <span class="hud-value" id="lod-level">medium</span></div>
+        <div class="hud-line">FPS: <span class="hud-value" id="fps">--</span></div>
+        <div class="hud-line">Min FPS: <span class="hud-value" id="min-fps">--</span></div>
+        <div class="hud-line">Max FPS: <span class="hud-value" id="max-fps">--</span></div>
+        <div class="hud-line">Avg FPS: <span class="hud-value" id="avg-fps">--</span></div>
+        <div class="hud-line">Frame: <span class="hud-value" id="frame-count">0</span></div>
+    </div>
+    
+    <div class="console-output" id="console"></div>
+    
+    <!-- Load dependencies -->
+    <script src="../../js/utils/color_utils.js"></script>
+    <script src="../../js/utils/canvas_utils.js"></script>
+    <script src="../../js/utils/genetics_utils.js"></script>
+    <script src="../../js/procedural/generators/base_generator.js"></script>
+    <script src="../../js/procedural/generators/tree_generator.js"></script>
+    <script src="../../js/procedural/generators/herb_generator.js"></script>
+    <script src="../../js/procedural/generators/groundcover_generator.js"></script>
+    
+    <script>
+        // Global state
+        let canvas, ctx;
+        let plants = [];
+        let currentZoom = 1.0;
+        let currentLODLevel = 'medium';
+        let frameCount = 0;
+        let fpsHistory = [];
+        let minFPS = Infinity;
+        let maxFPS = 0;
+        let lastFrameTime = performance.now();
+        let testRunning = false;
+        let totalRenderCalls = 0;
+        
+        // Performance tracking
+        const FPS_HISTORY_LENGTH = 60;
+        
+        // Console logging
+        function log(message) {
+            const consoleDiv = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${timestamp}] ${message}`;
+            consoleDiv.appendChild(entry);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        // Initialize canvas
+        function initCanvas() {
+            canvas = document.getElementById('renderCanvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx = canvas.getContext('2d');
+            
+            log('Canvas initialized: ' + canvas.width + 'x' + canvas.height);
+        }
+        
+        // Load species config
+        async function loadSpeciesConfig(speciesName) {
+            const response = await fetch(`../../species/${speciesName}.json`);
+            return await response.json();
+        }
+        
+        // Determine LOD level based on zoom
+        function getLODLevel(zoom) {
+            if (zoom >= 2.0) return 'high';
+            if (zoom >= 1.0) return 'medium';
+            if (zoom >= 0.5) return 'low';
+            return 'impostor';
+        }
+        
+        // Generate sprite for plant
+        function generateSprite(plant) {
+            const lodLevel = plant.lodLevel || 'medium';
+            
+            if (plant.category === 'tree') {
+                return TreeGenerator.generateMatureTree(plant.config, plant.genetics, lodLevel);
+            } else if (plant.category === 'herb') {
+                return HerbGenerator.generateVegetative(plant.config, lodLevel);
+            } else if (plant.category === 'groundcover') {
+                return GroundcoverGenerator.generateSpreading(plant.config, plant.genetics, lodLevel);
+            }
+        }
+        
+        // Spawn random plants
+        async function spawnPlants(count) {
+            plants = [];
+            
+            // Load species configs
+            const oakConfig = await loadSpeciesConfig('oak');
+            const nettlesConfig = await loadSpeciesConfig('nettles');
+            const cloverConfig = await loadSpeciesConfig('clover');
+            
+            const species = [
+                { config: oakConfig, category: 'tree', weight: 0.2 },
+                { config: nettlesConfig, category: 'herb', weight: 0.4 },
+                { config: cloverConfig, category: 'groundcover', weight: 0.4 }
+            ];
+            
+            log(`Spawning ${count} plants...`);
+            
+            for (let i = 0; i < count; i++) {
+                // Random species selection weighted
+                const rand = Math.random();
+                let cumulative = 0;
+                let selectedSpecies = species[0];
+                
+                for (const s of species) {
+                    cumulative += s.weight;
+                    if (rand < cumulative) {
+                        selectedSpecies = s;
+                        break;
+                    }
+                }
+                
+                // Create plant
+                const plant = {
+                    id: i,
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    config: selectedSpecies.config,
+                    category: selectedSpecies.category,
+                    genetics: null,
+                    lodLevel: currentLODLevel,
+                    sprite: null
+                };
+                
+                // Generate sprite
+                plant.sprite = generateSprite(plant);
+                plants.push(plant);
+            }
+            
+            log(`Spawned ${plants.length} plants`);
+        }
+        
+        // Update LOD levels for all plants
+        function updatePlantsLOD() {
+            const newLODLevel = getLODLevel(currentZoom);
+            
+            if (newLODLevel !== currentLODLevel) {
+                currentLODLevel = newLODLevel;
+                log(`LOD changed to: ${currentLODLevel}`);
+                
+                // Regenerate sprites with new LOD
+                for (const plant of plants) {
+                    plant.lodLevel = currentLODLevel;
+                    plant.sprite = generateSprite(plant);
+                }
+            }
+        }
+        
+        // Render frame
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Reset render call counter
+            let renderCalls = 0;
+            
+            // Render all plants
+            for (const plant of plants) {
+                if (!plant.sprite) continue;
+                
+                // Apply zoom transform
+                const scaledWidth = plant.sprite.width * currentZoom;
+                const scaledHeight = plant.sprite.height * currentZoom;
+                
+                ctx.drawImage(
+                    plant.sprite,
+                    plant.x - scaledWidth / 2,
+                    plant.y - scaledHeight / 2,
+                    scaledWidth,
+                    scaledHeight
+                );
+                
+                renderCalls++;
+            }
+            
+            totalRenderCalls += renderCalls;
+            return renderCalls;
+        }
+        
+        // Update FPS
+        function updateFPS() {
+            const now = performance.now();
+            const delta = now - lastFrameTime;
+            lastFrameTime = now;
+            
+            const fps = 1000 / delta;
+            fpsHistory.push(fps);
+            
+            if (fpsHistory.length > FPS_HISTORY_LENGTH) {
+                fpsHistory.shift();
+            }
+            
+            if (fps < minFPS) minFPS = fps;
+            if (fps > maxFPS) maxFPS = fps;
+            
+            // Update HUD
+            document.getElementById('fps').textContent = fps.toFixed(1);
+            document.getElementById('min-fps').textContent = minFPS.toFixed(1);
+            document.getElementById('max-fps').textContent = maxFPS.toFixed(1);
+            
+            const avgFPS = fpsHistory.reduce((a, b) => a + b, 0) / fpsHistory.length;
+            document.getElementById('avg-fps').textContent = avgFPS.toFixed(1);
+        }
+        
+        // Update HUD
+        function updateHUD() {
+            document.getElementById('plant-count').textContent = plants.length;
+            document.getElementById('zoom').textContent = currentZoom.toFixed(1) + 'x';
+            document.getElementById('lod-level').textContent = currentLODLevel;
+            document.getElementById('frame-count').textContent = frameCount;
+        }
+        
+        // Main loop
+        function gameLoop() {
+            frameCount++;
+            render();
+            updateFPS();
+            updateHUD();
+            
+            if (testRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // Run performance test
+        window.runPerformanceTest = async function(plantCount, zoom, frameLimit) {
+            log(`Starting performance test: ${plantCount} plants @ ${zoom}x zoom`);
+            
+            // Reset state
+            currentZoom = zoom;
+            currentLODLevel = getLODLevel(zoom);
+            frameCount = 0;
+            fpsHistory = [];
+            minFPS = Infinity;
+            maxFPS = 0;
+            totalRenderCalls = 0;
+            testRunning = true;
+            
+            // Update status
+            document.getElementById('status').textContent = 'Running';
+            document.getElementById('status-indicator').className = 'status-indicator status-running';
+            
+            // Spawn plants
+            await spawnPlants(plantCount);
+            updatePlantsLOD();
+            
+            // Run test
+            lastFrameTime = performance.now();
+            
+            return new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (frameCount >= frameLimit) {
+                        clearInterval(checkInterval);
+                        testRunning = false;
+                        
+                        // Calculate results
+                        const avgFPS = fpsHistory.reduce((a, b) => a + b, 0) / fpsHistory.length;
+                        const avgRenderCalls = totalRenderCalls / frameCount;
+                        
+                        // Update status
+                        document.getElementById('status').textContent = 'Complete';
+                        document.getElementById('status-indicator').className = 'status-indicator status-complete';
+                        
+                        log(`Test complete: ${avgFPS.toFixed(1)} FPS avg (min: ${minFPS.toFixed(1)}, max: ${maxFPS.toFixed(1)})`);
+                        log(`Render calls: ${avgRenderCalls.toFixed(1)} avg per frame`);
+                        
+                        resolve({
+                            plantCount,
+                            zoom,
+                            lodLevel: currentLODLevel,
+                            frameCount,
+                            avgFPS,
+                            minFPS,
+                            maxFPS,
+                            avgRenderCalls
+                        });
+                    }
+                }, 16); // Check every ~frame
+                
+                gameLoop();
+            });
+        };
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initCanvas();
+            log('LOD Performance Scaling Test loaded');
+            log('Waiting for Playwright commands...');
+            
+            // Update HUD
+            updateHUD();
+            document.getElementById('status').textContent = 'Ready';
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

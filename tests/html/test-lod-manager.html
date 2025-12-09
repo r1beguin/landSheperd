@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOD Manager Foundation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>LOD Manager Foundation Test</h1>
+    <div id="results"></div>
+
+    <script src="../../js/core/lod_manager.js"></script>
+    <script>
+        const results = document.getElementById('results');
+
+        function addResult(testName, passed, details = '') {
+            const container = document.createElement('div');
+            container.className = 'test-container';
+            
+            const result = document.createElement('div');
+            result.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            result.textContent = `${passed ? '✓' : '✗'} ${testName}`;
+            
+            container.appendChild(result);
+            
+            if (details) {
+                const detailsEl = document.createElement('pre');
+                detailsEl.textContent = details;
+                container.appendChild(detailsEl);
+            }
+            
+            results.appendChild(container);
+        }
+
+        function runTests() {
+            console.log('Running LOD Manager Foundation Tests...');
+
+            // Test 1: Class exists and can be instantiated
+            try {
+                const config = {
+                    enabled: true,
+                    highThreshold: 2.0,
+                    mediumThreshold: 1.0,
+                    lowThreshold: 0.5,
+                    transitionHysteresis: 0.1,
+                    resolutionMultipliers: {
+                        high: 2.0,
+                        medium: 1.0,
+                        low: 0.5,
+                        impostor: 0.2
+                    },
+                    debugOverlay: {
+                        enabled: false,
+                        showLODLevels: true,
+                        showTransitions: false
+                    }
+                };
+
+                const mockCamera = { zoom: 1.0 };
+                const mockGeometry = {};
+
+                const lodManager = new LODManager(config, mockCamera, mockGeometry);
+                addResult('LODManager instantiation', true, 'LODManager created successfully');
+            } catch (error) {
+                addResult('LODManager instantiation', false, error.toString());
+                return; // Stop if we can't even instantiate
+            }
+
+            // Test 2: Calculate LOD levels for different zooms
+            try {
+                const config = {
+                    enabled: true,
+                    highThreshold: 2.0,
+                    mediumThreshold: 1.0,
+                    lowThreshold: 0.5,
+                    transitionHysteresis: 0.1,
+                    resolutionMultipliers: { high: 2.0, medium: 1.0, low: 0.5, impostor: 0.2 },
+                    debugOverlay: { enabled: false, showLODLevels: true, showTransitions: false }
+                };
+
+                const mockCamera = { zoom: 1.0 };
+                const lodManager = new LODManager(config, mockCamera, {});
+                const entity = { id: 1, position: { x: 100, y: 100 } };
+
+                const tests = [
+                    { zoom: 2.5, expected: 'high' },
+                    { zoom: 1.5, expected: 'medium' },
+                    { zoom: 0.7, expected: 'low' },
+                    { zoom: 0.3, expected: 'impostor' },
+                    { zoom: 2.0, expected: 'high' },
+                    { zoom: 1.0, expected: 'medium' },
+                    { zoom: 0.5, expected: 'low' }
+                ];
+
+                let allPassed = true;
+                let details = '';
+
+                for (const test of tests) {
+                    mockCamera.zoom = test.zoom;
+                    const result = lodManager.calculateLODLevel(entity);
+                    const passed = result === test.expected;
+                    allPassed = allPassed && passed;
+                    details += `Zoom ${test.zoom}: ${result} ${passed ? '✓' : '✗ (expected ' + test.expected + ')'}\n`;
+                }
+
+                addResult('Calculate LOD levels', allPassed, details);
+            } catch (error) {
+                addResult('Calculate LOD levels', false, error.toString());
+            }
+
+            // Test 3: Hysteresis prevents rapid switching
+            try {
+                const config = {
+                    enabled: true,
+                    highThreshold: 2.0,
+                    mediumThreshold: 1.0,
+                    lowThreshold: 0.5,
+                    transitionHysteresis: 0.1,
+                    resolutionMultipliers: { high: 2.0, medium: 1.0, low: 0.5, impostor: 0.2 },
+                    debugOverlay: { enabled: false, showLODLevels: true, showTransitions: false }
+                };
+
+                const mockCamera = { zoom: 2.1 };
+                const lodManager = new LODManager(config, mockCamera, {});
+                const entity = { id: 1, position: { x: 100, y: 100 } };
+
+                // Start at high
+                let lod1 = lodManager.calculateLODLevel(entity);
+                lodManager.entityLODs.set(entity, { currentLOD: lod1, lastUpdate: Date.now() });
+
+                // Drop just below threshold (within buffer) - should stay high
+                mockCamera.zoom = 1.95; // Above 1.8 (2.0 * 0.9) hysteresis threshold
+                let lod2 = lodManager.calculateLODLevel(entity);
+
+                // Drop below buffer - should switch to medium
+                mockCamera.zoom = 1.7;
+                let lod3 = lodManager.calculateLODLevel(entity);
+
+                const passed = lod1 === 'high' && lod2 === 'high' && lod3 === 'medium';
+                const details = `Initial (2.1): ${lod1}\nWithin buffer (1.95): ${lod2}\nBelow buffer (1.7): ${lod3}`;
+                
+                addResult('Hysteresis prevents rapid switching', passed, details);
+            } catch (error) {
+                addResult('Hysteresis prevents rapid switching', false, error.toString());
+            }
+
+            // Test 4: Batch update entities
+            try {
+                const config = {
+                    enabled: true,
+                    highThreshold: 2.0,
+                    mediumThreshold: 1.0,
+                    lowThreshold: 0.5,
+                    transitionHysteresis: 0.1,
+                    resolutionMultipliers: { high: 2.0, medium: 1.0, low: 0.5, impostor: 0.2 },
+                    debugOverlay: { enabled: false, showLODLevels: true, showTransitions: false }
+                };
+
+                const mockCamera = { zoom: 1.5 };
+                const lodManager = new LODManager(config, mockCamera, {});
+
+                const entities = [
+                    { id: 1, position: { x: 100, y: 100 } },
+                    { id: 2, position: { x: 200, y: 200 } },
+                    { id: 3, position: { x: 300, y: 300 } }
+                ];
+
+                lodManager.updateLODLevels(entities);
+
+                const allHaveLOD = entities.every(e => e.currentLOD !== undefined);
+                const allAreMedium = entities.every(e => e.currentLOD === 'medium');
+                const distribution = lodManager.getLODDistribution();
+
+                const passed = allHaveLOD && allAreMedium && distribution.medium === 3;
+                const details = `All have LOD: ${allHaveLOD}\nAll are medium: ${allAreMedium}\nDistribution: ${JSON.stringify(distribution, null, 2)}`;
+
+                addResult('Batch update entities', passed, details);
+            } catch (error) {
+                addResult('Batch update entities', false, error.toString());
+            }
+
+            // Test 5: Resolution multipliers
+            try {
+                const config = {
+                    enabled: true,
+                    highThreshold: 2.0,
+                    mediumThreshold: 1.0,
+                    lowThreshold: 0.5,
+                    transitionHysteresis: 0.1,
+                    resolutionMultipliers: {
+                        high: 2.0,
+                        medium: 1.0,
+                        low: 0.5,
+                        impostor: 0.2
+                    },
+                    debugOverlay: { enabled: false, showLODLevels: true, showTransitions: false }
+                };
+
+                const lodManager = new LODManager(config, { zoom: 1.0 }, {});
+
+                const high = lodManager.getResolutionMultiplier('high');
+                const medium = lodManager.getResolutionMultiplier('medium');
+                const low = lodManager.getResolutionMultiplier('low');
+                const impostor = lodManager.getResolutionMultiplier('impostor');
+
+                const passed = high === 2.0 && medium === 1.0 && low === 0.5 && impostor === 0.2;
+                const details = `high: ${high}\nmedium: ${medium}\nlow: ${low}\nimpostor: ${impostor}`;
+
+                addResult('Resolution multipliers', passed, details);
+            } catch (error) {
+                addResult('Resolution multipliers', false, error.toString());
+            }
+
+            // Test 6: Clear cache
+            try {
+                const config = {
+                    enabled: true,
+                    highThreshold: 2.0,
+                    mediumThreshold: 1.0,
+                    lowThreshold: 0.5,
+                    transitionHysteresis: 0.1,
+                    resolutionMultipliers: { high: 2.0, medium: 1.0, low: 0.5, impostor: 0.2 },
+                    debugOverlay: { enabled: false, showLODLevels: true, showTransitions: false }
+                };
+
+                const mockCamera = { zoom: 1.5 };
+                const lodManager = new LODManager(config, mockCamera, {});
+
+                const entities = [
+                    { id: 1, position: { x: 100, y: 100 } },
+                    { id: 2, position: { x: 200, y: 200 } }
+                ];
+
+                lodManager.updateLODLevels(entities);
+                const beforeClear = lodManager.getLODDistribution();
+                const cacheSizeBefore = lodManager.entityLODs.size;
+
+                lodManager.clearCache();
+                const afterClear = lodManager.getLODDistribution();
+                const cacheSizeAfter = lodManager.entityLODs.size;
+
+                const passed = beforeClear.medium === 2 && afterClear.medium === 0 &&
+                              cacheSizeBefore === 2 && cacheSizeAfter === 0;
+                const details = `Before: medium=${beforeClear.medium}, cache=${cacheSizeBefore}\nAfter: medium=${afterClear.medium}, cache=${cacheSizeAfter}`;
+
+                addResult('Clear cache', passed, details);
+            } catch (error) {
+                addResult('Clear cache', false, error.toString());
+            }
+
+            console.log('All tests complete');
+        }
+
+        // Run tests on load
+        runTests();
+    </script>
+</body>
+</html>

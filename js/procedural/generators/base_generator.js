@@ -73,6 +73,87 @@ class BaseGenerator {
         
         return colors.map(c => ColorUtils.shiftHue(c, hueTint));
     }
+    
+    /**
+     * Get resolution multiplier for LOD level
+     * Medium LOD (1.0x) matches current rendering quality baseline
+     * @param {string} lodLevel - LOD level (high/medium/low/impostor), defaults to 'medium'
+     * @returns {number} Resolution multiplier
+     */
+    static getLODMultiplier(lodLevel) {
+        const multipliers = {
+            high: 2.0,      // 2x resolution (future implementation)
+            medium: 1.0,    // Current quality (BASELINE - no visual change)
+            low: 0.5,       // Half resolution (future implementation)
+            impostor: 0.2   // Tiny billboard (future implementation)
+        };
+        return multipliers[lodLevel] || 1.0;
+    }
+    
+    /**
+     * Apply LOD multiplier to base dimensions
+     * This scales dimensions before genetics are applied
+     * @param {object} baseDimensions - Base dimensions {width, height}
+     * @param {string} lodLevel - LOD level
+     * @returns {object} LOD-adjusted dimensions {width, height}
+     */
+    static applyLODDimensions(baseDimensions, lodLevel = 'medium') {
+        const multiplier = this.getLODMultiplier(lodLevel);
+        return {
+            width: Math.round(baseDimensions.width * multiplier),
+            height: Math.round(baseDimensions.height * multiplier)
+        };
+    }
+    
+    /**
+     * Generate impostor sprite (flat color billboard)
+     * @param {object} speciesConfig - Species configuration
+     * @param {string} stage - Growth stage name
+     * @returns {HTMLCanvasElement} Tiny colored sprite
+     */
+    static generateImpostor(speciesConfig, stage) {
+        // Create tiny 4x4 canvas
+        const { canvas, ctx } = this.createCanvas(4, 4);
+        
+        // Get average color for this species/stage
+        const color = this.getImpostorColor(speciesConfig, stage);
+        
+        // Fill entire canvas with average color
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, 4, 4);
+        
+        console.log(`Generated impostor sprite for ${speciesConfig.name} ${stage}`);
+        
+        return canvas;
+    }
+    
+    /**
+     * Get average color for impostor sprite
+     * @param {object} speciesConfig - Species configuration
+     * @param {string} stage - Growth stage name
+     * @returns {string} Hex color
+     */
+    static getImpostorColor(speciesConfig, stage) {
+        const colors = speciesConfig.appearance.colorPalette;
+        
+        // Choose dominant color based on category and stage
+        if (speciesConfig.category === 'tree') {
+            // Trees: Use leaf color (dominant visual)
+            const leafColors = colors.leaf || colors.sapling || [];
+            return leafColors[0] || '#4a7c3c';
+        } else if (speciesConfig.category === 'herb') {
+            // Herbs: Use leaf color
+            const leafColors = colors.leaf || [];
+            return leafColors[0] || '#4a7c59';
+        } else if (speciesConfig.category === 'groundcover') {
+            // Groundcover: Use leaf color
+            const leafColors = colors.leaf || [];
+            return leafColors[0] || '#4a7c2e';
+        }
+        
+        // Fallback: green
+        return '#4a7c3c';
+    }
 }
 
 // Make available globally

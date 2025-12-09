@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOD Visual Comparison Test</title>
+    <style>
+        body {
+            margin: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .species-section {
+            margin-bottom: 40px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .species-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .lod-row {
+            display: flex;
+            gap: 30px;
+            align-items: flex-end;
+            margin-top: 20px;
+        }
+        
+        .lod-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .lod-label {
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .lod-canvas {
+            border: 2px solid #ccc;
+            background: linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+                        linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+                        linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+            background-size: 10px 10px;
+            background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+        }
+        
+        .lod-info {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .console-output {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>LOD Visual Comparison Test - Milestone 3</h1>
+    <p>Testing Low (0.5x) and Impostor (0.2x) LOD levels across all species</p>
+    
+    <div id="species-container"></div>
+    <div class="console-output" id="console"></div>
+    
+    <!-- Load dependencies -->
+    <script src="../../js/utils/color_utils.js"></script>
+    <script src="../../js/utils/canvas_utils.js"></script>
+    <script src="../../js/utils/genetics_utils.js"></script>
+    <script src="../../js/procedural/generators/base_generator.js"></script>
+    <script src="../../js/procedural/generators/tree_generator.js"></script>
+    <script src="../../js/procedural/generators/herb_generator.js"></script>
+    <script src="../../js/procedural/generators/groundcover_generator.js"></script>
+    
+    <script>
+        // Global state
+        let currentLODLevels = [];
+        let currentDimensions = {};
+        let currentImpostorColor = null;
+        
+        // Console logging
+        function log(message) {
+            const consoleDiv = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            consoleDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        // Load species config
+        async function loadSpeciesConfig(speciesName) {
+            const response = await fetch(`../../species/${speciesName}.json`);
+            return await response.json();
+        }
+        
+        // Generate sprite at LOD level
+        function generateSprite(speciesConfig, lodLevel, stage) {
+            const category = speciesConfig.category;
+            const stageName = stage || 'Vegetative';
+            
+            log(`Generating ${speciesConfig.name} ${stageName} at ${lodLevel} LOD`);
+            
+            if (category === 'tree') {
+                if (stageName === 'MatureTree') {
+                    return TreeGenerator.generateMatureTree(speciesConfig, null, lodLevel);
+                } else if (stageName === 'YoungTree') {
+                    return TreeGenerator.generateYoungTree(speciesConfig, null, lodLevel);
+                } else {
+                    return TreeGenerator.generateSapling(speciesConfig, null, lodLevel);
+                }
+            } else if (category === 'herb') {
+                if (stageName === 'Flowering') {
+                    return HerbGenerator.generateFlowering(speciesConfig, lodLevel);
+                } else if (stageName === 'Seedling') {
+                    return HerbGenerator.generateSeedling(speciesConfig, lodLevel);
+                } else {
+                    return HerbGenerator.generateVegetative(speciesConfig, lodLevel);
+                }
+            } else if (category === 'groundcover') {
+                if (stageName === 'Flowering') {
+                    return GroundcoverGenerator.generateFlowering(speciesConfig, null, lodLevel);
+                } else if (stageName === 'Sprout') {
+                    return GroundcoverGenerator.generateSprout(speciesConfig, lodLevel);
+                } else {
+                    return GroundcoverGenerator.generateSpreading(speciesConfig, null, lodLevel);
+                }
+            }
+        }
+        
+        // Render LOD comparison for a species
+        async function renderSpeciesLOD(speciesName, stage) {
+            const config = await loadSpeciesConfig(speciesName);
+            const container = document.getElementById('species-container');
+            
+            // Create species section
+            const section = document.createElement('div');
+            section.className = 'species-section';
+            section.innerHTML = `
+                <div class="species-title">${config.name} (${config.category})</div>
+                <div class="lod-row" id="${speciesName}-row"></div>
+            `;
+            container.appendChild(section);
+            
+            const row = document.getElementById(`${speciesName}-row`);
+            
+            // Generate sprites for each LOD level
+            const lodLevels = ['high', 'medium', 'low', 'impostor'];
+            currentLODLevels = lodLevels;
+            currentDimensions = {};
+            
+            for (const lod of lodLevels) {
+                const sprite = generateSprite(config, lod, stage);
+                
+                // Store dimensions
+                currentDimensions[lod] = {
+                    width: sprite.width,
+                    height: sprite.height
+                };
+                
+                // Store impostor color if this is impostor LOD
+                if (lod === 'impostor') {
+                    currentImpostorColor = BaseGenerator.getImpostorColor(config, stage || 'Vegetative');
+                    log(`Impostor color for ${config.name}: ${currentImpostorColor}`);
+                }
+                
+                // Create display element
+                const item = document.createElement('div');
+                item.className = 'lod-item';
+                
+                const label = document.createElement('div');
+                label.className = 'lod-label';
+                label.textContent = lod.toUpperCase();
+                
+                const canvas = document.createElement('canvas');
+                canvas.className = 'lod-canvas';
+                canvas.width = Math.max(sprite.width, 50);
+                canvas.height = Math.max(sprite.height, 50);
+                
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Center sprite in canvas
+                const x = (canvas.width - sprite.width) / 2;
+                const y = (canvas.height - sprite.height) / 2;
+                ctx.drawImage(sprite, x, y);
+                
+                const info = document.createElement('div');
+                info.className = 'lod-info';
+                info.textContent = `${sprite.width}x${sprite.height}px`;
+                
+                item.appendChild(label);
+                item.appendChild(canvas);
+                item.appendChild(info);
+                row.appendChild(item);
+            }
+            
+            log(`Rendered ${config.name} LOD comparison`);
+        }
+        
+        // Test function called by Playwright
+        window.testLODVisual = async function(species) {
+            const container = document.getElementById('species-container');
+            container.innerHTML = '';
+            
+            if (species === 'all') {
+                await renderSpeciesLOD('oak', 'MatureTree');
+                await renderSpeciesLOD('nettles', 'Vegetative');
+                await renderSpeciesLOD('clover', 'Spreading');
+            } else if (species === 'oak') {
+                await renderSpeciesLOD('oak', 'MatureTree');
+            } else if (species === 'nettles') {
+                await renderSpeciesLOD('nettles', 'Vegetative');
+            } else if (species === 'clover') {
+                await renderSpeciesLOD('clover', 'Spreading');
+            }
+        };
+        
+        // Get rendered LOD levels
+        window.getRenderedLODLevels = function() {
+            return currentLODLevels;
+        };
+        
+        // Get LOD dimensions
+        window.getLODDimensions = function() {
+            return currentDimensions;
+        };
+        
+        // Get impostor color
+        window.getImpostorColor = function() {
+            return currentImpostorColor;
+        };
+        
+        // Validate size progression
+        window.validateSizeProgression = function() {
+            const sizes = Object.entries(currentDimensions).map(([lod, dim]) => ({
+                lod,
+                size: dim.width * dim.height
+            }));
+            
+            sizes.sort((a, b) => b.size - a.size);
+            const order = sizes.map(s => s.lod);
+            
+            const expected = ['high', 'medium', 'low', 'impostor'];
+            const valid = JSON.stringify(order) === JSON.stringify(expected);
+            
+            return {
+                valid,
+                order,
+                message: valid ? 'Visual progression validated: high > medium > low > impostor' : 'Size order incorrect'
+            };
+        };
+        
+        // Auto-run on load for manual testing
+        window.addEventListener('load', async () => {
+            log('LOD Visual Comparison Test loaded');
+            log('Waiting for Playwright commands...');
+        });
+    </script>
+</body>
+</html>

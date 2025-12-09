@@ -89,6 +89,24 @@
                 "tileHeight": 20,
                 "depthSortingEnabled": true,
                 "description": "2:1 isometric projection with depth sorting"
+            },
+            "lod": {
+                "enabled": true,
+                "highThreshold": 2.0,
+                "mediumThreshold": 1.0,
+                "lowThreshold": 0.5,
+                "transitionHysteresis": 0.1,
+                "resolutionMultipliers": {
+                    "high": 2.0,
+                    "medium": 1.0,
+                    "low": 0.5,
+                    "impostor": 0.2
+                },
+                "debugOverlay": {
+                    "enabled": false,
+                    "showLODLevels": true,
+                    "showTransitions": false
+                }
             }
         },
         "character": {

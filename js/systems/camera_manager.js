@@ -21,7 +21,7 @@ class CameraManager {
         this.zoom = 1.0;
         
         // Contraintes
-        this.minZoom = 0.5;
+        this.minZoom = 0.25; // Allow very zoomed-out views for impostor LOD testing
         this.maxZoom = 5.0;
         this.zoomSpeed = 0.1;
         

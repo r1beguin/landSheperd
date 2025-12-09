@@ -19,6 +19,8 @@
     "test:genetics-nutrient": "cross-env TEST_GENETICS_NUTRIENT=true playwright test",
     "test:genetics-visual": "cross-env TEST_GENETICS_VISUAL=true playwright test",
     "test:genetics-inheritance": "cross-env TEST_GENETICS_INHERITANCE=true playwright test",
+    "test:lod-medium": "cross-env TEST_LOD_MEDIUM=true playwright test",
+    "test:lod-integration": "cross-env TEST_LOD_INTEGRATION=true playwright test",
     "test:clover": "cross-env TEST_CLOVER=true playwright test",
     "test:decomp": "cross-env TEST_DECOMP_OM=true playwright test",
     "test:balance": "cross-env TEST_BALANCE=true playwright test tests/ecosystem-balance.spec.js --timeout=600000",

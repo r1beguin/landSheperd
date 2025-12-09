@@ -6,10 +6,19 @@ class GroundcoverGenerator extends BaseGenerator {
     /**
      * Generate sprout stage sprite for clover
      * @param {object} speciesConfig - Species configuration object
+     * @param {string} lodLevel - LOD level (high/medium/low/impostor), defaults to 'medium'
      * @returns {HTMLCanvasElement} Generated sprite canvas
      */
-    static generateSprout(speciesConfig) {
-        const dimensions = speciesConfig.appearance?.dimensions || {width: 16, height: 16};
+    static generateSprout(speciesConfig, lodLevel = 'medium') {
+        // Handle impostor LOD
+        if (lodLevel === 'impostor') {
+            return BaseGenerator.generateImpostor(speciesConfig, 'Sprout');
+        }
+        
+        const baseDimensions = speciesConfig.appearance?.dimensions || {width: 16, height: 16};
+        
+        // Apply LOD multiplier to base dimensions
+        const dimensions = this.applyLODDimensions(baseDimensions, lodLevel);
         const { canvas, ctx } = this.createCanvas(dimensions.width, dimensions.height);
         
         const colors = speciesConfig.appearance.colorPalette;
@@ -38,10 +47,21 @@ class GroundcoverGenerator extends BaseGenerator {
     /**
      * Generate spreading stage sprite for clover
      * @param {object} speciesConfig - Species configuration object
+     * @param {object} genetics - Genetics object (optional)
+     * @param {string} lodLevel - LOD level (high/medium/low/impostor), defaults to 'medium'
      * @returns {HTMLCanvasElement} Generated sprite canvas
      */
-    static generateSpreading(speciesConfig) {
-        const dimensions = speciesConfig.appearance?.dimensions || {width: 16, height: 16};
+    static generateSpreading(speciesConfig, genetics = null, lodLevel = 'medium') {
+        // Handle impostor LOD
+        if (lodLevel === 'impostor') {
+            return BaseGenerator.generateImpostor(speciesConfig, 'Spreading');
+        }
+        
+        const baseDimensions = speciesConfig.appearance?.dimensions || {width: 16, height: 16};
+        
+        // Apply LOD multiplier to base dimensions first, then genetics
+        const lodDimensions = this.applyLODDimensions(baseDimensions, lodLevel);
+        const dimensions = genetics ? GeneticsUtils.applyGeneticDimensions(lodDimensions, genetics, 1.0) : lodDimensions;
         const { canvas, ctx } = this.createCanvas(dimensions.width, dimensions.height);
         
         const colors = speciesConfig.appearance.colorPalette;
@@ -83,16 +103,33 @@ class GroundcoverGenerator extends BaseGenerator {
             ctx.fillStyle = colors.leaf[0];
         }
         
+        // High LOD: Add white clover markings and leaf veins
+        if (lodLevel === 'high') {
+            this._addCloverMarkings(ctx, leafPositions, leafRadius, scale);
+            this._addCloverVeins(ctx, centerX, centerY, leafPositions, colors.leaf);
+        }
+        
         return canvas;
     }
     
     /**
      * Generate flowering stage sprite for clover
      * @param {object} speciesConfig - Species configuration object
+     * @param {object} genetics - Genetics object (optional)
+     * @param {string} lodLevel - LOD level (high/medium/low/impostor), defaults to 'medium'
      * @returns {HTMLCanvasElement} Generated sprite canvas
      */
-    static generateFlowering(speciesConfig) {
-        const dimensions = speciesConfig.appearance?.dimensions || {width: 16, height: 16};
+    static generateFlowering(speciesConfig, genetics = null, lodLevel = 'medium') {
+        // Handle impostor LOD
+        if (lodLevel === 'impostor') {
+            return BaseGenerator.generateImpostor(speciesConfig, 'Flowering');
+        }
+        
+        const baseDimensions = speciesConfig.appearance?.dimensions || {width: 16, height: 16};
+        
+        // Apply LOD multiplier to base dimensions first, then genetics
+        const lodDimensions = this.applyLODDimensions(baseDimensions, lodLevel);
+        const dimensions = genetics ? GeneticsUtils.applyGeneticDimensions(lodDimensions, genetics, 1.0) : lodDimensions;
         const { canvas, ctx } = this.createCanvas(dimensions.width, dimensions.height);
         
         const colors = speciesConfig.appearance.colorPalette;
@@ -164,6 +201,13 @@ class GroundcoverGenerator extends BaseGenerator {
             ctx.stroke();
         }
         
+        // High LOD: Add white clover markings, leaf veins, and flower detail
+        if (lodLevel === 'high') {
+            this._addCloverMarkings(ctx, leafPositions, leafRadius, scale);
+            this._addCloverVeins(ctx, centerX, centerY, leafPositions, colors.leaf);
+            this._addFlowerDetail(ctx, flowerPositions, colors.flower, scale);
+        }
+        
         return canvas;
     }
     
@@ -171,10 +215,19 @@ class GroundcoverGenerator extends BaseGenerator {
      * Generate withered stage sprite for clover (brown spreading form)
      * Reuses spreading layout but with withered colors
      * @param {object} speciesConfig - Species configuration object
+     * @param {string} lodLevel - LOD level (high/medium/low/impostor), defaults to 'medium'
      * @returns {HTMLCanvasElement} Generated sprite canvas
      */
-    static generateWithered(speciesConfig) {
-        const dimensions = speciesConfig.appearance?.dimensions || {width: 16, height: 16};
+    static generateWithered(speciesConfig, lodLevel = 'medium') {
+        // Handle impostor LOD
+        if (lodLevel === 'impostor') {
+            return BaseGenerator.generateImpostor(speciesConfig, 'Withered');
+        }
+        
+        const baseDimensions = speciesConfig.appearance?.dimensions || {width: 16, height: 16};
+        
+        // Apply LOD multiplier to base dimensions
+        const dimensions = this.applyLODDimensions(baseDimensions, lodLevel);
         const { canvas, ctx } = this.createCanvas(dimensions.width, dimensions.height);
         
         const colors = speciesConfig.appearance.colorPalette;
@@ -224,6 +277,79 @@ class GroundcoverGenerator extends BaseGenerator {
         }
         
         return canvas;
+    }
+    
+    // ===== HIGH LOD ENHANCEMENT METHODS =====
+    
+    /**
+     * Add white chevron markings on clover leaves (characteristic feature)
+     * @private
+     */
+    static _addCloverMarkings(ctx, leafPositions, leafRadius, scale) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        
+        for (const pos of leafPositions) {
+            // Draw white V-shape on each leaf
+            ctx.beginPath();
+            ctx.moveTo(pos.x - 0.5 * scale, pos.y);
+            ctx.lineTo(pos.x, pos.y - 0.3 * scale);
+            ctx.lineTo(pos.x + 0.5 * scale, pos.y);
+            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.stroke();
+        }
+    }
+    
+    /**
+     * Add visible veins on clover leaves
+     * @private
+     */
+    static _addCloverVeins(ctx, centerX, centerY, leafPositions, leafColors) {
+        const veinColor = leafColors[2] || leafColors[1] || leafColors[0];
+        ctx.strokeStyle = veinColor;
+        ctx.lineWidth = 0.5;
+        
+        for (const pos of leafPositions) {
+            // Central vein from stem to leaf center
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            
+            // Two side veins branching from center
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            ctx.lineTo(pos.x - 0.5, pos.y - 0.5);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            ctx.lineTo(pos.x + 0.5, pos.y - 0.5);
+            ctx.stroke();
+        }
+    }
+    
+    /**
+     * Add individual petal detail to clover flowers
+     * @private
+     */
+    static _addFlowerDetail(ctx, flowerPositions, flowerColors, scale) {
+        const detailColor = flowerColors[1] || flowerColors[0];
+        ctx.fillStyle = detailColor;
+        
+        for (const pos of flowerPositions) {
+            // Add 6 small petals around flower center
+            const petalCount = 6;
+            for (let i = 0; i < petalCount; i++) {
+                const angle = (i / petalCount) * Math.PI * 2;
+                const petalX = pos.x + Math.cos(angle) * 0.8 * scale;
+                const petalY = pos.y + Math.sin(angle) * 0.8 * scale;
+                
+                ctx.beginPath();
+                ctx.arc(petalX, petalY, 0.3 * scale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
     }
 }
 

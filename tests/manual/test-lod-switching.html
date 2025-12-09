@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LOD Switching Debug</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: monospace;
+            background: #222;
+            color: #eee;
+        }
+        canvas {
+            display: block;
+            border: 2px solid #444;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border: 2px solid #0f0;
+            font-size: 13px;
+            line-height: 1.8;
+            max-width: 350px;
+        }
+        .lod-high { color: #0f0; }
+        .lod-medium { color: #ff0; }
+        .lod-low { color: #f80; }
+        .lod-impostor { color: #f00; }
+        hr { border: 1px solid #444; margin: 10px 0; }
+        strong { color: #0ff; }
+        .key { color: #f0f; }
+        .warning { color: #f00; font-weight: bold; }
+        .success { color: #0f0; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div><strong>LOD Switching Debug</strong></div>
+        <div>Zoom: <span id="zoom">1.00x</span></div>
+        <div>Camera Range: <span id="minZoom">?</span> to <span id="maxZoom">?</span></div>
+        <hr>
+        <div><strong>LOD Thresholds:</strong></div>
+        <div class="lod-high">High: >= <span id="highThreshold">?</span>x zoom</div>
+        <div class="lod-medium">Medium: >= <span id="mediumThreshold">?</span>x zoom</div>
+        <div class="lod-low">Low: >= <span id="lowThreshold">?</span>x zoom</div>
+        <div class="lod-impostor">Impostor: < <span id="lowThreshold2">?</span>x zoom</div>
+        <hr>
+        <div><strong>LOD Distribution:</strong></div>
+        <div class="lod-high">High: <span id="countHigh">0</span></div>
+        <div class="lod-medium">Medium: <span id="countMedium">0</span></div>
+        <div class="lod-low">Low: <span id="countLow">0</span></div>
+        <div class="lod-impostor">Impostor: <span id="countImpostor">0</span></div>
+        <hr>
+        <div><strong>Test Plant LODs (first 5 plants):</strong></div>
+        <div id="plantLODs">Waiting for plants...</div>
+        <hr>
+        <div><strong>Sprite Regeneration:</strong></div>
+        <div id="regenStatus" class="warning">Not detected yet</div>
+        <div id="regenCount">Total regenerations: <span id="regenCounter">0</span></div>
+        <hr>
+        <div><strong>Controls:</strong></div>
+        <div><span class="key">Scroll:</span> Zoom in/out</div>
+        <div><span class="key">WASD:</span> Move camera</div>
+        <div><span class="key">R:</span> Reset zoom to 1.0x</div>
+        <div><span class="key">1:</span> Zoom 0.3x (impostor)</div>
+        <div><span class="key">2:</span> Zoom 0.7x (low)</div>
+        <div><span class="key">3:</span> Zoom 1.0x (medium)</div>
+        <div><span class="key">4:</span> Zoom 2.5x (high)</div>
+    </div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <!-- Load all game scripts in correct order -->
+    <script src="../../config.json" type="application/json"></script>
+    <script src="../../js/utils/isometric_utils.js"></script>
+    <script src="../../js/utils/color_utils.js"></script>
+    <script src="../../js/utils/genetics_utils.js"></script>
+    <script src="../../js/procedural/generators/base_generator.js"></script>
+    <script src="../../js/procedural/generators/herb_generator.js"></script>
+    <script src="../../js/procedural/generators/tree_generator.js"></script>
+    <script src="../../js/procedural/generators/groundcover_generator.js"></script>
+    <script src="../../js/procedural/plant_generator.js"></script>
+    <script src="../../js/entities/soil.js"></script>
+    <script src="../../js/entities/plant.js"></script>
+    <script src="../../js/entities/character.js"></script>
+    <script src="../../js/core/geometry_manager.js"></script>
+    <script src="../../js/core/texture_manager.js"></script>
+    <script src="../../js/core/shader_manager.js"></script>
+    <script src="../../js/core/render_system.js"></script>
+    <script src="../../js/core/input_manager.js"></script>
+    <script src="../../js/core/time_manager.js"></script>
+    <script src="../../js/core/graphics_engine.js"></script>
+    <script src="../../js/systems/camera_manager.js"></script>
+    <script src="../../js/systems/lighting_manager.js"></script>
+    <script src="../../js/systems/species_palette_manager.js"></script>
+    <script src="../../js/systems/debug_overlay_manager.js"></script>
+    <script src="../../js/systems/weather_manager.js"></script>
+    <script src="../../js/procedural/terrain_generator.js"></script>
+    <script src="../../js/core/soil_manager.js"></script>
+    <script src="../../js/core/plant_manager.js"></script>
+    <script src="../../js/core/character_manager.js"></script>
+    <script src="../../js/core/lod_manager.js"></script>
+    <script src="../../js/main.js"></script>
+    
+    <script>
+        // Debug tracking
+        let regenCounter = 0;
+        let lastLODLevels = new Map();
+        
+        // Intercept Plant.generateSprite to track regenerations
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (window.Plant && window.Plant.prototype) {
+                    const originalGenerateSprite = window.Plant.prototype.generateSprite;
+                    
+                    window.Plant.prototype.generateSprite = function(lodLevel = 'medium') {
+                        // Track LOD transition
+                        const oldLOD = this.lastRenderedLOD;
+                        const newLOD = lodLevel;
+                        
+                        if (oldLOD && oldLOD !== newLOD) {
+                            regenCounter++;
+                            console.log(`[LOD REGEN] Plant at (${Math.round(this.x)}, ${Math.round(this.y)}): ${oldLOD} -> ${newLOD} | Size before: ${this.width}x${this.height}`);
+                        }
+                        
+                        // Call original
+                        const result = originalGenerateSprite.call(this, lodLevel);
+                        
+                        if (oldLOD && oldLOD !== newLOD) {
+                            console.log(`[LOD REGEN] Size after: ${this.width}x${this.height}`);
+                        }
+                        
+                        return result;
+                    };
+                    
+                    console.log('Sprite regeneration tracking enabled');
+                }
+            }, 1000);
+        });
+        
+        // Custom debug update loop
+        function updateDebugInfo() {
+            if (!window.graphicsEngine) {
+                requestAnimationFrame(updateDebugInfo);
+                return;
+            }
+            
+            const cam = window.graphicsEngine.cameraManager;
+            const lod = window.graphicsEngine.lodManager;
+            const pm = window.graphicsEngine.plantManager;
+            
+            if (cam) {
+                document.getElementById('zoom').textContent = cam.zoom.toFixed(2) + 'x';
+                document.getElementById('minZoom').textContent = cam.minZoom.toFixed(2);
+                document.getElementById('maxZoom').textContent = cam.maxZoom.toFixed(2);
+            }
+            
+            if (lod) {
+                const cfg = lod.config;
+                document.getElementById('highThreshold').textContent = cfg.highThreshold.toFixed(1);
+                document.getElementById('mediumThreshold').textContent = cfg.mediumThreshold.toFixed(1);
+                document.getElementById('lowThreshold').textContent = cfg.lowThreshold.toFixed(1);
+                document.getElementById('lowThreshold2').textContent = cfg.lowThreshold.toFixed(1);
+                
+                const dist = lod.getLODDistribution();
+                document.getElementById('countHigh').textContent = dist.high;
+                document.getElementById('countMedium').textContent = dist.medium;
+                document.getElementById('countLow').textContent = dist.low;
+                document.getElementById('countImpostor').textContent = dist.impostor;
+            }
+            
+            if (pm) {
+                const plants = pm.getAllPlants();
+                const sampleSize = Math.min(5, plants.length);
+                let html = '';
+                for (let i = 0; i < sampleSize; i++) {
+                    const p = plants[i];
+                    const lodClass = `lod-${p.currentLOD}`;
+                    html += `<div class="${lodClass}">Plant ${i}: ${p.currentLOD} (${p.width}x${p.height}px)</div>`;
+                }
+                document.getElementById('plantLODs').innerHTML = html || 'No plants found';
+            }
+            
+            // Update regeneration status
+            document.getElementById('regenCounter').textContent = regenCounter;
+            if (regenCounter > 0) {
+                const statusEl = document.getElementById('regenStatus');
+                statusEl.textContent = 'Sprite regenerations detected!';
+                statusEl.className = 'success';
+            }
+            
+            requestAnimationFrame(updateDebugInfo);
+        }
+        
+        // Start debug loop after engine loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('Starting LOD debug info loop');
+                updateDebugInfo();
+            }, 2000);
+        });
+        
+        // Add keyboard shortcuts for zoom testing
+        window.addEventListener('keydown', (e) => {
+            if (!window.graphicsEngine) return;
+            const cam = window.graphicsEngine.cameraManager;
+            
+            if (e.key === 'r' || e.key === 'R') {
+                cam.zoom = 1.0;
+                console.log('Zoom reset to 1.0x (MEDIUM)');
+            } else if (e.key === '1') {
+                cam.zoom = 0.3;
+                console.log('Zoom set to 0.3x (IMPOSTOR - below 0.5x threshold)');
+            } else if (e.key === '2') {
+                cam.zoom = 0.7;
+                console.log('Zoom set to 0.7x (LOW - between 0.5x and 1.0x)');
+            } else if (e.key === '3') {
+                cam.zoom = 1.0;
+                console.log('Zoom set to 1.0x (MEDIUM - between 1.0x and 2.0x)');
+            } else if (e.key === '4') {
+                cam.zoom = 2.5;
+                console.log('Zoom set to 2.5x (HIGH - above 2.0x threshold)');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -312,6 +312,87 @@
                   "type": "string"
                 }
               }
+            },
+            "lod": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable LOD system"
+                },
+                "highThreshold": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 10.0,
+                  "description": "Zoom threshold for high detail level"
+                },
+                "mediumThreshold": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 10.0,
+                  "description": "Zoom threshold for medium detail level"
+                },
+                "lowThreshold": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 10.0,
+                  "description": "Zoom threshold for low detail level"
+                },
+                "transitionHysteresis": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 0.5,
+                  "description": "Hysteresis buffer to prevent LOD thrashing (0.1 = 10% buffer)"
+                },
+                "resolutionMultipliers": {
+                  "type": "object",
+                  "required": ["high", "medium", "low", "impostor"],
+                  "properties": {
+                    "high": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 4.0,
+                      "description": "Resolution multiplier for high LOD"
+                    },
+                    "medium": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 4.0,
+                      "description": "Resolution multiplier for medium LOD"
+                    },
+                    "low": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 4.0,
+                      "description": "Resolution multiplier for low LOD"
+                    },
+                    "impostor": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 4.0,
+                      "description": "Resolution multiplier for impostor LOD"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "debugOverlay": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Show debug overlay with LOD information"
+                    },
+                    "showLODLevels": {
+                      "type": "boolean",
+                      "description": "Display LOD level counts"
+                    },
+                    "showTransitions": {
+                      "type": "boolean",
+                      "description": "Highlight entities transitioning between LOD levels"
+                    }
+                  }
+                }
+              }
             }
           }
         },

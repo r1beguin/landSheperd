@@ -23,10 +23,14 @@ class Plant {
         this.texture = null;
         this.webglTexture = null; // Cache for WebGL texture
         
-        // Set dimensions from species config if available
+        // Set base dimensions from species config (world-space size, LOD-independent)
         const dimensions = speciesConfig.appearance?.dimensions;
-        this.width = dimensions?.width || 20;
-        this.height = dimensions?.height || 20;
+        this.baseWidth = dimensions?.width || 20;
+        this.baseHeight = dimensions?.height || 20;
+        
+        // Render dimensions (used by RenderSystem, always equals base dimensions)
+        this.width = this.baseWidth;
+        this.height = this.baseHeight;
         
         // Reproduction tracking
         this.lastReproductionDay = currentDay;
@@ -35,6 +39,10 @@ class Plant {
         // Starvation tracking - plants die if fertility stays low too long
         this.daysStunted = 0;
         this.isStunted = false;
+        
+        // LOD tracking (Milestone 4)
+        this.currentLOD = 'medium'; // Default LOD level
+        this.lastRenderedLOD = 'medium'; // Track last LOD we generated sprite for
         
         // Initialize genetics for species that support it
         if (speciesConfig.genetics?.enabled) {
@@ -48,8 +56,8 @@ class Plant {
             console.log(`${speciesConfig.commonName} genetics initialized: Gen ${this.genetics.generation}`);
         }
         
-        // Generate initial sprite
-        this.generateSprite();
+        // Generate initial sprite at medium LOD
+        this.generateSprite('medium');
     }
 
     /**
@@ -168,7 +176,7 @@ class Plant {
         return range[0] + normalized * (range[1] - range[0]);
     }
 
-    generateSprite() {
+    generateSprite(lodLevel = 'medium') {
         // Clear the WebGL texture cache when regenerating sprite
         if (this.webglTexture) {
             this.webglTexture = null; // Clear cache to force texture recreation
@@ -176,18 +184,53 @@ class Plant {
         
         // Use the global PlantGenerator to create the sprite with current growth stage
         if (window.PlantGenerator) {
-            // Pass genetics to generator if species supports it
+            // Pass genetics and LOD level to generator
             this.texture = window.PlantGenerator.generatePlantSprite(
                 this.species, 
                 this.stage,
-                this.genetics  // NEW: Pass genetics (null for non-genetic species)
+                this.genetics,  // Pass genetics (null for non-genetic species)
+                lodLevel        // Pass LOD level
             );
             
-            // Update dimensions from generated sprite
-            if (this.texture) {
-                this.width = this.texture.width;
-                this.height = this.texture.height;
+            // LOD IMPORTANT: Adjust render size based on LOD level
+            // For impostor LOD, scale down world-space size to match tiny texture
+            // For other LODs, keep constant world-space size (baseWidth/baseHeight)
+            if (lodLevel === 'impostor') {
+                // Impostor billboards should be tiny (4x4 texture, 4x4 world space)
+                this.width = 4;
+                this.height = 4;
+            } else {
+                // All other LODs: Render dimensions stay at base (Medium LOD equivalent)
+                // Texture size varies with LOD (20px low, 40px medium, 80px high)
+                // But world-space render size stays constant for consistent appearance
+                this.width = this.baseWidth;
+                this.height = this.baseHeight;
             }
+        }
+        
+        // Track the LOD level this sprite was generated at
+        this.lastRenderedLOD = lodLevel;
+    }
+    
+    /**
+     * Update sprite for new LOD level (Milestone 4)
+     * Called when LOD changes due to camera zoom
+     * Checks if currentLOD (set by LODManager) differs from lastRenderedLOD
+     */
+    updateLODSprite() {
+        // Only regenerate if LOD actually changed since last render
+        if (this.currentLOD === this.lastRenderedLOD) return;
+        
+        const oldLOD = this.lastRenderedLOD;
+        const newLOD = this.currentLOD;
+        
+        // Regenerate sprite at new LOD level
+        this.generateSprite(newLOD);
+        
+        // Log LOD transition (can be disabled via config)
+        const config = window.config && window.config.world && window.config.world.rendering && window.config.world.rendering.lod;
+        if (config && config.debugOverlay && config.debugOverlay.showTransitions) {
+            console.log(`Plant at (${Math.round(this.x)}, ${Math.round(this.y)}) LOD: ${oldLOD} -> ${newLOD}`);
         }
     }
 
@@ -1433,7 +1476,8 @@ class Plant {
             // Reset accumulated growth days for new stage
             this.accumulatedGrowthDays = 0;
             
-            this.generateSprite(); // Regenerate sprite for new stage
+            // Regenerate sprite for new stage at current LOD level
+            this.generateSprite(this.currentLOD);
             
             return true;
         }
@@ -1460,7 +1504,7 @@ class Plant {
         this.stageStartDay = currentDay;
         this.isStunted = false; // No longer stunted, now withering
         
-        // Regenerate sprite for withered appearance
-        this.generateSprite();
+        // Regenerate sprite for withered appearance at current LOD level
+        this.generateSprite(this.currentLOD);
     }
 }

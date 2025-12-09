@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual LOD Impostor Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .lod-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .lod-item {
+            text-align: center;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .lod-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        canvas {
+            border: 1px solid #ccc;
+            background: linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+                        linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+                        linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+            background-size: 10px 10px;
+            background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+        }
+        
+        .size-info {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .pass {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .fail {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .log {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Manual LOD Impostor Test - Milestone 3</h1>
+    <p>Testing Low (0.5x) and Impostor (0.2x) LOD implementations</p>
+    
+    <div class="test-section">
+        <h2>Oak Tree (Mature)</h2>
+        <div class="lod-grid" id="oak-grid"></div>
+        <div id="oak-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Nettles (Vegetative)</h2>
+        <div class="lod-grid" id="nettles-grid"></div>
+        <div id="nettles-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Clover (Spreading)</h2>
+        <div class="lod-grid" id="clover-grid"></div>
+        <div id="clover-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Console Log</h2>
+        <div class="log" id="log"></div>
+    </div>
+    
+    <!-- Load dependencies -->
+    <script src="../../js/utils/color_utils.js"></script>
+    <script src="../../js/utils/canvas_utils.js"></script>
+    <script src="../../js/utils/genetics_utils.js"></script>
+    <script src="../../js/procedural/generators/base_generator.js"></script>
+    <script src="../../js/procedural/generators/tree_generator.js"></script>
+    <script src="../../js/procedural/generators/herb_generator.js"></script>
+    <script src="../../js/procedural/generators/groundcover_generator.js"></script>
+    
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        async function loadSpeciesConfig(speciesName) {
+            const response = await fetch(`../../species/${speciesName}.json`);
+            return await response.json();
+        }
+        
+        function testLODForSpecies(speciesName, generator, method, config, gridId, statusId) {
+            log(`Testing ${speciesName} with all LOD levels...`);
+            
+            const lodLevels = ['high', 'medium', 'low', 'impostor'];
+            const grid = document.getElementById(gridId);
+            grid.innerHTML = '';
+            
+            const results = [];
+            
+            for (const lod of lodLevels) {
+                // Generate sprite
+                const sprite = generator[method](config, null, lod);
+                
+                // Store results
+                results.push({
+                    lod,
+                    width: sprite.width,
+                    height: sprite.height,
+                    sprite
+                });
+                
+                // Create grid item
+                const item = document.createElement('div');
+                item.className = 'lod-item';
+                
+                const label = document.createElement('div');
+                label.className = 'lod-label';
+                label.textContent = lod.toUpperCase();
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(sprite.width, 60);
+                canvas.height = Math.max(sprite.height, 60);
+                
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Center sprite
+                const x = (canvas.width - sprite.width) / 2;
+                const y = (canvas.height - sprite.height) / 2;
+                ctx.drawImage(sprite, x, y);
+                
+                const sizeInfo = document.createElement('div');
+                sizeInfo.className = 'size-info';
+                sizeInfo.textContent = `${sprite.width}x${sprite.height}px`;
+                
+                item.appendChild(label);
+                item.appendChild(canvas);
+                item.appendChild(sizeInfo);
+                grid.appendChild(item);
+                
+                log(`  ${lod}: ${sprite.width}x${sprite.height}px`);
+            }
+            
+            // Validate results
+            const status = document.getElementById(statusId);
+            const validations = [];
+            
+            // Check impostor is 4x4
+            const impostor = results.find(r => r.lod === 'impostor');
+            if (impostor.width === 4 && impostor.height === 4) {
+                validations.push('<span class="pass">✓ Impostor is 4x4px</span>');
+            } else {
+                validations.push(`<span class="fail">✗ Impostor is ${impostor.width}x${impostor.height}px (expected 4x4)</span>`);
+            }
+            
+            // Check size progression (high > medium > low > impostor)
+            const sizes = results.map(r => r.width * r.height);
+            const sorted = [...sizes].sort((a, b) => b - a);
+            if (JSON.stringify(sizes) === JSON.stringify(sorted)) {
+                validations.push('<span class="pass">✓ Size progression correct: high > medium > low > impostor</span>');
+            } else {
+                validations.push('<span class="fail">✗ Size progression incorrect</span>');
+            }
+            
+            // Check low is approximately 0.5x medium
+            const medium = results.find(r => r.lod === 'medium');
+            const low = results.find(r => r.lod === 'low');
+            const ratio = (low.width / medium.width);
+            if (ratio >= 0.45 && ratio <= 0.55) {
+                validations.push(`<span class="pass">✓ Low is ${ratio.toFixed(2)}x of medium (target 0.5x)</span>`);
+            } else {
+                validations.push(`<span class="fail">✗ Low is ${ratio.toFixed(2)}x of medium (target 0.5x)</span>`);
+            }
+            
+            // Check high is approximately 2.0x medium
+            const high = results.find(r => r.lod === 'high');
+            const highRatio = (high.width / medium.width);
+            if (highRatio >= 1.8 && highRatio <= 2.2) {
+                validations.push(`<span class="pass">✓ High is ${highRatio.toFixed(2)}x of medium (target 2.0x)</span>`);
+            } else {
+                validations.push(`<span class="fail">✗ High is ${highRatio.toFixed(2)}x of medium (target 2.0x)</span>`);
+            }
+            
+            status.innerHTML = validations.join('<br>');
+            log(`${speciesName} validation complete`);
+        }
+        
+        async function runTests() {
+            log('Starting LOD manual tests...');
+            
+            try {
+                // Load configs
+                const oakConfig = await loadSpeciesConfig('oak');
+                const nettlesConfig = await loadSpeciesConfig('nettles');
+                const cloverConfig = await loadSpeciesConfig('clover');
+                
+                // Test Oak
+                testLODForSpecies('Oak', TreeGenerator, 'generateMatureTree', oakConfig, 'oak-grid', 'oak-status');
+                
+                // Test Nettles
+                testLODForSpecies('Nettles', HerbGenerator, 'generateVegetative', nettlesConfig, 'nettles-grid', 'nettles-status');
+                
+                // Test Clover
+                testLODForSpecies('Clover', GroundcoverGenerator, 'generateSpreading', cloverConfig, 'clover-grid', 'clover-status');
+                
+                log('All tests complete!');
+            } catch (error) {
+                log('ERROR: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

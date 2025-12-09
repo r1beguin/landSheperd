@@ -257,6 +257,20 @@ class GraphicsEngine {
         this.renderSystem.setConfig(this.config); // Pass config reference for projection mode
         this.overlayManager = new OverlayManager();
         
+        // Initialize LODManager (Milestone 4)
+        const lodConfig = this.config.world?.rendering?.lod || {};
+        this.lodManager = new LODManager(
+            lodConfig,
+            this.cameraManager,
+            this.geometryManager
+        );
+        console.log('LODManager initialized');
+        
+        // Connect LODManager to PlantManager (Milestone 4)
+        if (this.plantManager && this.lodManager) {
+            this.plantManager.setLODManager(this.lodManager);
+        }
+        
         // Set camera manager reference in soil manager for isometric rendering
         this.soilManager.setCameraManager(this.cameraManager);
         
@@ -849,11 +863,24 @@ class GraphicsEngine {
         // Update camera
         this.cameraManager.update();
         
+        // Update LOD levels based on camera zoom (Milestone 4)
+        if (this.plantManager && this.lodManager) {
+            this.plantManager.updateLOD();
+        }
+        
         // Update soil system
         this.soilManager.update(deltaTime);
         
         // Update plant manager with game time
         this.plantManager.update(gameDaysElapsed, currentDay);
+        
+        // Update plant sprites if LOD changed (Milestone 4)
+        if (this.plantManager && this.lodManager) {
+            const allPlants = this.plantManager.getAllPlants();
+            for (const plant of allPlants) {
+                plant.updateLODSprite(); // Checks if currentLOD changed and regenerates if needed
+            }
+        }
         
         // Update all entities
         this.entities.forEach(entity => {

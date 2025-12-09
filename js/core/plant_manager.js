@@ -16,6 +16,9 @@ class PlantManager {
         // Occlusion manager reference (set externally)
         this.occlusionManager = null;
         
+        // LOD manager reference (set externally) - Milestone 4
+        this.lodManager = null;
+        
         this.loadSpeciesConfigs();
     }
     
@@ -25,6 +28,29 @@ class PlantManager {
      */
     setOcclusionManager(occlusionManager) {
         this.occlusionManager = occlusionManager;
+    }
+    
+    /**
+     * Set LODManager reference for LOD-aware sprite generation (Milestone 4)
+     * @param {LODManager} lodManager - LODManager instance
+     */
+    setLODManager(lodManager) {
+        this.lodManager = lodManager;
+        console.log('PlantManager: LODManager reference set');
+    }
+    
+    /**
+     * Update LOD levels for all plants based on current camera zoom (Milestone 4)
+     * Called once per frame from render loop
+     */
+    updateLOD() {
+        if (!this.lodManager) return;
+        
+        // Get all plants as flat array
+        const allPlants = this.getAllPlants();
+        
+        // Batch update LOD levels
+        this.lodManager.updateLODLevels(allPlants);
     }
     
     async loadSpeciesConfigs() {
