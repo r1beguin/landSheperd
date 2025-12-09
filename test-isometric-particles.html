@@ -180,7 +180,7 @@
             
             const weatherManager = window.graphicsEngine.weatherManager;
             const timeManager = window.graphicsEngine.timeManager;
-            const currentDay = timeManager ? timeManager.getCurrentGameDay() : 0;
+            const currentDay = timeManager ? timeManager.getCurrentDay() : 0;
             
             weatherManager.setWeather(state, currentDay);
             console.log(`Weather set to: ${state}`);

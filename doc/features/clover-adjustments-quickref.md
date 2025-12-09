@@ -65,7 +65,7 @@ const soil = window.graphicsEngine.soilManager.getSoilAt(25, 25);
 soil.updateNutrients(50, 50, 50, 50);
 window.graphicsEngine.plantManager.spawnPlantAt(25, 25, 'trifolium_repens');
 const plants = window.graphicsEngine.plantManager.getPlantAt(25, 25);
-plants[0].forceWither(window.graphicsEngine.timeManager.getCurrentGameDay());
+plants[0].forceWither(window.graphicsEngine.timeManager.getCurrentDay());
 
 // Zoom in to see sprite
 window.graphicsEngine.cameraManager.setZoom(3.0);

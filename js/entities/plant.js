@@ -771,7 +771,7 @@ class Plant {
             // If all nutrients are critically low (< 1.0), force immediate death
             if (effectiveN < 1.0 && effectiveP < 1.0 && effectiveK < 1.0) {
                 console.log(`${this.species.commonName} died from complete nutrient depletion (N:${effectiveN.toFixed(1)} P:${effectiveP.toFixed(1)} K:${effectiveK.toFixed(1)})`);
-                this.forceWither(window.graphicsEngine?.timeManager?.getCurrentGameDay() || 0);
+                this.forceWither(window.graphicsEngine?.timeManager?.getCurrentDay() || 0);
                 return;
             }
         } else if (soil.nitrogen < 1.0 && soil.phosphorus < 1.0 && soil.potassium < 1.0) {

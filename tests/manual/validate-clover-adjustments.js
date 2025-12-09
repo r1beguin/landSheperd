@@ -46,7 +46,7 @@ visualSoil.updateNutrients(50, 50, 50, 50);
 window.graphicsEngine.plantManager.spawnPlantAt(25, 25, 'trifolium_repens');
 const visualPlants = window.graphicsEngine.plantManager.getPlantAt(25, 25);
 if (visualPlants.length > 0) {
-    visualPlants[0].forceWither(window.graphicsEngine.timeManager.getCurrentGameDay());
+    visualPlants[0].forceWither(window.graphicsEngine.timeManager.getCurrentDay());
     console.log('Clover forced to withered stage');
     console.log('Look at center of screen - should see brown 3-leaf clover pattern');
     window.graphicsEngine.cameraManager.setZoom(3.0);

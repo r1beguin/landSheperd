@@ -214,7 +214,7 @@ STATUS: ${afterStage === 'Withered' || plantsAfter.length === 0 ? '✅ PASS - Di
             const plants = engine.plantManager.getPlantAt(testCloverPos.x, testCloverPos.y);
             if (plants.length > 0) {
                 const plant = plants[0];
-                plant.forceWither(engine.timeManager.getCurrentGameDay());
+                plant.forceWither(engine.timeManager.getCurrentDay());
                 
                 const result = `Clover forced to Withered stage
 Generator: cloverWitheredGeneration

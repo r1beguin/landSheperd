@@ -94,7 +94,7 @@ test.describe('Clover Adjustments - Quick Validation', () => {
             
             const plants = window.graphicsEngine.plantManager.getPlantAt(25, 25);
             if (plants.length > 0) {
-                plants[0].forceWither(window.graphicsEngine.timeManager.getCurrentGameDay());
+                plants[0].forceWither(window.graphicsEngine.timeManager.getCurrentDay());
             }
             
             // Center camera on withered clover
