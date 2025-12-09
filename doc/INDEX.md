@@ -1,6 +1,6 @@
 # Land Shepherd Documentation Index
 
-**Last updated:** 2025-12-08 (Context Menu UX Improvements Complete)
+**Last updated:** 2025-12-09 (10x Speed & Lighting Bypass Complete)
 
 Welcome to the Land Shepherd documentation. This index helps you find the information you need quickly.
 
@@ -56,6 +56,7 @@ Feature-specific documentation with implementation details.
 - [visual-feedback-system.md](features/visual-feedback-system.md) - Visual feedback mechanics
 - [weather-system.md](features/weather-system.md) - Weather state management and effects
 - [lighting-system.md](features/lighting-system.md) - Day/night cycle with weather integration
+- [time-system.md](features/time-system.md) - **NEW** - Time system with 10x speed and lighting bypass
 
 ### Testing
 Testing strategy, verification workflows, and test framework documentation.
@@ -75,7 +76,8 @@ Development history, feature implementation logs, and architectural decisions.
 - [devlogs/](devlogs/) - Chronological development logs organized by year-month
 
 #### December 2025
-- [2025-12-08: Context Menu UX Improvements](devlogs/2025-12/2025-12-08-context-menu-ux-improvements.md) - Cell highlight, scrolling, dragging (NEW)
+- [2025-12-09: 10x Speed & Lighting Bypass](devlogs/2025-12/2025-12-09-10x-speed-lighting-bypass.md) - Ultra-fast simulation with intelligent lighting bypass (NEW)
+- [2025-12-08: Context Menu UX Improvements](devlogs/2025-12/2025-12-08-context-menu-ux-improvements.md) - Cell highlight, scrolling, dragging
 - [2025-12-05: Milestone 3 - Starvation Visualization](devlogs/2025-12/2025-12-05-milestone3-starvation-visualization.md) - Multi-stage nutrient deficiency visuals
 - [2025-12-03: Config Validation System](devlogs/2025-12/2025-12-03-config-validation-system.md) - JSON Schema validation for all configs
 - [2025-12-03: PlantGenerator Modular Refactor](devlogs/2025-12/2025-12-03-generator-refactor.md) - Refactored to plugin architecture

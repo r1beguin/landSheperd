@@ -19,7 +19,9 @@
             "slow": 0.1,
             "normal": 0.5,
             "fast": 1.0,
-            "veryFast": 5.0
+            "veryFast": 5.0,
+            "veryVeryFast": 10.0,
+            "ultraFast": 20.0
         }
     },
     "world": {

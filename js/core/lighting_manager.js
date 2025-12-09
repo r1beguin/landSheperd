@@ -131,6 +131,25 @@ class LightingManager {
     }
     
     /**
+     * Check if time-of-day lighting should update
+     * Returns false at high speeds (>=5x) to avoid day/night distraction
+     * @returns {boolean} True if time-of-day should be calculated
+     */
+    shouldUpdateTimeOfDay() {
+        if (!this.enabled) return false;
+        const timeScale = this.timeManager.getTimeScale();
+        return timeScale < 5.0; // Bypass at 5x and 10x
+    }
+    
+    /**
+     * Check if lighting bypass is currently active
+     * @returns {boolean} True if time-of-day is bypassed
+     */
+    isBypassActive() {
+        return this.enabled && !this.shouldUpdateTimeOfDay();
+    }
+    
+    /**
      * Update lighting based on current time
      * Uses temporal smoothing to prevent flickering in fast time modes
      * @param {number} deltaTime - Time elapsed in milliseconds (used for smooth transitions)
@@ -138,28 +157,41 @@ class LightingManager {
     update(deltaTime) {
         if (!this.enabled) return;
         
-        // Get hour of day (0-24)
-        const hour = this.timeOverride !== null 
-            ? this.timeOverride 
-            : this.timeManager.getHourOfDay();
+        // Check if time-of-day should be bypassed
+        let baseColor, baseBrightness;
         
-        // Find current phase and next phase with transition progress
-        const { currentPhase, nextPhase, transitionProgress } = this._findPhases(hour);
+        if (this.shouldUpdateTimeOfDay()) {
+            // Normal time-of-day lighting calculation
+            // Get hour of day (0-24)
+            const hour = this.timeOverride !== null 
+                ? this.timeOverride 
+                : this.timeManager.getHourOfDay();
+            
+            // Find current phase and next phase with transition progress
+            const { currentPhase, nextPhase, transitionProgress } = this._findPhases(hour);
+            
+            // Interpolate between phases (base time-of-day color)
+            baseColor = this._lerpColors(
+                currentPhase.color,
+                nextPhase.color,
+                transitionProgress
+            );
+            
+            baseBrightness = this._lerp(
+                currentPhase.brightness,
+                nextPhase.brightness,
+                transitionProgress
+            );
+            
+            this.currentPhase = currentPhase.name;
+        } else {
+            // Bypass mode: lock to full brightness (midday)
+            baseColor = [1.0, 1.0, 1.0];
+            baseBrightness = 1.0;
+            this.currentPhase = 'midday (bypassed)';
+        }
         
-        // Interpolate between phases (base time-of-day color)
-        const baseColor = this._lerpColors(
-            currentPhase.color,
-            nextPhase.color,
-            transitionProgress
-        );
-        
-        const baseBrightness = this._lerp(
-            currentPhase.brightness,
-            nextPhase.brightness,
-            transitionProgress
-        );
-        
-        // Apply weather modifier
+        // ALWAYS calculate weather modifier (regardless of bypass state)
         const weatherMod = this._calculateWeatherModifier();
         
         // Calculate target values (instant based on game time)
@@ -180,8 +212,6 @@ class LightingManager {
         
         // Update alpha channel (always 1.0)
         this.currentAmbientColor[3] = 1.0;
-        
-        this.currentPhase = currentPhase.name;
     }
     
     /**
@@ -398,10 +428,13 @@ class LightingManager {
         const weather = this.weatherManager?.getCurrentWeather() || 'none';
         const intensity = this.weatherManager?.getRainIntensity() || 0;
         
+        // Show bypass status
+        const bypassStr = this.isBypassActive() ? ' [BYPASS]' : '';
+        
         // Include ambient color for debugging
         const ambientStr = `Ambient light: [${this.currentAmbientColor[0].toFixed(2)}, ${this.currentAmbientColor[1].toFixed(2)}, ${this.currentAmbientColor[2].toFixed(2)}]`;
         const weatherStr = weather === 'rainy' ? `${weather} (${(intensity * 100).toFixed(0)}%)` : weather;
         
-        return `Time: ${hour.toFixed(2)}h | Phase: ${this.currentPhase} | Weather: ${weatherStr} | Brightness: ${(this.currentBrightness * 100).toFixed(0)}% | ${ambientStr}`;
+        return `Time: ${hour.toFixed(2)}h${bypassStr} | Phase: ${this.currentPhase} | Weather: ${weatherStr} | Brightness: ${(this.currentBrightness * 100).toFixed(0)}% | ${ambientStr}`;
     }
 }

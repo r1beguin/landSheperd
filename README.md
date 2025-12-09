@@ -191,6 +191,11 @@ landSheperd/
   - Real-time intensity levels
 - **Centralized JSON configuration** for all parameters
 - **Optimized performance**: 60+ FPS with 2500 cells (39 FPS with animated water)
+- **Lighting system** with day/night cycle
+  - 9 distinct time-of-day phases with smooth transitions
+  - Weather integration (sunny, cloudy, rainy modifiers)
+  - **Automatic lighting bypass at high speeds (≥5x)** prevents day/night flashing
+  - Weather effects preserved during bypass
 
 ### Interactive Controls
 
@@ -209,16 +214,16 @@ landSheperd/
 - **+ or =**: Increase time speed
 - **- or _**: Decrease time speed
 - **0**: Pause time
-- **1**: Normal speed (1x)
-- **2**: Fast speed (5x)
-- **3**: Very fast speed (20x)
+- **1**: Normal speed (0.5x)
+- **2**: Fast speed (5x) - **Lighting bypass activates**
+- **3**: Ultra-fast speed (10x) - **Lighting bypass active**
 
-**Plant Growth**: Plants automatically grow through multiple stages over time. At normal speed (1x), Stinging Nettles take:
+**Plant Growth**: Plants automatically grow through multiple stages over time. At 1x speed (fast preset), Stinging Nettles take:
 - Seedling → Vegetative: 3 game days (30 real seconds)
 - Vegetative → Flowering: 7 game days (70 real seconds)
 - Flowering → Withered: 10 game days (100 real seconds)
 
-Use time controls to speed up or slow down the simulation!
+**High-Speed Simulation**: Use the 10x speed preset (key `3`) for rapid ecosystem observation. Lighting automatically bypasses day/night flashing at high speeds while preserving weather effects for clear visibility.
 
 #### Debug Interface
 - **Water Button**: Toggles the display of water pixels

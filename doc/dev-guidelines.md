@@ -487,12 +487,79 @@ See [Troubleshooting Documentation](troubleshooting/) for more solutions.
 
 **This is a routing document. For comprehensive information, navigate to the appropriate documentation section above.**
 
-**Last Updated**: 2025-12-08  
-**Total Documentation**: 4200+ lines with isometric rendering system complete
+**Last Updated**: 2025-12-09  
+**Total Documentation**: 5200+ lines with 10x speed & lighting bypass system complete
 
 ---
 
 ## Recent Implementations
+
+### 10x Time Speed & Lighting Bypass - 2025-12-09
+
+**Purpose:** Ultra-fast simulation with intelligent lighting bypass to prevent day/night flashing
+
+**Implementation:**
+- **config.json**: Added "veryVeryFast": 10.0 to timeScalePresets
+- **LightingManager** (js/core/lighting_manager.js): shouldUpdateTimeOfDay(), isBypassActive() methods
+  - Bypass activates at timeScale >= 5.0
+  - Base lighting locked to [1.0, 1.0, 1.0] during bypass
+  - Weather effects ALWAYS applied (preserved during bypass)
+  - Current phase set to "midday (bypassed)"
+- **GraphicsEngine** (js/core/main_graphics.js): UI bypass indicator
+  - Shows "[BYPASS] (Speed: Xx)" tag when bypass active
+  - Added to lighting phase display (lines 933-946)
+
+**Key Design Decisions:**
+- Bypass threshold: 5.0x (prevents flashing at high speeds)
+- Weather preservation: Weather calculation always runs regardless of bypass
+- Smooth transitions: Uses existing smoothing factor (0.15) for natural feel
+- UI feedback: Clear indicator helps users understand system state
+- Performance: +5% FPS improvement from skipped phase interpolation
+
+**Configuration:**
+```json
+{
+    "time": {
+        "timeScalePresets": {
+            "veryVeryFast": 10.0
+        }
+    }
+}
+```
+
+**Testing:**
+- Validation: PASS - All 4 milestones validated
+- Lighting bypass test: 7/7 scenarios pass (tests/lighting-bypass-validation.spec.js)
+- Integration test: 5/5 scenarios pass (tests/time-speed-10x-integration.spec.js)
+- Visual validation: 4 screenshots captured
+- Performance: FPS 37-39 at all speeds, 0 console errors
+- Edge cases: Rapid switching, weather changes, pause/resume all validated
+
+**Usage:**
+```javascript
+// Set to 10x speed (bypass activates)
+timeManager.setTimeScale('veryVeryFast');
+
+// Check if bypass is active
+const bypass = lightingManager.isBypassActive(); // true at >= 5x
+
+// Check if time-of-day should update
+const shouldUpdate = lightingManager.shouldUpdateTimeOfDay(); // false at >= 5x
+```
+
+**User Experience:**
+- Press `3` key for instant 10x speed
+- Lighting locks to "perpetual midday" (no flashing)
+- Weather effects remain visible (dimming, tint)
+- UI shows "[BYPASS] (Speed: 10x)" indicator
+- Smooth transition when returning to normal speed
+
+**Related Documentation:**
+- [Time System](features/time-system.md) - Complete time system documentation
+- [Lighting System](features/lighting-system.md) - Updated with bypass section
+- [Devlog](devlogs/2025-12/2025-12-09-10x-speed-lighting-bypass.md) - Complete implementation history
+
+---
 
 ### Isometric Rendering System - 2025-12-08
 

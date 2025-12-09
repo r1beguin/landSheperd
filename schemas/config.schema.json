@@ -92,6 +92,14 @@
             "veryFast": {
               "type": "number",
               "minimum": 0
+            },
+            "veryVeryFast": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ultraFast": {
+              "type": "number",
+              "minimum": 0
             }
           },
           "additionalProperties": false

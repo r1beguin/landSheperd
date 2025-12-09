@@ -932,8 +932,10 @@ class GraphicsEngine {
         
         if (lightingPhaseElement && this.lightingManager) {
             const phase = this.lightingManager.getCurrentPhase();
+            
             // Capitalize first letter and make it readable
-            const phaseDisplay = phase.charAt(0).toUpperCase() + phase.slice(1).replace(/([A-Z])/g, ' $1').trim();
+            let phaseDisplay = phase.charAt(0).toUpperCase() + phase.slice(1).replace(/([A-Z])/g, ' $1').trim();
+            
             lightingPhaseElement.textContent = phaseDisplay;
         }
         

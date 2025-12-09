@@ -72,6 +72,12 @@ module.exports = defineConfig({
     ? '**/flood-leaching-balance.spec.js'
     : process.env.TEST_LEACHING_DIAGNOSTIC === 'true'
     ? '**/leaching-diagnostic.spec.js'
+    : process.env.TEST_LIGHTING_BYPASS === 'true'
+    ? '**/lighting-bypass-validation.spec.js'
+    : process.env.TEST_TIME_SPEED_10X === 'true'
+    ? '**/time-speed-10x-integration.spec.js'
+    : process.env.TEST_MILESTONE3_VISUAL === 'true'
+    ? '**/milestone3-visual-validation.spec.js'
     : process.env.TEST_INTERACTIVE === 'true' ||
       process.env.TEST_SCREENSHOT_ONLY === 'true' || 
       process.env.TEST_LOG_ONLY === 'true'
@@ -79,7 +85,7 @@ module.exports = defineConfig({
     : '**/verify.spec.js',
   
   // Test timeout
-  timeout: process.env.TEST_LEACHING_DIAGNOSTIC === 'true' ? 180000 : 30000,
+  timeout: process.env.TEST_LEACHING_DIAGNOSTIC === 'true' || process.env.TEST_TIME_SPEED_10X === 'true' ? 180000 : 30000,
   
   // Expect timeout for assertions
   expect: {

@@ -27,7 +27,9 @@ class SchemaLoader {
         }
         
         try {
-            const response = await fetch(path);
+            // Add cache-busting parameter to ensure fresh schema loads
+            const cacheBustPath = `${path}?v=${Date.now()}`;
+            const response = await fetch(cacheBustPath);
             if (!response.ok) {
                 throw new Error(`Failed to load schema: ${path} (status ${response.status})`);
             }

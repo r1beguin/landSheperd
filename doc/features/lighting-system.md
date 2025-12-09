@@ -2,8 +2,8 @@
 
 **Category**: Features  
 **Related Docs**: [Weather System](weather-system.md), [Visual Feedback System](visual-feedback-system.md)  
-**Status**: ✅ COMPLETE  
-**Last Updated**: 2025-11-30
+**Status**: ✅ COMPLETE (with High-Speed Bypass - Milestone 2)  
+**Last Updated**: 2025-12-09
 
 [Navigation: [Index](../INDEX.md) | [Features](./)]
 
@@ -489,6 +489,287 @@ Each weather state has:
 | 500 plants + rain | 48 | 47 | -1 |
 
 **Conclusion**: Lighting system adds negligible overhead even with complex scenes.
+
+---
+
+## High-Speed Lighting Bypass
+
+**Status**: ✅ COMPLETE (December 9, 2025)  
+**Related**: [Time System - Lighting Bypass Section](time-system.md#lighting-bypass-system)
+
+### Overview
+
+The lighting bypass system automatically disables time-of-day lighting calculations at high time scales (5x and 10x speed) while preserving weather effects. This optimization reduces visual distraction during fast-forward gameplay and provides slight performance benefits by skipping unnecessary phase interpolation.
+
+### Behavior
+
+**Bypass Active (timeScale >= 5.0):**
+- Base lighting locked to full brightness: `[1.0, 1.0, 1.0]`
+- Time-of-day phase interpolation skipped
+- Current phase set to: `"midday (bypassed)"`
+- Weather modifiers **STILL APPLIED** (cloudy dimming, rainy tint)
+- Debug UI shows: `[BYPASS]` tag
+
+**Normal Operation (timeScale < 5.0):**
+- Full day/night cycle visible
+- Time-of-day phases calculated normally
+- Weather modifiers applied on top of time-of-day base
+- Debug UI shows: current time and phase name
+
+### Implementation
+
+#### Key Methods
+
+**`shouldUpdateTimeOfDay()`**
+```javascript
+shouldUpdateTimeOfDay() {
+    if (!this.enabled) return false;
+    const timeScale = this.timeManager.getTimeScale();
+    return timeScale < 5.0; // Bypass at 5x and 10x
+}
+```
+- Returns `false` when timeScale >= 5.0
+- Prevents time-of-day calculations at high speeds
+- Public method for testing and debugging
+
+**`isBypassActive()`**
+```javascript
+isBypassActive() {
+    return this.enabled && !this.shouldUpdateTimeOfDay();
+}
+```
+- Getter method indicating bypass state
+- Used for UI display and debugging
+- Returns `true` during bypass, `false` otherwise
+
+#### Update Flow with Bypass
+
+```
+update(deltaTime)
+    ↓
+Check shouldUpdateTimeOfDay()
+    ↓
+    ├─ TRUE (< 5x speed)
+    │   ↓
+    │   Calculate time-of-day phase
+    │   ↓
+    │   Interpolate colors/brightness
+    │   ↓
+    │   baseColor = phaseColor
+    │   baseBrightness = phaseBrightness
+    │
+    └─ FALSE (>= 5x speed)
+        ↓
+        Skip phase calculation
+        ↓
+        baseColor = [1.0, 1.0, 1.0]
+        baseBrightness = 1.0
+        currentPhase = "midday (bypassed)"
+    ↓
+ALWAYS calculate weather modifier
+    ↓
+Apply weather to base color
+    ↓
+Smooth transition to target
+    ↓
+Output final ambient color
+```
+
+### Time Scale Thresholds
+
+| Time Scale | Mode | Bypass Active | Behavior |
+|------------|------|---------------|----------|
+| 0x (pause) | pause | ❌ No | Normal lighting (paused) |
+| 0.05x | verySlow | ❌ No | Full day/night cycle (slow) |
+| 0.1x | slow | ❌ No | Full day/night cycle |
+| 0.5x | normal | ❌ No | Full day/night cycle |
+| 1.0x | fast | ❌ No | Full day/night cycle |
+| 4.9x | (custom) | ❌ No | Full day/night cycle (fast) |
+| **5.0x** | **veryFast** | ✅ **Yes** | **Locked to full bright** |
+| **10.0x** | **veryVeryFast** | ✅ **Yes** | **Locked to full bright** |
+
+### Weather Preservation
+
+Weather effects are **always calculated and applied**, even during bypass:
+
+**Sunny Weather (bypass active):**
+- Base: `[1.0, 1.0, 1.0]` at brightness 1.0
+- Weather modifier: brightness × 1.0, tint × [1.0, 1.0, 1.0]
+- Final: `[1.0, 1.0, 1.0]` at brightness 1.0 ✅
+- **Result:** Full brightness maintained
+
+**Rainy Weather (bypass active):**
+- Base: `[1.0, 1.0, 1.0]` at brightness 1.0
+- Weather modifier: brightness × 0.55, tint × [0.85, 0.90, 1.10]
+- Final: `[0.47, 0.50, 0.61]` at brightness 0.55 ✅
+- **Result:** Dimmed with blue rain tint
+
+This ensures gameplay-relevant weather effects remain visible even at high speeds.
+
+### Performance Impact
+
+**Measured Performance:**
+- FPS at 10x without bypass: ~37 FPS
+- FPS at 10x with bypass: ~39 FPS
+- **Improvement:** ~5% FPS increase
+- **Primary benefit:** Reduced visual distraction, not performance
+
+**Optimization Benefits:**
+- Skips phase interpolation (2 lerp operations × 4 values)
+- Avoids phase lookup in sorted array (O(n) where n=9)
+- Reduces smoothing calculations (colors converge faster)
+- Still calculates weather modifier (necessary for gameplay)
+
+**Note:** Performance improvement is small because lighting calculation is already very fast (<0.2ms). The main benefit is UX - avoiding distracting rapid day/night flashing.
+
+### Visual Validation
+
+**Test Results (Milestone 2):**
+
+| Scenario | Time Scale | Weather | Expected Brightness | Actual Brightness | Status |
+|----------|-----------|---------|---------------------|-------------------|--------|
+| Night at 1x | 1x | Sunny | ~38% (dark night) | 38.3% | ✅ PASS |
+| Night at 5x | 5x | Sunny | ~98% (full bright) | 98.0% | ✅ PASS |
+| Night at 10x | 10x | Sunny | 100% (full bright) | 100.0% | ✅ PASS |
+| Night at 5x (rain) | 5x | Rainy | ~60% (dimmed) | 60.6% | ✅ PASS |
+| Night at 1x (resume) | 1x | Sunny | ~38% (dark night) | 38.3% | ✅ PASS |
+
+**Color Tint Validation:**
+- Normal night (1x): Blue tint `[0.42, 0.37, 0.42]` ✅
+- Bypass (5x sunny): White `[0.98, 0.98, 0.98]` ✅
+- Bypass (5x rainy): Blue rain tint `[0.52, 0.55, 0.66]` (ratio 1.28) ✅
+
+### User Experience
+
+**Before Bypass (all speeds):**
+- At 10x speed: Day/night flashing rapidly (distracting)
+- Hard to see entity changes due to lighting changes
+- Weather effects visible but mixed with day/night
+
+**After Bypass (5x/10x):**
+- Consistent bright lighting (like always midday)
+- Entity changes clearly visible
+- Weather effects stand out (cloudy/rainy dimming noticeable)
+- No distracting day/night flashing
+
+### Configuration
+
+No configuration options yet, but could add:
+
+```json
+{
+  "lighting": {
+    "bypass": {
+      "enabled": true,
+      "speedThreshold": 5.0,
+      "lockedBrightness": 1.0,
+      "showIndicator": true
+    }
+  }
+}
+```
+
+Future enhancement for customizable bypass behavior.
+
+### Debugging
+
+**Console Output Example:**
+```
+Time: 2.34h [BYPASS] | Phase: midday (bypassed) | Weather: rainy (70%) | Brightness: 61% | Ambient light: [0.52, 0.55, 0.66]
+```
+
+**Debug String Interpretation:**
+- `[BYPASS]` tag: Indicates bypass is active
+- `Phase: midday (bypassed)`: Shows bypass phase instead of actual time phase
+- Weather still shown: Confirms weather calculation still running
+- Brightness 61%: Shows weather dimming applied (base 100% → 61% due to rain)
+- Ambient light: Final color with blue rain tint
+
+**Programmatic Checks:**
+```javascript
+const lm = window.graphicsEngine.lightingManager;
+
+// Check if bypass is active
+if (lm.isBypassActive()) {
+    console.log('Lighting bypass active');
+    console.log(`Time scale: ${window.graphicsEngine.timeManager.getTimeScale()}x`);
+}
+
+// Check threshold behavior
+const shouldUpdate = lm.shouldUpdateTimeOfDay();
+console.log(`Time-of-day calculations: ${shouldUpdate ? 'ON' : 'OFF'}`);
+```
+
+### Testing
+
+**Automated Test Suite:** `tests/lighting-bypass-validation.spec.js`
+
+**Test Scenarios:**
+1. ✅ Normal lighting at 1x speed
+2. ✅ Bypass activation at 5x speed
+3. ✅ Bypass maintained at 10x speed
+4. ✅ Weather preservation during bypass (rainy)
+5. ✅ Smooth return to normal at <5x speed
+6. ✅ Threshold enforcement (4.9x = no bypass)
+7. ✅ Rapid time scale changes (stability)
+8. ✅ Performance maintained (39 FPS at 10x)
+
+**Run Test:**
+```bash
+set TEST_LIGHTING_BYPASS=true && npx playwright test
+```
+
+**Expected Output:**
+```
+✅ All scenarios pass
+✅ FPS >= 30 at 10x
+✅ No console errors
+✅ Weather preserved during bypass
+```
+
+### Known Limitations
+
+1. **Smoothing Convergence Time**
+   - Takes ~500ms to reach full brightness after bypass activation
+   - Brief visible transition when switching speeds
+   - Acceptable for gameplay, could increase smoothing factor if needed
+
+2. **No Gradual Transition**
+   - Bypass toggles instantly at 5.0x threshold
+   - Could add gradual brightness ramp in future (4x→5x transition zone)
+
+3. **Fixed Threshold**
+   - Currently hardcoded to 5.0x
+   - No configuration option yet
+   - Future: make configurable via config.json
+
+### Future Enhancements
+
+1. **UI Indicator**
+   - Add sun icon in top UI bar when bypass active
+   - Tooltip: "Lighting locked to daylight at high speeds"
+   - Brief notification on first activation
+
+2. **Configurable Threshold**
+   - Allow users to set bypass speed threshold
+   - Support disabling bypass entirely
+   - Config validation with sensible defaults
+
+3. **Gradual Transition**
+   - Smooth brightness ramp from 4x → 5x
+   - Avoid instant jump at threshold
+   - Lerp bypass factor: `factor = smoothstep(4.5, 5.0, timeScale)`
+
+4. **Seasonal Bypass Variants**
+   - Winter bypass: Lock to winter-toned midday
+   - Summer bypass: Lock to bright summer lighting
+   - Adapt bypass behavior to seasonal config
+
+### Related Documentation
+
+- **[Time System](time-system.md)** - Time scale configuration, speed presets, and bypass integration
+- **[Weather System](weather-system.md)** - Weather state management and effects
+- **[Technical Reference](../architecture/technical-reference.md)** - Manager architecture patterns
 
 ---
 
