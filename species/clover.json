@@ -6,8 +6,8 @@
   "layer": "bottom",
   "appearance": {
     "dimensions": {
-      "width": 16,
-      "height": 16
+      "width": 12,
+      "height": 12
     },
     "colorPalette": {
       "stem": ["#2d5016", "#1a3d0a"],

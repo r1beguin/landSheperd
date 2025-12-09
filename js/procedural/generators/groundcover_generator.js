@@ -18,16 +18,19 @@ class GroundcoverGenerator extends BaseGenerator {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         
+        // Scale leaf size based on canvas size
+        const scale = canvas.width / 16;
+        
         ctx.fillStyle = colors.leaf[0];
         
         // Single small leaf
         ctx.beginPath();
-        ctx.ellipse(centerX, centerY, 2, 3, 0, 0, 2 * Math.PI);
+        ctx.ellipse(centerX, centerY, 1.5 * scale, 2 * scale, 0, 0, 2 * Math.PI);
         ctx.fill();
         
         // Tiny stem
         ctx.fillStyle = colors.stem[0];
-        ctx.fillRect(centerX - 0.5, centerY + 1, 1, 2);
+        ctx.fillRect(centerX - 0.5, centerY + 1, 1, 1.5 * scale);
         
         return canvas;
     }
@@ -45,9 +48,12 @@ class GroundcoverGenerator extends BaseGenerator {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         
-        // Draw characteristic 3-leaf clover pattern
-        const leafRadius = 2.5;
-        const stemLength = 3;
+        // Scale features based on canvas size for consistent look
+        const scale = canvas.width / 16;
+        
+        // Draw characteristic 3-leaf clover pattern with smaller leaves
+        const leafRadius = 1.5 * scale;  // Reduced from 2.5 to 1.5
+        const stemLength = 2 * scale;     // Reduced from 3 to 2
         
         // Central stem
         ctx.fillStyle = colors.stem[0];
@@ -56,8 +62,8 @@ class GroundcoverGenerator extends BaseGenerator {
         // Three leaves in clover pattern
         const leafPositions = [
             { x: centerX, y: centerY - stemLength },          // Top leaf
-            { x: centerX - stemLength, y: centerY + 1 },      // Bottom left
-            { x: centerX + stemLength, y: centerY + 1 }       // Bottom right
+            { x: centerX - stemLength, y: centerY + 0.5 },    // Bottom left
+            { x: centerX + stemLength, y: centerY + 0.5 }     // Bottom right
         ];
         
         ctx.fillStyle = colors.leaf[0];
@@ -65,8 +71,8 @@ class GroundcoverGenerator extends BaseGenerator {
         for (const pos of leafPositions) {
             // Draw heart-shaped clover leaf (two overlapping circles)
             ctx.beginPath();
-            ctx.arc(pos.x - 1, pos.y, leafRadius, 0, 2 * Math.PI);
-            ctx.arc(pos.x + 1, pos.y, leafRadius, 0, 2 * Math.PI);
+            ctx.arc(pos.x - 0.7 * scale, pos.y, leafRadius, 0, 2 * Math.PI);
+            ctx.arc(pos.x + 0.7 * scale, pos.y, leafRadius, 0, 2 * Math.PI);
             ctx.fill();
             
             // Add darker center
@@ -93,25 +99,28 @@ class GroundcoverGenerator extends BaseGenerator {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         
-        // Draw 3-leaf clover base (same as spreading)
-        const leafRadius = 2.5;
-        const stemLength = 3;
+        // Scale features based on canvas size
+        const scale = canvas.width / 16;
+        
+        // Draw 3-leaf clover base with smaller leaves
+        const leafRadius = 1.5 * scale;  // Reduced from 2.5
+        const stemLength = 2 * scale;     // Reduced from 3
         
         ctx.fillStyle = colors.stem[0];
         ctx.fillRect(centerX - 0.5, centerY + leafRadius, 1, stemLength);
         
         const leafPositions = [
             { x: centerX, y: centerY - stemLength },
-            { x: centerX - stemLength, y: centerY + 1 },
-            { x: centerX + stemLength, y: centerY + 1 }
+            { x: centerX - stemLength, y: centerY + 0.5 },
+            { x: centerX + stemLength, y: centerY + 0.5 }
         ];
         
         ctx.fillStyle = colors.leaf[0];
         
         for (const pos of leafPositions) {
             ctx.beginPath();
-            ctx.arc(pos.x - 1, pos.y, leafRadius, 0, 2 * Math.PI);
-            ctx.arc(pos.x + 1, pos.y, leafRadius, 0, 2 * Math.PI);
+            ctx.arc(pos.x - 0.7 * scale, pos.y, leafRadius, 0, 2 * Math.PI);
+            ctx.arc(pos.x + 0.7 * scale, pos.y, leafRadius, 0, 2 * Math.PI);
             ctx.fill();
             
             ctx.fillStyle = colors.leaf[2];
@@ -121,10 +130,10 @@ class GroundcoverGenerator extends BaseGenerator {
             ctx.fillStyle = colors.leaf[0];
         }
         
-        // Add white/pink flower clusters
+        // Add white/pink flower clusters (scaled)
         const flowerPositions = [
-            { x: centerX - 4, y: centerY - 5 },
-            { x: centerX + 4, y: centerY - 4 }
+            { x: centerX - 2.5 * scale, y: centerY - 3 * scale },
+            { x: centerX + 2.5 * scale, y: centerY - 2.5 * scale }
         ];
         
         ctx.fillStyle = colors.flower[0];
@@ -132,17 +141,17 @@ class GroundcoverGenerator extends BaseGenerator {
         for (const pos of flowerPositions) {
             // Main flower head (cluster of tiny circles)
             for (let i = 0; i < 5; i++) {
-                const offsetX = (Math.random() - 0.5) * 2;
-                const offsetY = (Math.random() - 0.5) * 2;
+                const offsetX = (Math.random() - 0.5) * 1.5 * scale;
+                const offsetY = (Math.random() - 0.5) * 1.5 * scale;
                 ctx.beginPath();
-                ctx.arc(pos.x + offsetX, pos.y + offsetY, 1, 0, 2 * Math.PI);
+                ctx.arc(pos.x + offsetX, pos.y + offsetY, 0.7 * scale, 0, 2 * Math.PI);
                 ctx.fill();
             }
             
             // Pink accents
             ctx.fillStyle = colors.flower[2];
             ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 0.5, 0, 2 * Math.PI);
+            ctx.arc(pos.x, pos.y, 0.4 * scale, 0, 2 * Math.PI);
             ctx.fill();
             ctx.fillStyle = colors.flower[0];
             
