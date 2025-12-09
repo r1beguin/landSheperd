@@ -138,18 +138,9 @@ class SoilManager {
 
     // Check if this location should allow plant placement (more restrictive than soil existence)
     shouldHaveSoil(gridX, gridY) {
-        // Define a much larger plantable area - let's try 80% of grid size
-        const plantableRadius = Math.min(this.gridWidth, this.gridHeight) * 0.45; // 45% radius = 90% diameter
-        const centerX = 0;
-        const centerY = 0;
-        
-        // Use circular plantable area for more natural boundaries
-        const distance = Math.sqrt(
-            Math.pow(gridX - centerX, 2) + 
-            Math.pow(gridY - centerY, 2)
-        );
-        
-        return distance <= plantableRadius;
+        // All rendered soil cells are plantable (except water, which is handled separately)
+        // Water tiles will be marked as non-plantable during terrain generation
+        return true;
     }
 
     // Generate a 2D map with spatial coherence (zones and gradients)
