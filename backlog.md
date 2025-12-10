@@ -1,0 +1,13 @@
+-* see through feature
+-* weird fertility circle
+-* test /init
+-* occlusion optimization
+-! LOD system --- to improve ---
+-* DEGUG page to test unitary texture generation
+- documentation reorganisation and clean up
+- refactor tree generation
+- shadows
+- game state saving
+- Infinite map chunck generation
+- Terrain elevation
+- quality check

@@ -133,6 +133,9 @@ class DebugManager {
                     <button id="toggle-water-layer" class="debug-toggle-btn inactive">Water</button>
                     <button id="toggle-pollution-layer" class="debug-toggle-btn inactive">Pollution</button>
                 </div>
+                <div class="debug-controls">
+                    <button id="open-texture-visualizer" class="debug-toggle-btn" style="width: 100%;">Texture Visualizer</button>
+                </div>
                 <div id="weather-section" class="debug-section">
                     <div class="debug-section-title">Weather</div>
                     <div class="debug-info">
@@ -176,6 +179,7 @@ class DebugManager {
             this.initializeLayerToggles();
             this.initializeShadowControls();
             this.initializeWeatherControls();
+            this.initializeTextureVisualizerButton();
         }, 100);
     }
     
@@ -728,6 +732,22 @@ class DebugManager {
                     const currentDay = window.graphicsEngine.timeManager.getCurrentDay();
                     window.graphicsEngine.weatherManager.setWeather('rainy', currentDay);
                 }
+            });
+        }
+    }
+    
+    /**
+     * Initialize the Texture Visualizer button
+     * Opens the texture visualizer tool in a new browser tab
+     */
+    initializeTextureVisualizerButton() {
+        const textureVisualizerBtn = document.getElementById('open-texture-visualizer');
+        
+        if (textureVisualizerBtn) {
+            textureVisualizerBtn.addEventListener('click', () => {
+                // Open texture visualizer in a new tab
+                window.open('/texture_visualizer.html', '_blank');
+                console.log('[DEBUG] Opened Texture Visualizer in new tab');
             });
         }
     }

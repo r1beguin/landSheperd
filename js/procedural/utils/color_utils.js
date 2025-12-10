@@ -64,6 +64,43 @@ class ColorUtils {
         
         return '#' + toHex(nr) + toHex(ng) + toHex(nb);
     }
+    
+    /**
+     * Convert hex color to RGB object
+     * @param {string} hexColor - Hex color like "#4a7c3c"
+     * @returns {object|null} {r, g, b} with values 0-255, or null if invalid
+     */
+    static hexToRgb(hexColor) {
+        if (!hexColor || hexColor.length !== 7 || hexColor[0] !== '#') {
+            return null;
+        }
+        
+        const r = parseInt(hexColor.substr(1, 2), 16);
+        const g = parseInt(hexColor.substr(3, 2), 16);
+        const b = parseInt(hexColor.substr(5, 2), 16);
+        
+        if (isNaN(r) || isNaN(g) || isNaN(b)) {
+            return null;
+        }
+        
+        return { r, g, b };
+    }
+    
+    /**
+     * Convert RGB to hex color
+     * @param {number} r - Red (0-255)
+     * @param {number} g - Green (0-255)
+     * @param {number} b - Blue (0-255)
+     * @returns {string} Hex color like "#4a7c3c"
+     */
+    static rgbToHex(r, g, b) {
+        const toHex = (c) => {
+            const hex = Math.round(c).toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+        
+        return '#' + toHex(r) + toHex(g) + toHex(b);
+    }
 }
 
 // Make available globally

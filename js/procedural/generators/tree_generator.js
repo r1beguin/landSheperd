@@ -8,9 +8,10 @@ class TreeGenerator extends BaseGenerator {
      * @param {object} speciesConfig - Species configuration object
      * @param {object} genetics - Genetics object (optional)
      * @param {string} lodLevel - LOD level (high/medium/low/impostor), defaults to 'medium'
+     * @param {number} health - Plant health (0-100), affects visual appearance
      * @returns {HTMLCanvasElement} Generated sprite canvas
      */
-    static generateSapling(speciesConfig, genetics = null, lodLevel = 'medium') {
+    static generateSapling(speciesConfig, genetics = null, lodLevel = 'medium', health = 100) {
         // Handle impostor LOD
         if (lodLevel === 'impostor') {
             return BaseGenerator.generateImpostor(speciesConfig, 'Sapling');
@@ -31,9 +32,13 @@ class TreeGenerator extends BaseGenerator {
         const foliageModifier = genetics ? GeneticsUtils.getFoliageMultiplier(genetics.foliageDensity) : 1.0;
         const hueTint = genetics ? GeneticsUtils.getHueTint(genetics.colorTint) : 0;
         
-        // Apply hue shift to colors
-        const trunkColors = hueTint !== 0 ? colors.trunk.map(c => ColorUtils.shiftHue(c, hueTint * 0.3)) : colors.trunk;
-        const leafColors = hueTint !== 0 ? (colors.sapling ? colors.sapling : colors.leaf).map(c => ColorUtils.shiftHue(c, hueTint)) : (colors.sapling || colors.leaf);
+        // Apply hue shift to colors (genetics)
+        let trunkColors = hueTint !== 0 ? colors.trunk.map(c => ColorUtils.shiftHue(c, hueTint * 0.3)) : colors.trunk;
+        let leafColors = hueTint !== 0 ? (colors.sapling ? colors.sapling : colors.leaf).map(c => ColorUtils.shiftHue(c, hueTint)) : (colors.sapling || colors.leaf);
+        
+        // Apply health-based color modifications
+        trunkColors = this.applyHealthColors(trunkColors, health);
+        leafColors = this.applyHealthColors(leafColors, health);
         
         // Draw sapling trunk (apply widthModifier)
         const trunkHeight = dimensions.height * 0.7;
@@ -82,9 +87,10 @@ class TreeGenerator extends BaseGenerator {
      * @param {object} speciesConfig - Species configuration object
      * @param {object} genetics - Genetics object (optional)
      * @param {string} lodLevel - LOD level (high/medium/low/impostor), defaults to 'medium'
+     * @param {number} health - Plant health (0-100), affects visual appearance
      * @returns {HTMLCanvasElement} Generated sprite canvas
      */
-    static generateYoungTree(speciesConfig, genetics = null, lodLevel = 'medium') {
+    static generateYoungTree(speciesConfig, genetics = null, lodLevel = 'medium', health = 100) {
         // Handle impostor LOD
         if (lodLevel === 'impostor') {
             return BaseGenerator.generateImpostor(speciesConfig, 'YoungTree');
@@ -105,9 +111,13 @@ class TreeGenerator extends BaseGenerator {
         const foliageModifier = genetics ? GeneticsUtils.getFoliageMultiplier(genetics.foliageDensity) : 1.0;
         const hueTint = genetics ? GeneticsUtils.getHueTint(genetics.colorTint) : 0;
         
-        // Apply hue shift
-        const trunkColors = hueTint !== 0 ? colors.trunk.map(c => ColorUtils.shiftHue(c, hueTint * 0.3)) : colors.trunk;
-        const leafColors = hueTint !== 0 ? colors.leaf.map(c => ColorUtils.shiftHue(c, hueTint)) : colors.leaf;
+        // Apply hue shift to colors (genetics)
+        let trunkColors = hueTint !== 0 ? colors.trunk.map(c => ColorUtils.shiftHue(c, hueTint * 0.3)) : colors.trunk;
+        let leafColors = hueTint !== 0 ? colors.leaf.map(c => ColorUtils.shiftHue(c, hueTint)) : colors.leaf;
+        
+        // Apply health-based color modifications
+        trunkColors = this.applyHealthColors(trunkColors, health);
+        leafColors = this.applyHealthColors(leafColors, health);
         
         // Draw trunk (apply widthModifier)
         const trunkHeight = dimensions.height * 0.5;
@@ -160,9 +170,10 @@ class TreeGenerator extends BaseGenerator {
      * @param {object} speciesConfig - Species configuration object
      * @param {object} genetics - Genetics object (optional)
      * @param {string} lodLevel - LOD level (high/medium/low/impostor), defaults to 'medium'
+     * @param {number} health - Plant health (0-100), affects visual appearance
      * @returns {HTMLCanvasElement} Generated sprite canvas
      */
-    static generateMatureTree(speciesConfig, genetics = null, lodLevel = 'medium') {
+    static generateMatureTree(speciesConfig, genetics = null, lodLevel = 'medium', health = 100) {
         // Handle impostor LOD
         if (lodLevel === 'impostor') {
             return BaseGenerator.generateImpostor(speciesConfig, 'MatureTree');
@@ -188,9 +199,13 @@ class TreeGenerator extends BaseGenerator {
         const foliageModifier = genetics ? GeneticsUtils.getFoliageMultiplier(genetics.foliageDensity) : 1.0;
         const hueTint = genetics ? GeneticsUtils.getHueTint(genetics.colorTint) : 0;
         
-        // Apply hue shift
-        const trunkColors = hueTint !== 0 ? colors.trunk.map(c => ColorUtils.shiftHue(c, hueTint * 0.3)) : colors.trunk;
-        const leafColors = hueTint !== 0 ? colors.leaf.map(c => ColorUtils.shiftHue(c, hueTint)) : colors.leaf;
+        // Apply hue shift to colors (genetics)
+        let trunkColors = hueTint !== 0 ? colors.trunk.map(c => ColorUtils.shiftHue(c, hueTint * 0.3)) : colors.trunk;
+        let leafColors = hueTint !== 0 ? colors.leaf.map(c => ColorUtils.shiftHue(c, hueTint)) : colors.leaf;
+        
+        // Apply health-based color modifications
+        trunkColors = this.applyHealthColors(trunkColors, health);
+        leafColors = this.applyHealthColors(leafColors, health);
         
         // Draw trunk (apply widthModifier) - centered in canvas with more visible height
         const trunkHeight = canvasHeight * 0.55; // Increased from 0.4 to 0.55 for more visible trunk

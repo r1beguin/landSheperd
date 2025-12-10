@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Texture Visualizer - Land Shepherd</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2d5016 0%, #1a3d0a 100%);
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        h1 span {
+            font-weight: 600;
+            color: #7fc97f;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #b0b0b0;
+            margin-top: 5px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+        }
+
+        .controls-panel {
+            background-color: #242424;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #7fc97f;
+            margin-bottom: 8px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: #333;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        select:hover {
+            border-color: #7fc97f;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #7fc97f;
+            box-shadow: 0 0 0 2px rgba(127, 201, 127, 0.2);
+        }
+
+        select option {
+            background-color: #333;
+            color: #e0e0e0;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #2d5016 0%, #1a3d0a 100%);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #3a6b1d 0%, #23510e 100%);
+            box-shadow: 0 4px 8px rgba(127, 201, 127, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .output-panel {
+            background-color: #242424;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            min-height: 400px;
+        }
+
+        .output-panel h2 {
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-bottom: 20px;
+            color: #b0b0b0;
+        }
+
+        .output-display {
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 4px;
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .sprite-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .sprite-canvas {
+            border: 2px solid #444;
+            border-radius: 4px;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    #2a2a2a,
+                    #2a2a2a 10px,
+                    #333 10px,
+                    #333 20px
+                );
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            transition: transform 0.2s ease;
+        }
+
+        .sprite-canvas.solid-bg {
+            background: #1a1a1a;
+        }
+
+        .bg-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .bg-btn:hover {
+            background-color: #333;
+            border-color: #7fc97f;
+        }
+
+        .bg-btn.active {
+            background-color: #7fc97f;
+            color: #1a1a1a;
+            border-color: #7fc97f;
+            font-weight: 600;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .zoom-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .zoom-btn:hover {
+            background-color: #333;
+            border-color: #7fc97f;
+        }
+
+        .zoom-btn.active {
+            background-color: #7fc97f;
+            color: #1a1a1a;
+            border-color: #7fc97f;
+            font-weight: 600;
+        }
+
+        .metadata-panel {
+            background-color: #2a2a2a;
+            padding: 15px 20px;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 500px;
+            margin-top: 20px;
+        }
+
+        .metadata-panel h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7fc97f;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metadata-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+            font-size: 0.9rem;
+        }
+
+        .metadata-row:last-child {
+            border-bottom: none;
+        }
+
+        .metadata-label {
+            color: #b0b0b0;
+            font-weight: 500;
+        }
+
+        .metadata-value {
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .status-bar {
+            background-color: #2a2a2a;
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .status-bar span {
+            display: inline-block;
+            margin-right: 20px;
+        }
+
+        .status-bar .status-label {
+            color: #7fc97f;
+            font-weight: 600;
+        }
+
+        .lod-comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            width: 100%;
+        }
+
+        .lod-cell {
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .lod-label {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7fc97f;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .lod-cell .sprite-canvas {
+            margin: 0;
+        }
+
+        .lod-metadata {
+            width: 100%;
+            font-size: 0.85rem;
+            color: #b0b0b0;
+            text-align: center;
+        }
+
+        .lod-metadata-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+
+        /* Range slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #333;
+            border-radius: 4px;
+            height: 6px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #7fc97f;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #9fd99f;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #7fc97f;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: #9fd99f;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .lod-comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Plant <span>Texture Visualizer</span></h1>
+            <div class="subtitle">Development tool for testing plant sprite generation</div>
+        </header>
+
+        <div class="main-content">
+            <!-- Controls Section -->
+            <div class="controls-panel">
+                <div class="control-group">
+                    <label for="species-select">Species</label>
+                    <select id="species-select">
+                        <option value="">Loading species...</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="stage-select">Growth Stage</label>
+                    <select id="stage-select" disabled>
+                        <option value="">Select species first</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="lod-select">LOD Level</label>
+                    <select id="lod-select" disabled>
+                        <option value="medium">Medium (Default)</option>
+                        <option value="high">High</option>
+                        <option value="low">Low</option>
+                        <option value="impostor">Impostor</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <button id="generate-btn" class="btn-primary" disabled>Generate Sprite</button>
+                </div>
+
+                <div class="control-group">
+                    <button id="compare-lods-btn" class="btn-primary" disabled>Compare All LODs</button>
+                </div>
+
+                <!-- MILESTONE 5: Batch Generation -->
+                <div class="control-group">
+                    <button id="generate-all-stages-btn" class="btn-primary" disabled>Generate All Stages</button>
+                </div>
+
+                <!-- MILESTONE 5: Cache Management -->
+                <div class="control-group">
+                    <button id="clear-cache-btn" class="btn-primary">Clear Cache</button>
+                </div>
+
+                <div class="control-group">
+                    <label>Zoom Level</label>
+                    <div class="zoom-controls">
+                        <button class="zoom-btn active" data-zoom="1">1x</button>
+                        <button class="zoom-btn" data-zoom="2">2x</button>
+                        <button class="zoom-btn" data-zoom="4">4x</button>
+                        <button class="zoom-btn" data-zoom="8">8x</button>
+                    </div>
+                </div>
+
+                <!-- MILESTONE 6: Background Toggle -->
+                <div class="control-group">
+                    <label>Background</label>
+                    <div class="zoom-controls">
+                        <button class="bg-btn active" data-bg="checkerboard">Checkerboard</button>
+                        <button class="bg-btn" data-bg="solid">Solid</button>
+                    </div>
+                </div>
+
+                <!-- MILESTONE 6: Export Button -->
+                <div class="control-group">
+                    <button id="export-png-btn" class="btn-primary" disabled>Export as PNG</button>
+                </div>
+
+                <!-- MILESTONE 5: Cache Statistics Panel -->
+                <div class="control-group" style="background-color: #1a1a1a; padding: 15px; border-radius: 4px; margin-top: 20px;">
+                    <label style="margin-bottom: 12px;">Cache Statistics</label>
+                    <div style="font-size: 0.85rem; color: #b0b0b0;">
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>Cache Hits:</span>
+                            <span id="cache-hits" style="color: #7fc97f; font-family: 'Courier New', monospace;">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>Cache Misses:</span>
+                            <span id="cache-misses" style="color: #7fc97f; font-family: 'Courier New', monospace;">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>Hit Rate:</span>
+                            <span id="cache-hit-rate" style="color: #7fc97f; font-family: 'Courier New', monospace;">0.0%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0; border-top: 1px solid #333; margin-top: 5px; padding-top: 8px;">
+                            <span>Total Cached:</span>
+                            <span id="cache-size" style="color: #7fc97f; font-family: 'Courier New', monospace;">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MILESTONE 4: Genetics Controls (Conditional - Tree Species Only) -->
+                <div id="genetics-panel" class="control-group" style="display: none;">
+                    <label>Genetics Controls (Tree Species)</label>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="font-size: 0.85rem; color: #b0b0b0;">Height Factor</span>
+                            <span id="height-value" style="font-size: 0.85rem; color: #7fc97f; font-family: 'Courier New', monospace;">127</span>
+                        </div>
+                        <input type="range" id="height-slider" min="0" max="255" value="127" style="width: 100%;">
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="font-size: 0.85rem; color: #b0b0b0;">Width Factor</span>
+                            <span id="width-value" style="font-size: 0.85rem; color: #7fc97f; font-family: 'Courier New', monospace;">127</span>
+                        </div>
+                        <input type="range" id="width-slider" min="0" max="255" value="127" style="width: 100%;">
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="font-size: 0.85rem; color: #b0b0b0;">Foliage Density</span>
+                            <span id="foliage-value" style="font-size: 0.85rem; color: #7fc97f; font-family: 'Courier New', monospace;">127</span>
+                        </div>
+                        <input type="range" id="foliage-slider" min="0" max="255" value="127" style="width: 100%;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="font-size: 0.85rem; color: #b0b0b0;">Color Tint</span>
+                            <span id="color-value" style="font-size: 0.85rem; color: #7fc97f; font-family: 'Courier New', monospace;">127</span>
+                        </div>
+                        <input type="range" id="color-slider" min="0" max="255" value="127" style="width: 100%;">
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 15px;">
+                        <button id="random-genetics-btn" class="btn-primary" style="flex: 1; padding: 8px 12px; font-size: 0.85rem;">Random</button>
+                        <button id="reset-genetics-btn" class="btn-primary" style="flex: 1; padding: 8px 12px; font-size: 0.85rem;">Reset</button>
+                    </div>
+                </div>
+
+                <!-- MILESTONE 4: Health Controls (Always Visible - All Species) -->
+                <div class="control-group">
+                    <label>Plant Health</label>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-size: 0.85rem; color: #b0b0b0;">Health (%)</span>
+                        <span id="health-value" style="font-size: 0.85rem; color: #7fc97f; font-family: 'Courier New', monospace;">100</span>
+                    </div>
+                    <input type="range" id="health-slider" min="0" max="100" value="100" style="width: 100%;">
+                </div>
+            </div>
+
+            <!-- Output Display Section -->
+            <div class="output-panel">
+                <h2>Sprite Output</h2>
+                <div class="output-display" id="output-display">
+                    Select a species and stage to generate sprite
+                </div>
+                
+                <div class="status-bar">
+                    <span><span class="status-label">Status:</span> <span id="status-text">Ready</span></span>
+                    <span><span class="status-label">Species Loaded:</span> <span id="species-count">0</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Loading - Order matters! -->
+    
+    <!-- Utilities -->
+    <script src="js/procedural/utils/color_utils.js"></script>
+    <script src="js/procedural/utils/canvas_utils.js"></script>
+    <script src="js/procedural/utils/genetics_utils.js"></script>
+    
+    <!-- Base Generator -->
+    <script src="js/procedural/generators/base_generator.js"></script>
+    
+    <!-- Specialized Generators -->
+    <script src="js/procedural/generators/herb_generator.js"></script>
+    <script src="js/procedural/generators/tree_generator.js"></script>
+    <script src="js/procedural/generators/groundcover_generator.js"></script>
+    
+    <!-- Registry -->
+    <script src="js/procedural/plant_generator.js"></script>
+
+    <!-- Application Logic -->
+    <script>
+        // MILESTONE 1: Species Loading and UI Population
+        
+        // Species storage
+        const speciesData = new Map();
+        
+        // Species file paths
+        const speciesFiles = [
+            { path: 'species/nettles.json', id: 'urtica_dioica' },
+            { path: 'species/oak.json', id: 'quercus_robur' },
+            { path: 'species/clover.json', id: 'trifolium_repens' }
+        ];
+        
+        // DOM elements
+        const speciesSelect = document.getElementById('species-select');
+        const stageSelect = document.getElementById('stage-select');
+        const lodSelect = document.getElementById('lod-select');
+        const generateBtn = document.getElementById('generate-btn');
+        const compareLodsBtn = document.getElementById('compare-lods-btn');
+        const generateAllStagesBtn = document.getElementById('generate-all-stages-btn');
+        const clearCacheBtn = document.getElementById('clear-cache-btn');
+        const outputDisplay = document.getElementById('output-display');
+        const statusText = document.getElementById('status-text');
+        const speciesCount = document.getElementById('species-count');
+        
+        // MILESTONE 5: Cache statistics elements
+        const cacheHitsEl = document.getElementById('cache-hits');
+        const cacheMissesEl = document.getElementById('cache-misses');
+        const cacheHitRateEl = document.getElementById('cache-hit-rate');
+        const cacheSizeEl = document.getElementById('cache-size');
+        
+        // MILESTONE 4: Genetics and Health Controls
+        const geneticsPanel = document.getElementById('genetics-panel');
+        const heightSlider = document.getElementById('height-slider');
+        const widthSlider = document.getElementById('width-slider');
+        const foliageSlider = document.getElementById('foliage-slider');
+        const colorSlider = document.getElementById('color-slider');
+        const heightValue = document.getElementById('height-value');
+        const widthValue = document.getElementById('width-value');
+        const foliageValue = document.getElementById('foliage-value');
+        const colorValue = document.getElementById('color-value');
+        const randomGeneticsBtn = document.getElementById('random-genetics-btn');
+        const resetGeneticsBtn = document.getElementById('reset-genetics-btn');
+        const healthSlider = document.getElementById('health-slider');
+        const healthValue = document.getElementById('health-value');
+        
+        // Zoom state
+        let currentZoom = 1;
+        let currentCanvas = null;
+        let comparisonCanvases = []; // Array of canvases in comparison mode
+        let isComparisonMode = false;
+        
+        // MILESTONE 6: Background state
+        let currentBackground = 'checkerboard';
+        
+        // MILESTONE 6: Export button reference
+        const exportPngBtn = document.getElementById('export-png-btn');
+        
+        /**
+         * MILESTONE 5: Update cache statistics display
+         */
+        function updateCacheStats() {
+            const stats = PlantGenerator.getCacheStats();
+            
+            cacheHitsEl.textContent = stats.hits;
+            cacheMissesEl.textContent = stats.misses;
+            cacheHitRateEl.textContent = stats.hitRate;
+            cacheSizeEl.textContent = stats.size;
+        }
+        
+        /**
+         * Load all species JSON files
+         */
+        async function loadAllSpecies() {
+            statusText.textContent = 'Loading species...';
+            let loadedCount = 0;
+            
+            for (const speciesFile of speciesFiles) {
+                try {
+                    const response = await fetch(speciesFile.path);
+                    
+                    if (!response.ok) {
+                        console.error(`Failed to load ${speciesFile.path}: ${response.status}`);
+                        continue;
+                    }
+                    
+                    const speciesJson = await response.json();
+                    speciesData.set(speciesJson.id, speciesJson);
+                    
+                    console.log(`Loaded species: ${speciesJson.id}`);
+                    loadedCount++;
+                    
+                } catch (error) {
+                    console.error(`Error loading ${speciesFile.path}:`, error);
+                }
+            }
+            
+            // Update status
+            speciesCount.textContent = loadedCount;
+            
+            if (loadedCount > 0) {
+                populateSpeciesDropdown();
+                statusText.textContent = 'Species loaded successfully';
+            } else {
+                statusText.textContent = 'Failed to load species';
+                speciesSelect.innerHTML = '<option value="">No species available</option>';
+            }
+        }
+        
+        /**
+         * Populate species dropdown with loaded species data
+         */
+        function populateSpeciesDropdown() {
+            speciesSelect.innerHTML = '<option value="">-- Select Species --</option>';
+            
+            speciesData.forEach((species, speciesId) => {
+                const option = document.createElement('option');
+                option.value = speciesId;
+                option.textContent = `${species.commonName || species.displayName || species.id} (${speciesId})`;
+                speciesSelect.appendChild(option);
+            });
+            
+            console.log(`Populated species dropdown with ${speciesData.size} entries`);
+        }
+        
+        /**
+         * Handle species selection change
+         */
+        function onSpeciesChange() {
+            const selectedSpeciesId = speciesSelect.value;
+            
+            if (!selectedSpeciesId) {
+                stageSelect.disabled = true;
+                stageSelect.innerHTML = '<option value="">Select species first</option>';
+                lodSelect.disabled = true;
+                generateBtn.disabled = true;
+                geneticsPanel.style.display = 'none'; // Hide genetics panel
+                return;
+            }
+            
+            const species = speciesData.get(selectedSpeciesId);
+            
+            if (!species) {
+                console.error(`Species not found: ${selectedSpeciesId}`);
+                return;
+            }
+            
+            // MILESTONE 4: Show genetics panel only for tree species
+            const isTreeSpecies = species.category === 'tree';
+            if (isTreeSpecies) {
+                geneticsPanel.style.display = 'block';
+                console.log(`Genetics panel shown for tree species: ${species.id}`);
+            } else {
+                geneticsPanel.style.display = 'none';
+                console.log(`Genetics panel hidden for ${species.category} species: ${species.id}`);
+            }
+            
+            // Populate stage dropdown
+            stageSelect.innerHTML = '<option value="">-- Select Stage --</option>';
+            
+            if (species.growthStages && species.growthStages.length > 0) {
+                species.growthStages.forEach((stage, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = stage.name;
+                    stageSelect.appendChild(option);
+                });
+                
+                stageSelect.disabled = false;
+                lodSelect.disabled = false;
+            } else {
+                stageSelect.innerHTML = '<option value="">No stages available</option>';
+            }
+            
+            statusText.textContent = `Selected: ${species.commonName || species.displayName || species.id}`;
+        }
+        
+        /**
+         * Handle stage selection change
+         */
+        function onStageChange() {
+            const selectedStage = stageSelect.value;
+            
+            if (selectedStage !== '') {
+                generateBtn.disabled = false;
+                compareLodsBtn.disabled = false;
+                generateAllStagesBtn.disabled = false; // MILESTONE 5: Enable batch generation
+            } else {
+                generateBtn.disabled = true;
+                compareLodsBtn.disabled = true;
+                generateAllStagesBtn.disabled = true; // MILESTONE 5: Disable batch generation
+            }
+        }
+        
+        /**
+         * MILESTONE 4: Get current genetics object from sliders
+         * @returns {object|null} Genetics object with all 4 factors, or null if not applicable
+         */
+        function getCurrentGenetics() {
+            const selectedSpeciesId = speciesSelect.value;
+            if (!selectedSpeciesId) return null;
+            
+            const species = speciesData.get(selectedSpeciesId);
+            if (!species || species.category !== 'tree') {
+                return null; // Only trees use genetics
+            }
+            
+            return {
+                heightFactor: parseInt(heightSlider.value),
+                widthFactor: parseInt(widthSlider.value),
+                foliageDensity: parseInt(foliageSlider.value),
+                colorTint: parseInt(colorSlider.value)
+            };
+        }
+        
+        /**
+         * MILESTONE 4: Get current health value
+         * @returns {number} Health percentage (0-100)
+         */
+        function getCurrentHealth() {
+            return parseInt(healthSlider.value);
+        }
+        
+        /**
+         * Generate sprite and display
+         */
+        async function generateSprite() {
+            // Exit comparison mode
+            isComparisonMode = false;
+            comparisonCanvases = [];
+            
+            // Disable button to prevent double-clicks
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            statusText.textContent = 'Generating sprite...';
+            
+            try {
+                // Get selections
+                const selectedSpeciesId = speciesSelect.value;
+                const selectedStageIndex = parseInt(stageSelect.value);
+                const selectedLOD = lodSelect.value;
+                
+                if (!selectedSpeciesId || isNaN(selectedStageIndex)) {
+                    throw new Error('Invalid selections');
+                }
+                
+                // Get species config
+                const speciesConfig = speciesData.get(selectedSpeciesId);
+                if (!speciesConfig) {
+                    throw new Error(`Species not found: ${selectedSpeciesId}`);
+                }
+                
+                // Get stage name
+                const stageName = speciesConfig.growthStages[selectedStageIndex].name;
+                
+                // MILESTONE 4: Get genetics and health
+                const genetics = getCurrentGenetics();
+                const health = getCurrentHealth();
+                
+                console.log(`Generating sprite: ${selectedSpeciesId} - ${stageName} - LOD: ${selectedLOD}`);
+                if (genetics) {
+                    console.log(`Genetics: H:${genetics.heightFactor} W:${genetics.widthFactor} F:${genetics.foliageDensity} C:${genetics.colorTint}`);
+                }
+                console.log(`Health: ${health}%`);
+                
+                // MILESTONE 5: Track generation time
+                const startTime = performance.now();
+                
+                // Call PlantGenerator with genetics and health (M4: health visual effects)
+                const canvas = PlantGenerator.generatePlantSprite(
+                    speciesConfig,
+                    stageName,
+                    genetics,  // MILESTONE 4: Pass genetics object
+                    selectedLOD,
+                    health  // MILESTONE 4: Pass health value
+                );
+                
+                // MILESTONE 5: Calculate generation time
+                const endTime = performance.now();
+                const generationTime = (endTime - startTime).toFixed(2);
+                
+                // MILESTONE 5: Update cache statistics
+                updateCacheStats();
+                
+                if (!canvas) {
+                    throw new Error('PlantGenerator returned null canvas');
+                }
+                
+                // Display sprite with generation time
+                displaySprite(canvas, speciesConfig, stageName, selectedLOD, genetics, health, generationTime);
+                
+                // Update status
+                statusText.textContent = 'Generated successfully';
+                console.log(`Generated sprite: ${selectedSpeciesId} ${stageName} ${selectedLOD}`);
+                
+            } catch (error) {
+                console.error('Error generating sprite:', error);
+                statusText.textContent = `Error: ${error.message}`;
+                
+                // Show error in output
+                outputDisplay.innerHTML = `
+                    <div style="color: #ff6b6b; text-align: center;">
+                        <p style="font-size: 1.2rem; margin-bottom: 10px;">Generation Failed</p>
+                        <p style="font-size: 0.9rem;">${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                // Re-enable button
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate Sprite';
+            }
+        }
+        
+        /**
+         * MILESTONE 5: Compare all LOD levels side-by-side
+         */
+        async function compareAllLODs() {
+            // Enter comparison mode
+            isComparisonMode = true;
+            comparisonCanvases = [];
+            
+            // Disable buttons to prevent double-clicks
+            compareLodsBtn.disabled = true;
+            generateBtn.disabled = true;
+            compareLodsBtn.textContent = 'Generating...';
+            
+            try {
+                // Get selections
+                const selectedSpeciesId = speciesSelect.value;
+                const selectedStageIndex = parseInt(stageSelect.value);
+                
+                if (!selectedSpeciesId || isNaN(selectedStageIndex)) {
+                    throw new Error('Invalid selections');
+                }
+                
+                // Get species config
+                const speciesConfig = speciesData.get(selectedSpeciesId);
+                if (!speciesConfig) {
+                    throw new Error(`Species not found: ${selectedSpeciesId}`);
+                }
+                
+                // Get stage name
+                const stageName = speciesConfig.growthStages[selectedStageIndex].name;
+                
+                // MILESTONE 4: Get genetics and health
+                const genetics = getCurrentGenetics();
+                const health = getCurrentHealth();
+                
+                console.log(`Comparing all LODs for: ${selectedSpeciesId} - ${stageName}`);
+                if (genetics) {
+                    console.log(`Genetics: H:${genetics.heightFactor} W:${genetics.widthFactor} F:${genetics.foliageDensity} C:${genetics.colorTint}`);
+                }
+                console.log(`Health: ${health}%`);
+                
+                // LOD levels to compare
+                const lodLevels = ['high', 'medium', 'low', 'impostor'];
+                const lodResults = [];
+                
+                // Generate sprites for each LOD level
+                for (const lod of lodLevels) {
+                    statusText.textContent = `Generating ${lod.toUpperCase()} LOD...`;
+                    
+                    console.log(`Generating LOD: ${lod}`);
+                    
+                    // Track generation time
+                    const startTime = performance.now();
+                    
+                    // Check cache status before generation
+                    const cacheHitsBefore = PlantGenerator.cacheHits;
+                    
+                    // Generate sprite with genetics and health
+                    const canvas = PlantGenerator.generatePlantSprite(
+                        speciesConfig,
+                        stageName,
+                        genetics,  // MILESTONE 4: Pass genetics
+                        lod,
+                        health  // MILESTONE 4: Pass health
+                    );
+                    
+                    // Calculate generation time
+                    const endTime = performance.now();
+                    const generationTime = (endTime - startTime).toFixed(2);
+                    
+                    // Check if this was a cache hit
+                    const wasCacheHit = PlantGenerator.cacheHits > cacheHitsBefore;
+                    
+                    console.log(`LOD ${lod.toUpperCase()}: ${canvas.width}x${canvas.height}px, ${generationTime}ms, Cache: ${wasCacheHit ? 'HIT' : 'MISS'}`);
+                    
+                    if (!canvas) {
+                        console.warn(`Failed to generate ${lod} LOD sprite`);
+                        continue;
+                    }
+                    
+                    lodResults.push({
+                        lod,
+                        canvas,
+                        width: canvas.width,
+                        height: canvas.height,
+                        generationTime,
+                        cacheHit: wasCacheHit
+                    });
+                    
+                    comparisonCanvases.push(canvas);
+                }
+                
+                // MILESTONE 5: Update cache statistics after batch generation
+                updateCacheStats();
+                
+                // Check for visual differences
+                const uniqueSizes = new Set(lodResults.map(r => `${r.width}x${r.height}`));
+                if (uniqueSizes.size === 1) {
+                    console.warn('WARNING: All LOD levels produced identical dimensions - LOD system may not be fully implemented');
+                } else {
+                    console.log(`LOD Comparison: Found ${uniqueSizes.size} different sprite sizes`);
+                }
+                
+                // Display comparison grid
+                displayLODComparison(lodResults, speciesConfig, stageName, genetics, health);
+                
+                // Update status
+                statusText.textContent = `Comparison complete (${lodResults.length} LODs generated)`;
+                console.log(`LOD Comparison complete: ${lodResults.length} sprites generated`);
+                
+            } catch (error) {
+                console.error('Error comparing LODs:', error);
+                statusText.textContent = `Error: ${error.message}`;
+                
+                // Show error in output
+                outputDisplay.innerHTML = `
+                    <div style="color: #ff6b6b; text-align: center;">
+                        <p style="font-size: 1.2rem; margin-bottom: 10px;">Comparison Failed</p>
+                        <p style="font-size: 0.9rem;">${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                // Re-enable buttons
+                compareLodsBtn.disabled = false;
+                generateBtn.disabled = false;
+                compareLodsBtn.textContent = 'Compare All LODs';
+            }
+        }
+        
+        /**
+         * MILESTONE 5: Generate all growth stages for the current species
+         */
+        async function generateAllStages() {
+            // Enter batch mode
+            isComparisonMode = true;
+            comparisonCanvases = [];
+            
+            // Disable buttons
+            generateAllStagesBtn.disabled = true;
+            generateBtn.disabled = true;
+            compareLodsBtn.disabled = true;
+            generateAllStagesBtn.textContent = 'Generating...';
+            
+            try {
+                // Get selections
+                const selectedSpeciesId = speciesSelect.value;
+                
+                if (!selectedSpeciesId) {
+                    throw new Error('No species selected');
+                }
+                
+                // Get species config
+                const speciesConfig = speciesData.get(selectedSpeciesId);
+                if (!speciesConfig) {
+                    throw new Error(`Species not found: ${selectedSpeciesId}`);
+                }
+                
+                // Get all growth stages
+                const stages = speciesConfig.growthStages;
+                if (!stages || stages.length === 0) {
+                    throw new Error('No growth stages available for this species');
+                }
+                
+                // Get current settings
+                const selectedLOD = lodSelect.value;
+                const genetics = getCurrentGenetics();
+                const health = getCurrentHealth();
+                
+                console.log(`Generating all ${stages.length} stages for: ${selectedSpeciesId}`);
+                if (genetics) {
+                    console.log(`Genetics: H:${genetics.heightFactor} W:${genetics.widthFactor} F:${genetics.foliageDensity} C:${genetics.colorTint}`);
+                }
+                console.log(`Health: ${health}%, LOD: ${selectedLOD}`);
+                
+                const stageResults = [];
+                const batchStartTime = performance.now();
+                
+                // Generate sprite for each stage
+                for (let i = 0; i < stages.length; i++) {
+                    const stage = stages[i];
+                    statusText.textContent = `Generating stage ${i + 1}/${stages.length}: ${stage.name}...`;
+                    
+                    console.log(`Generating stage: ${stage.name}`);
+                    
+                    // Track generation time per sprite
+                    const startTime = performance.now();
+                    const cacheHitsBefore = PlantGenerator.cacheHits;
+                    
+                    // Generate sprite
+                    const canvas = PlantGenerator.generatePlantSprite(
+                        speciesConfig,
+                        stage.name,
+                        genetics,
+                        selectedLOD,
+                        health
+                    );
+                    
+                    const endTime = performance.now();
+                    const generationTime = (endTime - startTime).toFixed(2);
+                    const wasCacheHit = PlantGenerator.cacheHits > cacheHitsBefore;
+                    
+                    console.log(`Stage ${stage.name}: ${canvas.width}x${canvas.height}px, ${generationTime}ms, Cache: ${wasCacheHit ? 'HIT' : 'MISS'}`);
+                    
+                    if (!canvas) {
+                        console.warn(`Failed to generate sprite for stage: ${stage.name}`);
+                        continue;
+                    }
+                    
+                    stageResults.push({
+                        stage: stage.name,
+                        canvas,
+                        width: canvas.width,
+                        height: canvas.height,
+                        generationTime,
+                        cacheHit: wasCacheHit
+                    });
+                    
+                    comparisonCanvases.push(canvas);
+                }
+                
+                const batchEndTime = performance.now();
+                const totalTime = (batchEndTime - batchStartTime).toFixed(2);
+                
+                // MILESTONE 5: Update cache statistics
+                updateCacheStats();
+                
+                // Calculate performance summary
+                const avgTime = (stageResults.reduce((sum, r) => sum + parseFloat(r.generationTime), 0) / stageResults.length).toFixed(2);
+                const fastestTime = Math.min(...stageResults.map(r => parseFloat(r.generationTime))).toFixed(2);
+                const slowestTime = Math.max(...stageResults.map(r => parseFloat(r.generationTime))).toFixed(2);
+                const cacheHitCount = stageResults.filter(r => r.cacheHit).length;
+                const cacheMissCount = stageResults.filter(r => !r.cacheHit).length;
+                const cacheEfficiency = ((cacheHitCount / stageResults.length) * 100).toFixed(1);
+                
+                console.log(`Batch Generation Complete:`);
+                console.log(`  Total time: ${totalTime}ms`);
+                console.log(`  Average time per sprite: ${avgTime}ms`);
+                console.log(`  Fastest: ${fastestTime}ms, Slowest: ${slowestTime}ms`);
+                console.log(`  Cache: ${cacheHitCount} hits, ${cacheMissCount} misses (${cacheEfficiency}% efficiency)`);
+                
+                // Display batch results
+                displayBatchGeneration(stageResults, speciesConfig, selectedLOD, genetics, health, {
+                    totalTime,
+                    avgTime,
+                    fastestTime,
+                    slowestTime,
+                    cacheHitCount,
+                    cacheMissCount,
+                    cacheEfficiency
+                });
+                
+                // Update status
+                statusText.textContent = `Batch complete: ${stageResults.length} stages generated in ${totalTime}ms`;
+                
+            } catch (error) {
+                console.error('Error generating all stages:', error);
+                statusText.textContent = `Error: ${error.message}`;
+                
+                // Show error
+                outputDisplay.innerHTML = `
+                    <div style="color: #ff6b6b; text-align: center;">
+                        <p style="font-size: 1.2rem; margin-bottom: 10px;">Batch Generation Failed</p>
+                        <p style="font-size: 0.9rem;">${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                // Re-enable buttons
+                generateAllStagesBtn.disabled = false;
+                generateBtn.disabled = false;
+                compareLodsBtn.disabled = false;
+                generateAllStagesBtn.textContent = 'Generate All Stages';
+            }
+        }
+        
+        /**
+         * MILESTONE 5: Display batch generation results
+         */
+        function displayBatchGeneration(stageResults, speciesConfig, lodLevel, genetics, health, stats) {
+            // Clear previous content
+            outputDisplay.innerHTML = '';
+            
+            // MILESTONE 6: Enable export button
+            exportPngBtn.disabled = false;
+            
+            // Create grid (similar to LOD comparison but for stages)
+            const grid = document.createElement('div');
+            grid.className = 'lod-comparison-grid';
+            grid.style.gridTemplateColumns = stageResults.length > 3 ? 'repeat(4, 1fr)' : `repeat(${stageResults.length}, 1fr)`;
+            
+            // Create cell for each stage
+            stageResults.forEach(result => {
+                const cell = document.createElement('div');
+                cell.className = 'lod-cell';
+                
+                // Stage label
+                const label = document.createElement('div');
+                label.className = 'lod-label';
+                label.textContent = result.stage;
+                cell.appendChild(label);
+                
+                // Canvas with styling and zoom
+                const canvas = result.canvas;
+                canvas.className = 'sprite-canvas';
+                if (currentBackground === 'solid') {
+                    canvas.classList.add('solid-bg');
+                }
+                applyZoom(canvas, currentZoom);
+                cell.appendChild(canvas);
+                
+                // Metadata
+                const cacheColor = result.cacheHit ? '#7fc97f' : '#ffcc66';
+                const metadata = document.createElement('div');
+                metadata.className = 'lod-metadata';
+                metadata.innerHTML = `
+                    <div class="lod-metadata-row">
+                        <span>Canvas Size:</span>
+                        <span>${result.width}x${result.height}px</span>
+                    </div>
+                    <div class="lod-metadata-row">
+                        <span>Display Size:</span>
+                        <span>${result.width * currentZoom}x${result.height * currentZoom}px</span>
+                    </div>
+                    <div class="lod-metadata-row">
+                        <span>Generation Time:</span>
+                        <span>${result.generationTime}ms</span>
+                    </div>
+                    <div class="lod-metadata-row">
+                        <span>Cache Status:</span>
+                        <span style="color: ${cacheColor};">${result.cacheHit ? 'HIT' : 'MISS'}</span>
+                    </div>
+                `;
+                cell.appendChild(metadata);
+                
+                grid.appendChild(cell);
+            });
+            
+            outputDisplay.appendChild(grid);
+            
+            // Add performance summary panel
+            const summaryPanel = document.createElement('div');
+            summaryPanel.className = 'metadata-panel';
+            summaryPanel.style.marginTop = '30px';
+            summaryPanel.style.maxWidth = '100%';
+            
+            summaryPanel.innerHTML = `
+                <h3>Batch Performance Summary</h3>
+                <div class="metadata-row">
+                    <span class="metadata-label">Species:</span>
+                    <span class="metadata-value">${speciesConfig.commonName || speciesConfig.displayName || speciesConfig.id}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Stages Generated:</span>
+                    <span class="metadata-value">${stageResults.length}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">LOD Level:</span>
+                    <span class="metadata-value">${lodLevel.toUpperCase()}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Total Generation Time:</span>
+                    <span class="metadata-value">${stats.totalTime}ms</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Average Time Per Sprite:</span>
+                    <span class="metadata-value">${stats.avgTime}ms</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Fastest / Slowest:</span>
+                    <span class="metadata-value">${stats.fastestTime}ms / ${stats.slowestTime}ms</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Cache Efficiency:</span>
+                    <span class="metadata-value">${stats.cacheEfficiency}% (${stats.cacheHitCount} hits, ${stats.cacheMissCount} misses)</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Zoom Level:</span>
+                    <span class="metadata-value">${currentZoom}x</span>
+                </div>
+                ${genetics ? `
+                <div class="metadata-row">
+                    <span class="metadata-label">Genetics:</span>
+                    <span class="metadata-value">H:${genetics.heightFactor} W:${genetics.widthFactor} F:${genetics.foliageDensity} C:${genetics.colorTint}</span>
+                </div>` : ''}
+                <div class="metadata-row">
+                    <span class="metadata-label">Health:</span>
+                    <span class="metadata-value">${health}%</span>
+                </div>
+            `;
+            
+            outputDisplay.appendChild(summaryPanel);
+        }
+        
+        /**
+         * MILESTONE 5: Clear sprite cache and reset statistics
+         */
+        function clearCache() {
+            const cacheSize = PlantGenerator.spriteCache.size;
+            
+            PlantGenerator.clearCache();
+            updateCacheStats();
+            
+            statusText.textContent = `Cache cleared: ${cacheSize} sprites removed`;
+            
+            console.log(`Cache cleared: ${cacheSize} sprites removed, statistics reset`);
+            
+            // Show confirmation message briefly
+            setTimeout(() => {
+                if (statusText.textContent.includes('Cache cleared')) {
+                    statusText.textContent = 'Ready';
+                }
+            }, 3000);
+        }
+        
+        /**
+         * Display LOD comparison grid
+         */
+        function displayLODComparison(lodResults, speciesConfig, stageName, genetics = null, health = 100) {
+            // Clear previous content
+            outputDisplay.innerHTML = '';
+            
+            // MILESTONE 6: Enable export button
+            exportPngBtn.disabled = false;
+            
+            // Create comparison grid
+            const grid = document.createElement('div');
+            grid.className = 'lod-comparison-grid';
+            
+            // Create cell for each LOD level
+            lodResults.forEach(result => {
+                const cell = document.createElement('div');
+                cell.className = 'lod-cell';
+                
+                // LOD label
+                const label = document.createElement('div');
+                label.className = 'lod-label';
+                label.textContent = `${result.lod.toUpperCase()} LOD`;
+                cell.appendChild(label);
+                
+                // Canvas with styling and zoom
+                const canvas = result.canvas;
+                canvas.className = 'sprite-canvas';
+                if (currentBackground === 'solid') {
+                    canvas.classList.add('solid-bg');
+                }
+                applyZoom(canvas, currentZoom);
+                cell.appendChild(canvas);
+                
+                // Metadata
+                const metadata = document.createElement('div');
+                metadata.className = 'lod-metadata';
+                metadata.innerHTML = `
+                    <div class="lod-metadata-row">
+                        <span>Canvas Size:</span>
+                        <span>${result.width}x${result.height}px</span>
+                    </div>
+                    <div class="lod-metadata-row">
+                        <span>Display Size:</span>
+                        <span>${result.width * currentZoom}x${result.height * currentZoom}px</span>
+                    </div>
+                    <div class="lod-metadata-row">
+                        <span>Generation Time:</span>
+                        <span>${result.generationTime}ms</span>
+                    </div>
+                    <div class="lod-metadata-row">
+                        <span>Cache Status:</span>
+                        <span>${result.cacheHit ? 'HIT' : 'MISS'}</span>
+                    </div>
+                `;
+                cell.appendChild(metadata);
+                
+                grid.appendChild(cell);
+            });
+            
+            outputDisplay.appendChild(grid);
+            
+            // Add overall metadata panel
+            const overallMetadata = document.createElement('div');
+            overallMetadata.className = 'metadata-panel';
+            overallMetadata.style.marginTop = '30px';
+            
+            // Build metadata HTML
+            let metadataHTML = `
+                <h3>Comparison Information</h3>
+                <div class="metadata-row">
+                    <span class="metadata-label">Species:</span>
+                    <span class="metadata-value">${speciesConfig.commonName || speciesConfig.displayName || speciesConfig.id}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Growth Stage:</span>
+                    <span class="metadata-value">${stageName}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">LOD Levels:</span>
+                    <span class="metadata-value">${lodResults.length} (High, Medium, Low, Impostor)</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Zoom Level:</span>
+                    <span class="metadata-value">${currentZoom}x</span>
+                </div>`;
+            
+            // MILESTONE 4: Add genetics if present
+            if (genetics) {
+                metadataHTML += `
+                <div class="metadata-row">
+                    <span class="metadata-label">Genetics:</span>
+                    <span class="metadata-value">H:${genetics.heightFactor} W:${genetics.widthFactor} F:${genetics.foliageDensity} C:${genetics.colorTint}</span>
+                </div>`;
+            }
+            
+            // MILESTONE 4: Add health
+            metadataHTML += `
+                <div class="metadata-row">
+                    <span class="metadata-label">Health:</span>
+                    <span class="metadata-value">${health}%</span>
+                </div>`;
+            
+            overallMetadata.innerHTML = metadataHTML;
+            
+            outputDisplay.appendChild(overallMetadata);
+        }
+        
+        /**
+         * Display generated sprite with metadata
+         */
+        function displaySprite(canvas, speciesConfig, stageName, lodLevel, genetics = null, health = 100, generationTime = null) {
+            // Store current canvas for zoom functionality
+            currentCanvas = canvas;
+            
+            // MILESTONE 6: Enable export button
+            exportPngBtn.disabled = false;
+            
+            // Clear previous content
+            outputDisplay.innerHTML = '';
+            
+            // Create sprite container
+            const container = document.createElement('div');
+            container.className = 'sprite-container';
+            
+            // Add canvas with styling and zoom
+            canvas.className = 'sprite-canvas';
+            if (currentBackground === 'solid') {
+                canvas.classList.add('solid-bg');
+            }
+            applyZoom(canvas, currentZoom);
+            container.appendChild(canvas);
+            
+            // Create metadata panel
+            const metadata = document.createElement('div');
+            metadata.className = 'metadata-panel';
+            
+            // Build metadata HTML
+            let metadataHTML = `
+                <h3>Sprite Information</h3>
+                <div class="metadata-row">
+                    <span class="metadata-label">Species:</span>
+                    <span class="metadata-value">${speciesConfig.commonName || speciesConfig.displayName || speciesConfig.id}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Species ID:</span>
+                    <span class="metadata-value">${speciesConfig.id}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Growth Stage:</span>
+                    <span class="metadata-value">${stageName}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">LOD Level:</span>
+                    <span class="metadata-value">${lodLevel.toUpperCase()}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Canvas Size:</span>
+                    <span class="metadata-value">${canvas.width} x ${canvas.height} px</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Display Size:</span>
+                    <span class="metadata-value">${canvas.width * currentZoom} x ${canvas.height * currentZoom} px (${currentZoom}x)</span>
+                </div>`;
+            
+            // MILESTONE 5: Add generation time if available
+            if (generationTime !== null) {
+                const cacheStatus = PlantGenerator.cacheHits > 0 && generationTime < 0.5 ? 'HIT' : 'MISS';
+                const cacheColor = cacheStatus === 'HIT' ? '#7fc97f' : '#ffcc66';
+                
+                metadataHTML += `
+                <div class="metadata-row">
+                    <span class="metadata-label">Generation Time:</span>
+                    <span class="metadata-value">${generationTime}ms</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Cache Status:</span>
+                    <span class="metadata-value" style="color: ${cacheColor};">${cacheStatus}</span>
+                </div>`;
+            }
+            
+            metadataHTML += ``;
+            
+            // MILESTONE 4: Add genetics to metadata if present
+            if (genetics) {
+                metadataHTML += `
+                <div class="metadata-row">
+                    <span class="metadata-label">Genetics:</span>
+                    <span class="metadata-value">H:${genetics.heightFactor} W:${genetics.widthFactor} F:${genetics.foliageDensity} C:${genetics.colorTint}</span>
+                </div>`;
+            }
+            
+            // MILESTONE 4: Add health to metadata
+            metadataHTML += `
+                <div class="metadata-row">
+                    <span class="metadata-label">Health:</span>
+                    <span class="metadata-value">${health}%</span>
+                </div>`;
+            
+            metadata.innerHTML = metadataHTML;
+            
+            container.appendChild(metadata);
+            outputDisplay.appendChild(container);
+        }
+        
+        /**
+         * Apply zoom level to canvas
+         */
+        function applyZoom(canvas, zoomLevel) {
+            if (!canvas) return;
+            
+            canvas.style.width = `${canvas.width * zoomLevel}px`;
+            canvas.style.height = `${canvas.height * zoomLevel}px`;
+        }
+        
+        /**
+         * Handle zoom button clicks
+         */
+        function onZoomChange(event) {
+            if (!event.target.classList.contains('zoom-btn')) return;
+            
+            const newZoom = parseInt(event.target.dataset.zoom);
+            if (isNaN(newZoom) || newZoom === currentZoom) return;
+            
+            // Update zoom state
+            currentZoom = newZoom;
+            
+            // Update button states
+            document.querySelectorAll('.zoom-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Apply zoom based on current mode
+            if (isComparisonMode && comparisonCanvases.length > 0) {
+                // Apply zoom to all comparison canvases
+                comparisonCanvases.forEach(canvas => {
+                    applyZoom(canvas, currentZoom);
+                });
+                
+                // Update all display size metadata in comparison grid
+                document.querySelectorAll('.lod-metadata-row').forEach((row, index) => {
+                    const spans = row.querySelectorAll('span');
+                    if (spans[0] && spans[0].textContent === 'Display Size:') {
+                        const cellIndex = Math.floor(index / 4); // 4 metadata rows per cell
+                        if (comparisonCanvases[cellIndex]) {
+                            const canvas = comparisonCanvases[cellIndex];
+                            spans[1].textContent = `${canvas.width * currentZoom}x${canvas.height * currentZoom}px`;
+                        }
+                    }
+                });
+                
+                // Update overall metadata zoom level
+                const zoomValueSpan = document.querySelector('.metadata-panel .metadata-value:last-child');
+                if (zoomValueSpan) {
+                    zoomValueSpan.textContent = `${currentZoom}x`;
+                }
+                
+            } else if (currentCanvas) {
+                // Apply zoom to single canvas
+                applyZoom(currentCanvas, currentZoom);
+                
+                // Update metadata display size
+                const displaySizeValue = document.querySelector('.metadata-row:last-child .metadata-value');
+                if (displaySizeValue) {
+                    displaySizeValue.textContent = `${currentCanvas.width * currentZoom} x ${currentCanvas.height * currentZoom} px (${currentZoom}x)`;
+                }
+            }
+            
+            console.log(`Zoom changed to ${currentZoom}x`);
+        }
+        
+        /**
+         * MILESTONE 6: Handle background toggle button clicks
+         */
+        function onBackgroundChange(event) {
+            if (!event.target.classList.contains('bg-btn')) return;
+            
+            const newBg = event.target.dataset.bg;
+            if (!newBg || newBg === currentBackground) return;
+            
+            // Update background state
+            currentBackground = newBg;
+            
+            // Update button states
+            document.querySelectorAll('.bg-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Apply background to all canvases
+            applyBackgroundToAllCanvases();
+            
+            console.log(`Background changed to ${currentBackground}`);
+        }
+        
+        /**
+         * MILESTONE 6: Apply background style to all visible canvases
+         */
+        function applyBackgroundToAllCanvases() {
+            const canvases = document.querySelectorAll('.sprite-canvas');
+            canvases.forEach(canvas => {
+                if (currentBackground === 'solid') {
+                    canvas.classList.add('solid-bg');
+                } else {
+                    canvas.classList.remove('solid-bg');
+                }
+            });
+        }
+        
+        /**
+         * MILESTONE 6: Export current sprite as PNG file
+         */
+        function exportAsPNG() {
+            if (!currentCanvas && comparisonCanvases.length === 0) {
+                statusText.textContent = 'No sprite to export';
+                return;
+            }
+            
+            // Determine which canvas to export
+            let canvasToExport = currentCanvas;
+            let fileName = 'sprite';
+            
+            // Get species and stage info for filename
+            const selectedSpeciesId = speciesSelect.value;
+            const selectedStageIndex = parseInt(stageSelect.value);
+            const selectedLOD = lodSelect.value;
+            
+            if (selectedSpeciesId) {
+                const species = speciesData.get(selectedSpeciesId);
+                if (species) {
+                    const stageName = !isNaN(selectedStageIndex) && species.growthStages[selectedStageIndex] 
+                        ? species.growthStages[selectedStageIndex].name 
+                        : 'unknown';
+                    fileName = `${selectedSpeciesId}_${stageName}_${selectedLOD}`;
+                }
+            }
+            
+            // If in comparison mode, export first canvas or show message
+            if (isComparisonMode && comparisonCanvases.length > 0) {
+                // For comparison mode, create a combined canvas
+                const firstCanvas = comparisonCanvases[0];
+                canvasToExport = firstCanvas;
+                fileName = `${fileName}_comparison`;
+                
+                statusText.textContent = 'Exporting first sprite from comparison...';
+            }
+            
+            if (!canvasToExport) {
+                statusText.textContent = 'No sprite to export';
+                return;
+            }
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.download = `${fileName}.png`;
+            link.href = canvasToExport.toDataURL('image/png');
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            statusText.textContent = `Exported: ${fileName}.png`;
+            console.log(`Exported sprite as: ${fileName}.png`);
+        }
+        
+        /**
+         * MILESTONE 4: Update slider value displays
+         */
+        function updateSliderDisplay(slider, valueDisplay) {
+            valueDisplay.textContent = slider.value;
+        }
+        
+        /**
+         * MILESTONE 4: Randomize genetics values
+         */
+        function randomizeGenetics() {
+            heightSlider.value = Math.floor(Math.random() * 256);
+            widthSlider.value = Math.floor(Math.random() * 256);
+            foliageSlider.value = Math.floor(Math.random() * 256);
+            colorSlider.value = Math.floor(Math.random() * 256);
+            
+            updateSliderDisplay(heightSlider, heightValue);
+            updateSliderDisplay(widthSlider, widthValue);
+            updateSliderDisplay(foliageSlider, foliageValue);
+            updateSliderDisplay(colorSlider, colorValue);
+            
+            console.log(`Random genetics generated: H:${heightSlider.value} W:${widthSlider.value} F:${foliageSlider.value} C:${colorSlider.value}`);
+            
+            // Auto-regenerate if a sprite is currently displayed
+            if (currentCanvas || comparisonCanvases.length > 0) {
+                console.log('Auto-regenerating with new random genetics...');
+                if (isComparisonMode) {
+                    compareAllLODs();
+                } else {
+                    generateSprite();
+                }
+            }
+        }
+        
+        /**
+         * MILESTONE 4: Reset genetics and health to defaults
+         */
+        function resetGeneticsAndHealth() {
+            heightSlider.value = 127;
+            widthSlider.value = 127;
+            foliageSlider.value = 127;
+            colorSlider.value = 127;
+            healthSlider.value = 100;
+            
+            updateSliderDisplay(heightSlider, heightValue);
+            updateSliderDisplay(widthSlider, widthValue);
+            updateSliderDisplay(foliageSlider, foliageValue);
+            updateSliderDisplay(colorSlider, colorValue);
+            updateSliderDisplay(healthSlider, healthValue);
+            
+            console.log('Genetics and health reset to defaults (127, 100)');
+            
+            // Auto-regenerate if a sprite is currently displayed
+            if (currentCanvas || comparisonCanvases.length > 0) {
+                console.log('Auto-regenerating with default values...');
+                if (isComparisonMode) {
+                    compareAllLODs();
+                } else {
+                    generateSprite();
+                }
+            }
+        }
+        
+        // Event listeners
+        speciesSelect.addEventListener('change', onSpeciesChange);
+        stageSelect.addEventListener('change', onStageChange);
+        generateBtn.addEventListener('click', generateSprite);
+        compareLodsBtn.addEventListener('click', compareAllLODs);
+        generateAllStagesBtn.addEventListener('click', generateAllStages); // MILESTONE 5: Batch generation
+        clearCacheBtn.addEventListener('click', clearCache); // MILESTONE 5: Clear cache
+        
+        // MILESTONE 4: Genetics slider event listeners
+        heightSlider.addEventListener('input', () => updateSliderDisplay(heightSlider, heightValue));
+        widthSlider.addEventListener('input', () => updateSliderDisplay(widthSlider, widthValue));
+        foliageSlider.addEventListener('input', () => updateSliderDisplay(foliageSlider, foliageValue));
+        colorSlider.addEventListener('input', () => updateSliderDisplay(colorSlider, colorValue));
+        
+        // MILESTONE 4: Health slider event listener
+        healthSlider.addEventListener('input', () => updateSliderDisplay(healthSlider, healthValue));
+        
+        // MILESTONE 4: Button event listeners
+        randomGeneticsBtn.addEventListener('click', randomizeGenetics);
+        resetGeneticsBtn.addEventListener('click', resetGeneticsAndHealth);
+        
+        // Zoom controls event delegation
+        document.addEventListener('click', onZoomChange);
+        
+        // MILESTONE 6: Background toggle event delegation
+        document.addEventListener('click', onBackgroundChange);
+        
+        // MILESTONE 6: Export PNG button
+        exportPngBtn.addEventListener('click', exportAsPNG);
+        
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('Texture Visualizer - Milestone 6 Complete (Enhanced UI & Debug Panel Integration)');
+            await loadAllSpecies();
+            updateCacheStats(); // MILESTONE 5: Initialize cache stats display
+        });
+    </script>
+</body>
+</html>

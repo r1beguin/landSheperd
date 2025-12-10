@@ -41,11 +41,12 @@ class PlantGenerator {
      * @param {string} stage - Growth stage name (e.g., 'Seedling', 'Sapling')
      * @param {object} genetics - Optional genetics object for genetic diversity
      * @param {string} lodLevel - LOD level ('high', 'medium', 'low', 'impostor') - Milestone 4
+     * @param {number} health - Plant health (0-100), affects visual appearance - Texture Visualizer M4
      * @returns {HTMLCanvasElement} Generated sprite canvas
      */
-    static generatePlantSprite(speciesConfig, stage = 'Seedling', genetics = null, lodLevel = 'medium') {
-        // Milestone 6: Check sprite cache first
-        const cacheKey = this._getCacheKey(speciesConfig, stage, genetics, lodLevel);
+    static generatePlantSprite(speciesConfig, stage = 'Seedling', genetics = null, lodLevel = 'medium', health = 100) {
+        // Milestone 6: Check sprite cache first (include health in cache key)
+        const cacheKey = this._getCacheKey(speciesConfig, stage, genetics, lodLevel, health);
         if (this.spriteCache.has(cacheKey)) {
             this.cacheHits++;
             return this.spriteCache.get(cacheKey);
@@ -84,10 +85,10 @@ class PlantGenerator {
             return this._generateFallbackSprite(speciesConfig);
         }
         
-        // Route to appropriate generator with genetics and LOD level
-        // NOTE: Individual generators need to be updated to accept lodLevel parameter (Milestone 4+)
-        // For now, pass it as optional 3rd/4th parameter - generators will ignore if not implemented
-        const sprite = generator[methodName](speciesConfig, genetics, lodLevel);
+        // Route to appropriate generator with genetics, LOD level, and health
+        // NOTE: Individual generators need to be updated to accept health parameter (Texture Visualizer M4)
+        // For now, pass it as optional 4th parameter - generators will use if implemented
+        const sprite = generator[methodName](speciesConfig, genetics, lodLevel, health);
         
         // Milestone 6: Cache the generated sprite
         this.spriteCache.set(cacheKey, sprite);
@@ -101,13 +102,15 @@ class PlantGenerator {
      * @param {string} stage - Growth stage name
      * @param {object} genetics - Optional genetics object
      * @param {string} lodLevel - LOD level
+     * @param {number} health - Plant health (0-100)
      * @returns {string} Unique cache key
      * @private
      */
-    static _getCacheKey(speciesConfig, stage, genetics, lodLevel) {
+    static _getCacheKey(speciesConfig, stage, genetics, lodLevel, health = 100) {
         const speciesId = speciesConfig.id || speciesConfig.name;
         const geneticsHash = genetics ? this._hashGenetics(genetics) : 'none';
-        return `${speciesId}_${stage}_${geneticsHash}_${lodLevel}`;
+        const healthRounded = Math.round(health);
+        return `${speciesId}_${stage}_${geneticsHash}_${lodLevel}_hp${healthRounded}`;
     }
     
     /**

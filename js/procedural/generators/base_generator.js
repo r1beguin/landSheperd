@@ -75,6 +75,98 @@ class BaseGenerator {
     }
     
     /**
+     * Apply health-based color modifications
+     * Simulates nutrient deficiency visual effects matching the main game's tint system
+     * Uses RGB multipliers like the shader-based tinting in Plant.calculateNutrientTint()
+     * @param {Array<string>} colors - Array of hex colors
+     * @param {number} health - Health value (0-100)
+     * @returns {Array<string>} Array of health-modified hex colors
+     */
+    static applyHealthColors(colors, health = 100) {
+        if (health >= 100) return colors;
+        
+        console.log(`[BaseGenerator] Applying health colors: health=${health}%, input colors:`, colors);
+        
+        // Normalize health to 0.0-1.0 range (health becomes nutrient score)
+        const healthScore = Math.max(0, Math.min(100, health)) / 100;
+        
+        // Deficiency intensity (0.0 = optimal/100%, 1.0 = critical/0%)
+        const deficiency = 1.0 - healthScore;
+        
+        // Match main game's enhanced intensity values
+        const enhancedIntensity = {
+            nitrogen: 0.6,
+            phosphorus: 0.7,
+            potassium: 0.8,
+            organicMatter: 0.5
+        };
+        
+        // Determine which nutrient deficiency to simulate based on health level
+        // Lower health = more severe deficiency type
+        let tintR = 1.0, tintG = 1.0, tintB = 1.0;
+        let deficiencyType = 'none';
+        
+        if (health >= 75) {
+            // Mild deficiency: Nitrogen (pale/yellow leaves)
+            deficiencyType = 'nitrogen';
+            tintR = 1.0;
+            tintG = 1.0 - (deficiency * enhancedIntensity.nitrogen * 2.0); // *2 because only using 25% of range
+            tintB = 1.0 - (deficiency * enhancedIntensity.nitrogen * 2.0);
+        } else if (health >= 50) {
+            // Moderate deficiency: Phosphorus (purple/reddish tint)
+            deficiencyType = 'phosphorus';
+            tintR = 1.0;
+            tintG = 1.0 - (deficiency * enhancedIntensity.phosphorus);
+            tintB = 1.0 - (deficiency * 0.2);
+        } else if (health >= 25) {
+            // Severe deficiency: Potassium (brown/yellow edges)
+            deficiencyType = 'potassium';
+            tintR = 1.0;
+            tintG = 1.0 - (deficiency * enhancedIntensity.potassium * 0.7);
+            tintB = 1.0 - (deficiency * enhancedIntensity.potassium);
+        } else {
+            // Critical deficiency: Organic matter (dull, desaturated)
+            deficiencyType = 'organicMatter';
+            const desaturation = 1.0 - (deficiency * enhancedIntensity.organicMatter);
+            tintR = desaturation;
+            tintG = desaturation;
+            tintB = desaturation;
+        }
+        
+        // Apply starvation stage color intensity (matches main game's colorMultiplier)
+        // This further reduces color for stressed/starving/critical stages
+        let colorMultiplier = 1.0;
+        let stage = 'healthy';
+        if (health < 80) { colorMultiplier = 0.85; stage = 'stressed'; }
+        if (health < 50) { colorMultiplier = 0.65; stage = 'starving'; }
+        if (health < 20) { colorMultiplier = 0.45; stage = 'critical'; }
+        
+        // Blend toward white/gray (matches main game shader logic)
+        tintR = tintR * colorMultiplier + (1.0 - colorMultiplier);
+        tintG = tintG * colorMultiplier + (1.0 - colorMultiplier);
+        tintB = tintB * colorMultiplier + (1.0 - colorMultiplier);
+        
+        console.log(`[BaseGenerator] Deficiency type: ${deficiencyType}, Stage: ${stage}, Tint RGB: (${tintR.toFixed(2)}, ${tintG.toFixed(2)}, ${tintB.toFixed(2)})`);
+        
+        // Apply tint multipliers to each color
+        const tintedColors = colors.map(colorHex => {
+            const rgb = ColorUtils.hexToRgb(colorHex);
+            if (!rgb) return colorHex;
+            
+            // Apply tint (multiply RGB channels by tint factors, matching shader: texColor * u_tint)
+            const tintedR = Math.round(rgb.r * tintR);
+            const tintedG = Math.round(rgb.g * tintG);
+            const tintedB = Math.round(rgb.b * tintB);
+            
+            const result = ColorUtils.rgbToHex(tintedR, tintedG, tintedB);
+            console.log(`[BaseGenerator] Color transform: ${colorHex} -> ${result}`);
+            return result;
+        });
+        
+        return tintedColors;
+    }
+    
+    /**
      * Get resolution multiplier for LOD level
      * Medium LOD (1.0x) matches current rendering quality baseline
      * @param {string} lodLevel - LOD level (high/medium/low/impostor), defaults to 'medium'
