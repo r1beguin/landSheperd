@@ -708,6 +708,10 @@ class GraphicsEngine {
                 case 'F': // Cycle nutrient overlay modes
                     if (this.overlayManager) {
                         const newMode = this.overlayManager.cycleMode();
+                        console.log(`[Overlay] Switched to: ${newMode.name} (${newMode.key || 'normal'})`);
+                        
+                        // Update the UI to show current overlay mode
+                        this.updateOverlayUI();
                         
                         // Force soil refresh to show new overlay mode
                         if (this.soilManager) {

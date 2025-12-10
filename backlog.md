@@ -4,10 +4,16 @@
 -* occlusion optimization
 -! LOD system --- to improve ---
 -* DEGUG page to test unitary texture generation
-- documentation reorganisation and clean up
-- refactor tree generation
+-* documentation reorganisation and clean up
+- Fix fertility visualiser
+- refactor tree generation, LOD improvements
 - shadows
 - game state saving
 - Infinite map chunck generation
 - Terrain elevation
 - quality check
+- Character design
+- New species
+- Fauna
+- Cultivation mechanics
+- gameplay loop

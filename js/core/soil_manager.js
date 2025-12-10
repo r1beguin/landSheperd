@@ -443,11 +443,20 @@ class SoilManager {
         // Update the visible cells cache for context menu checks
         this.visibleCells = visibleSoils;
         
+        // Check if overlay is active via OverlayManager
+        const overlayManager = window.graphicsEngine && window.graphicsEngine.overlayManager;
+        
         // Render each soil tile as isometric diamond
         visibleSoils.forEach(soil => {
             const isoPos = IsometricUtils.gridToIso(soil.gridX, soil.gridY, tileWidth, tileHeight);
             
-            if (soil.isWater) {
+            // Check for overlay color (fertility/nutrient visualization)
+            const overlayColor = overlayManager ? overlayManager.getOverlayColor(soil) : null;
+            
+            if (overlayColor) {
+                // Render with overlay color (converts RGBA 0-1 array to usable color)
+                renderSystem.renderIsoDiamond(isoPos.x, isoPos.y, tileWidth, tileHeight, overlayColor, viewMatrix, lightingManager);
+            } else if (soil.isWater) {
                 renderSystem.renderWaterDiamond(isoPos.x, isoPos.y, tileWidth, tileHeight, soil.baseColor, viewMatrix, lightingManager, time);
             } else {
                 renderSystem.renderIsoDiamond(isoPos.x, isoPos.y, tileWidth, tileHeight, soil.baseColor, viewMatrix, lightingManager);
