@@ -192,24 +192,111 @@ class Plant {
                 lodLevel        // Pass LOD level
             );
             
+            // Calculate render dimensions based on growth stage
+            // This ensures saplings appear smaller than mature trees
+            const stageSizeModifier = this._getGrowthStageSizeModifier();
+            
             // LOD IMPORTANT: Adjust render size based on LOD level
             // For impostor LOD, scale down world-space size to match tiny texture
-            // For other LODs, keep constant world-space size (baseWidth/baseHeight)
+            // For other LODs, apply growth stage size modifier
             if (lodLevel === 'impostor') {
                 // Impostor billboards should be tiny (4x4 texture, 4x4 world space)
                 this.width = 4;
                 this.height = 4;
             } else {
-                // All other LODs: Render dimensions stay at base (Medium LOD equivalent)
-                // Texture size varies with LOD (20px low, 40px medium, 80px high)
-                // But world-space render size stays constant for consistent appearance
-                this.width = this.baseWidth;
-                this.height = this.baseHeight;
+                // Apply growth stage size modifier to base dimensions
+                // Saplings render at 40% size, young trees at 70%, mature at 100%
+                this.width = Math.round(this.baseWidth * stageSizeModifier.width);
+                this.height = Math.round(this.baseHeight * stageSizeModifier.height);
             }
         }
         
         // Track the LOD level this sprite was generated at
         this.lastRenderedLOD = lodLevel;
+    }
+    
+    /**
+     * Get size modifier for current growth stage
+     * Matches the size modifiers used in TreeGenerator/HerbGenerator
+     * @returns {Object} {width, height} multipliers
+     * @private
+     */
+    _getGrowthStageSizeModifier() {
+        // Default size modifier (full size)
+        let widthMod = 1.0;
+        let heightMod = 1.0;
+        
+        // Tree growth stages have specific size modifiers
+        if (this.species.category === 'tree') {
+            switch (this.stage) {
+                case 'Sapling':
+                    widthMod = 0.4;
+                    heightMod = 0.4;
+                    break;
+                case 'YoungTree':
+                    widthMod = 0.7;
+                    heightMod = 0.7;
+                    break;
+                case 'MatureTree':
+                    widthMod = 1.0;
+                    heightMod = 1.5; // Mature trees are 50% taller
+                    break;
+                case 'Withered':
+                    widthMod = 1.0;
+                    heightMod = 1.0;
+                    break;
+            }
+        }
+        // Herb growth stages
+        else if (this.species.category === 'herb') {
+            switch (this.stage) {
+                case 'Seedling':
+                    widthMod = 0.4;
+                    heightMod = 0.4;
+                    break;
+                case 'Vegetative':
+                    widthMod = 0.7;
+                    heightMod = 0.7;
+                    break;
+                case 'Flowering':
+                    widthMod = 1.0;
+                    heightMod = 1.0;
+                    break;
+                case 'Withered':
+                    widthMod = 0.9;
+                    heightMod = 0.8;
+                    break;
+            }
+        }
+        // Groundcover (clover) growth stages
+        else if (this.species.category === 'groundcover') {
+            switch (this.stage) {
+                case 'Sprout':
+                    widthMod = 0.5;
+                    heightMod = 0.5;
+                    break;
+                case 'Spreading':
+                    widthMod = 0.8;
+                    heightMod = 0.8;
+                    break;
+                case 'Flowering':
+                    widthMod = 1.0;
+                    heightMod = 1.0;
+                    break;
+                case 'Withered':
+                    widthMod = 0.7;
+                    heightMod = 0.6;
+                    break;
+            }
+        }
+        
+        // Apply genetic modifiers if present
+        if (this.genetics) {
+            widthMod *= GeneticsUtils.getDimensionMultiplier(this.genetics.widthFactor);
+            heightMod *= GeneticsUtils.getDimensionMultiplier(this.genetics.heightFactor);
+        }
+        
+        return { width: widthMod, height: heightMod };
     }
     
     /**

@@ -2,10 +2,10 @@
 -* weird fertility circle
 -* test /init
 -* occlusion optimization
--! LOD system --- to improve ---
+-* LOD system
 -* DEGUG page to test unitary texture generation
 -* documentation reorganisation and clean up
-- Fix fertility visualiser
+-* Fix fertility visualiser
 - refactor tree generation, LOD improvements
 - shadows
 - game state saving
