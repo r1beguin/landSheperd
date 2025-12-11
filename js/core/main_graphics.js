@@ -669,12 +669,55 @@ class GraphicsEngine {
     }
     
     setupCameraControls() {
+        // Middle-mouse button panning state
+        this.isPanningWithMouse = false;
+        this.lastPanPosition = { x: 0, y: 0 };
+        
         // Handle zoom with mouse wheel
         this.inputManager.on('wheel', (event) => {
             if (event.deltaY > 0) {
                 this.cameraManager.zoomOut(event.x, event.y);
             } else {
                 this.cameraManager.zoomIn(event.x, event.y);
+            }
+        });
+        
+        // Handle middle-mouse button down to start panning
+        this.inputManager.on('mousedown', (event) => {
+            if (event.button === 1) { // Middle mouse button
+                this.isPanningWithMouse = true;
+                this.lastPanPosition = { x: event.x, y: event.y };
+                // Change cursor to grabbing
+                this.canvas.style.cursor = 'grabbing';
+                // Prevent default browser middle-click behavior (auto-scroll)
+                if (event.originalEvent) {
+                    event.originalEvent.preventDefault();
+                }
+            }
+        });
+        
+        // Handle mouse move for panning
+        this.inputManager.on('mousemove', (event) => {
+            if (this.isPanningWithMouse) {
+                // Calculate delta from last position
+                const deltaX = event.x - this.lastPanPosition.x;
+                const deltaY = event.y - this.lastPanPosition.y;
+                
+                // Move camera in opposite direction (drag to pan)
+                // Divide by zoom to maintain consistent pan speed regardless of zoom level
+                this.cameraManager.move(-deltaX / this.cameraManager.zoom, -deltaY / this.cameraManager.zoom);
+                
+                // Update last position
+                this.lastPanPosition = { x: event.x, y: event.y };
+            }
+        });
+        
+        // Handle middle-mouse button up to stop panning
+        this.inputManager.on('mouseup', (event) => {
+            if (event.button === 1) { // Middle mouse button
+                this.isPanningWithMouse = false;
+                // Reset cursor
+                this.canvas.style.cursor = 'default';
             }
         });
         
