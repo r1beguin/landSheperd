@@ -352,6 +352,7 @@ class ContextMenuManager {
         // Actions section
         html += '<div class="context-menu-section">';
         html += '<div class="context-menu-actions">';
+        html += '<button class="context-menu-btn" data-action="seed-bomb" style="background-color: #7c4a2f; color: white;">Seed Bomb</button>';
         html += '<button class="context-menu-btn context-menu-btn-secondary" data-action="close">Close</button>';
         html += '</div>';
         html += '</div>';
@@ -884,6 +885,11 @@ class ContextMenuManager {
                 }
                 break;
                 
+            case 'seed-bomb':
+                // Spawn 20 random plants in 5-cell radius circle
+                this.seedBomb(this.currentGridX, this.currentGridY, 20, 5);
+                break;
+                
             case 'close':
                 // Just close the menu
                 break;
@@ -952,5 +958,114 @@ class ContextMenuManager {
     
     isMenuVisible() {
         return this.isVisible;
+    }
+    
+    /**
+     * Seed Bomb - Spawn multiple random plants in a circular radius around a center point
+     * @param {number} centerX - Center grid X coordinate
+     * @param {number} centerY - Center grid Y coordinate
+     * @param {number} plantCount - Number of plants to spawn (default 20)
+     * @param {number} radius - Radius in cells (default 5)
+     */
+    seedBomb(centerX, centerY, plantCount = 20, radius = 5) {
+        // Validate that center cell has soil (if context menu opened, coordinates should be valid)
+        const centerSoil = this.soilManager.getSoilAt(centerX, centerY);
+        if (!centerSoil) {
+            console.warn(`Seed Bomb: No soil found at center coordinates (${centerX}, ${centerY})`);
+            return;
+        }
+        
+        // Don't allow seed bomb on water tiles
+        if (centerSoil.isWater) {
+            console.warn(`Seed Bomb: Cannot activate on water tile at (${centerX}, ${centerY})`);
+            return;
+        }
+        
+        console.log(`Seed Bomb activated at (${centerX}, ${centerY}) - spawning ${plantCount} plants within ${radius} cell radius`);
+        
+        const gridWidth = this.soilManager.gridWidth;
+        const gridHeight = this.soilManager.gridHeight;
+        
+        const currentDay = this.timeManager.getCurrentDayPrecise();
+        
+        // Get all available species
+        const allSpecies = ['urtica_dioica', 'quercus_robur', 'trifolium_repens'];
+        
+        // Find all valid cells within radius
+        const validCells = [];
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                // Check if cell is within circular radius
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance <= radius) {
+                    const targetX = centerX + dx;
+                    const targetY = centerY + dy;
+                    
+                    // Check if soil exists at this position (getSoilAt handles bounds internally)
+                    const soil = this.soilManager.getSoilAt(targetX, targetY);
+                    // Only add non-water cells with valid soil
+                    if (soil && !soil.isWater) {
+                        validCells.push({ x: targetX, y: targetY });
+                    }
+                }
+            }
+        }
+        
+        if (validCells.length === 0) {
+            console.warn('Seed Bomb: No valid cells found in radius');
+            return;
+        }
+        
+        // Spawn plants at random positions within valid cells
+        let plantsSpawned = 0;
+        const spawnedCells = new Set();
+        
+        for (let i = 0; i < plantCount; i++) {
+            // Pick a random cell from valid cells
+            const randomIndex = Math.floor(Math.random() * validCells.length);
+            const cell = validCells[randomIndex];
+            const cellKey = `${cell.x},${cell.y}`;
+            
+            // Pick a random species
+            const randomSpeciesId = allSpecies[Math.floor(Math.random() * allSpecies.length)];
+            const config = this.plantManager.getSpeciesById(randomSpeciesId);
+            
+            if (!config) {
+                console.warn(`Seed Bomb: Species ${randomSpeciesId} not found`);
+                continue;
+            }
+            
+            const layer = config.layer || 'middle';
+            
+            // Check if layer is available at this cell
+            const existingPlant = this.plantManager.getPlantAt(cell.x, cell.y, layer);
+            if (!existingPlant) {
+                // Calculate random world position within the cell
+                const cellSize = this.soilManager.cellSize;
+                const cellLeft = cell.x * cellSize;
+                const cellTop = cell.y * cellSize;
+                const margin = 2;
+                const maxOffset = cellSize - 2 * margin;
+                const randomOffsetX = margin + Math.random() * maxOffset;
+                const randomOffsetY = margin + Math.random() * maxOffset;
+                const worldX = cellLeft + randomOffsetX;
+                const worldY = cellTop + randomOffsetY;
+                
+                // Spawn the plant
+                this.plantManager.addPlantAtPosition(
+                    cell.x,
+                    cell.y,
+                    worldX,
+                    worldY,
+                    randomSpeciesId,
+                    currentDay
+                );
+                
+                plantsSpawned++;
+                spawnedCells.add(cellKey);
+            }
+        }
+        
+        console.log(`Seed Bomb complete: ${plantsSpawned} plants spawned across ${spawnedCells.size} cells`);
     }
 }
