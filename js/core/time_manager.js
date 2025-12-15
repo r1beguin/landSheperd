@@ -44,9 +44,6 @@ class TimeManager {
      */
     initialize(engineConfig) {
         this.floodConfig = engineConfig?.world?.terrain?.water?.floodEvents;
-        if (this.floodConfig && this.floodConfig.enabled) {
-            console.log(`[TIME] Flood events enabled: every ${this.floodConfig.intervalDays} days`);
-        }
     }
     
     /**
@@ -221,6 +218,38 @@ class TimeManager {
         this.currentDay = 0;
         this.timeScale = this.config.initialTimeScale || 1.0;
         this.isPaused = false;
+        this.daysSinceLastFlood = 0;
+    }
+    
+    /**
+     * Serialize time state for saving
+     * @returns {Object} Serialized time state
+     */
+    serialize() {
+        return {
+            currentDay: this.currentDay,
+            timeScale: this.timeScale,
+            isPaused: this.isPaused,
+            previousTimeScale: this.previousTimeScale,
+            daysSinceLastFlood: this.daysSinceLastFlood
+        };
+    }
+    
+    /**
+     * Deserialize time state from saved data
+     * @param {Object} data - Saved time state
+     */
+    deserialize(data) {
+        if (!data) {
+            console.warn('[TIME] No data to deserialize');
+            return;
+        }
+        
+        this.currentDay = data.currentDay ?? 0;
+        this.timeScale = data.timeScale ?? this.config.initialTimeScale ?? 1.0;
+        this.isPaused = data.isPaused ?? false;
+        this.previousTimeScale = data.previousTimeScale ?? this.timeScale;
+        this.daysSinceLastFlood = data.daysSinceLastFlood ?? 0;
     }
     
     /**
@@ -249,10 +278,6 @@ class TimeManager {
      * Applies nutrient deposition to soil near rivers
      */
     triggerFloodEvent() {
-        if (this.floodConfig.enableLogging) {
-            console.log(`[FLOOD] Flood event triggered (Day ${Math.floor(this.currentDay)})`);
-        }
-        
         // Get required managers
         const soilManager = window.graphicsEngine?.soilManager;
         const terrainGen = soilManager?.terrainGenerator;

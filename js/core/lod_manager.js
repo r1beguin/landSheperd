@@ -47,8 +47,6 @@ class LODManager {
         
         // Resolution multipliers for sprite generation
         this.resolutionMultipliers = config.resolutionMultipliers;
-        
-        console.log('LODManager initialized with 4 levels');
     }
     
     /**

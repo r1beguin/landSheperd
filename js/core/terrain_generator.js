@@ -96,8 +96,6 @@ class TerrainGenerator {
         
         const endTime = performance.now();
         const generationTime = (endTime - startTime).toFixed(0);
-        
-        console.log(`Rivers generated: ${rivers.length} rivers, ${totalWaterCells} total cells (${generationTime}ms)`);
     }
     
     /**
@@ -147,8 +145,6 @@ class TerrainGenerator {
         
         const endTime = performance.now();
         const generationTime = (endTime - startTime).toFixed(0);
-        
-        console.log(`Lakes generated: ${lakes.length} lakes, ${totalLakeCells} total cells (${generationTime}ms)`);
     }
     
     /**
@@ -253,8 +249,6 @@ class TerrainGenerator {
         const endTime = performance.now();
         const boostTime = (endTime - startTime).toFixed(0);
         
-        console.log(`Fertility boost applied to ${affectedCells.size} cells near ${this.riverTiles.size} river tiles (${boostTime}ms)`);
-        
         // Force texture refresh
         soilManager.needsRefresh = true;
     }
@@ -344,8 +338,6 @@ class TerrainGenerator {
         const endTime = performance.now();
         const boostTime = (endTime - startTime).toFixed(0);
         
-        console.log(`Fertility boost applied to ${affectedCells.size} cells near ${this.lakeTiles.size} lake tiles (${boostTime}ms)`);
-        
         // Force texture refresh
         soilManager.needsRefresh = true;
     }
@@ -417,7 +409,6 @@ class TerrainGenerator {
         });
         
         const duration = performance.now() - startTime;
-        console.log(`Riparian grid generated: ${riparianGrid.size} cells cached (${duration.toFixed(0)}ms)`);
         
         return riparianGrid;
     }
@@ -496,7 +487,6 @@ class TerrainGenerator {
         });
         
         const duration = performance.now() - startTime;
-        console.log(`Water seeping influence map: ${influenceMap.size} cells cached (${duration.toFixed(0)}ms)`);
         
         return influenceMap;
     }

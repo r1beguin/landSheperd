@@ -73,6 +73,11 @@ class GraphicsEngine {
             const schemaLoader = new SchemaLoader();
             const configSchema = await schemaLoader.loadSchema('schemas/config.schema.json');
             
+            // If schema load was cancelled (page navigation), exit silently
+            if (!configSchema) {
+                return;
+            }
+            
             // Validate config
             const validator = new ConfigValidator();
             const configResult = validator.validateConfig(this.config, configSchema);
@@ -82,9 +87,11 @@ class GraphicsEngine {
                 console.error('Config validation failed:', errorMsg);
                 throw new Error(`Invalid config.json:\n${errorMsg}`);
             }
-            
-            console.log('Config validated successfully');
         } catch (error) {
+            // Suppress errors during page navigation
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                return; // Page is navigating away, silently exit
+            }
             // Re-throw to halt initialization
             throw error;
         }
@@ -175,7 +182,6 @@ class GraphicsEngine {
         if (urlSeed !== null) {
             const seed = parseInt(urlSeed);
             if (!isNaN(seed) && seed >= 0 && seed <= 4294967295) {
-                console.log(`Using seed from URL: ${seed}`);
                 return seed;
             }
         }
@@ -185,14 +191,12 @@ class GraphicsEngine {
         if (storedSeed !== null) {
             const seed = parseInt(storedSeed);
             if (!isNaN(seed) && seed >= 0 && seed <= 4294967295) {
-                console.log(`Using seed from localStorage: ${seed}`);
                 return seed;
             }
         }
         
         // Priority 3: config.json
         if (config.world?.terrain?.seed !== undefined && config.world.terrain.seed !== null) {
-            console.log(`Using seed from config: ${config.world.terrain.seed}`);
             return config.world.terrain.seed;
         }
         
@@ -264,7 +268,6 @@ class GraphicsEngine {
             this.cameraManager,
             this.geometryManager
         );
-        console.log('LODManager initialized');
         
         // Connect LODManager to PlantManager (Milestone 4)
         if (this.plantManager && this.lodManager) {
@@ -282,6 +285,37 @@ class GraphicsEngine {
             this.timeManager,
             this  // Pass graphicsEngine reference for RenderSystem access
         );
+        
+        // Settings UI manager (initialized after context menu manager)
+        this.settingsUIManager = new SettingsUIManager();
+        this.settingsUIManager.initialize();
+        
+        // Save manager (initialized after all managers that it serializes)
+        this.saveManager = new SaveManager(this);
+        
+        // Connect SaveManager to SettingsUIManager for button handlers
+        if (this.settingsUIManager && this.saveManager) {
+            this.settingsUIManager.setSaveManager(this.saveManager);
+        }
+        
+        // Setup auto-save system (after TimeManager is available)
+        if (this.saveManager) {
+            this.saveManager.setupAutoSave(this.timeManager);
+        }
+        
+        // Check for auto-close load (only if no pending manual load)
+        if (this.saveManager && !localStorage.getItem('landShepherd_pendingLoad')) {
+            if (this.saveManager.checkAutoCloseLoad()) {
+                // Will trigger reload, so return early
+                return;
+            }
+        }
+        
+        // Process any pending load from a previous session
+        // This must happen after all managers are initialized but before game loop starts
+        if (this.saveManager) {
+            await this.saveManager.processPendingLoad();
+        }
         
         // Initialize seed UI after soil manager is ready
         this.initializeSeedUI();
@@ -920,6 +954,11 @@ class GraphicsEngine {
         
         // Update plant manager with game time
         this.plantManager.update(gameDaysElapsed, currentDay);
+        
+        // Update auto-save system
+        if (this.saveManager) {
+            this.saveManager.update();
+        }
         
         // Update plant sprites if LOD changed (Milestone 4)
         if (this.plantManager && this.lodManager) {

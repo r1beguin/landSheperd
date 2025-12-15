@@ -178,6 +178,5 @@ class CameraManager {
     // Projection mode management
     setProjectionMode(mode) {
         this.projectionMode = mode;
-        console.log(`CameraManager projection mode: ${this.projectionMode}`);
     }
 }

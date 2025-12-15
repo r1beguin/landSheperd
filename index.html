@@ -83,6 +83,52 @@
     </div>
     
 
+    <!-- Auto-Save Indicator (Top-Right, left of settings) -->
+    <div id="auto-save-indicator" class="auto-save-indicator">Saving...</div>
+    
+    <!-- Settings Button (Top-Right Corner) -->
+    <button id="settings-button" class="settings-gear-btn" title="Settings">
+        &#9881;
+    </button>
+    
+    <!-- Settings Modal Overlay -->
+    <div id="settings-backdrop" class="settings-backdrop">
+        <div id="settings-modal" class="settings-modal">
+            <div class="settings-header">
+                <span class="settings-title">Settings</span>
+                <button id="settings-close-btn" class="settings-close-btn" title="Close">&times;</button>
+            </div>
+            
+            <div class="settings-content">
+                <!-- Save/Load Section -->
+                <div class="settings-section">
+                    <h3 class="section-title">Save Slots</h3>
+                    <div id="save-slots-container" class="save-slots-container">
+                        <!-- Slots will be dynamically generated here -->
+                    </div>
+                </div>
+                
+                <div class="settings-separator"></div>
+                
+                <!-- New Game Section -->
+                <div class="settings-section">
+                    <button id="new-game-same-map-btn" class="settings-menu-btn">New Game (Same Map)</button>
+                    <button id="new-game-new-map-btn" class="settings-menu-btn">New Game (New Map)</button>
+                </div>
+                
+                <div class="settings-separator"></div>
+                
+                <!-- Options Section -->
+                <div class="settings-section settings-options">
+                    <label class="settings-checkbox-label">
+                        <input type="checkbox" id="auto-save-checkbox" checked>
+                        <span>Auto-save</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Seed UI -->
     <div id="seed-ui">
         <h3>World Seed</h3>
@@ -119,6 +165,7 @@
     <script src="js/core/soil_effects_manager.js"></script>
     <script src="js/core/soil_manager.js"></script>
     <script src="js/core/plant_manager.js"></script>
+    <script src="js/core/save_manager.js"></script>
     
     <!-- Procedural Generation Utilities -->
     <script src="js/procedural/utils/color_utils.js"></script>
@@ -143,6 +190,7 @@
     <script src="js/systems/overlay_manager.js"></script>
     <script src="js/systems/occlusion_manager.js"></script>
     <script src="js/systems/context_menu_manager.js"></script>
+    <script src="js/systems/settings_ui_manager.js"></script>
     <!-- Testing systems (loaded dynamically in tests) -->
     <!-- <script src="js/systems/screenshot_manager.js"></script> -->
     <!-- <script src="js/systems/log_reader.js"></script> -->

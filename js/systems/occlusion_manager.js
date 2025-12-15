@@ -39,8 +39,6 @@ class OcclusionManager {
         this.enabled = this.getConfigValue('world.plants.occlusion.enabled', true);
         this.minTreeStageForOcclusion = this.getConfigValue('world.plants.occlusion.minTreeStage', 'YoungTree');
         this.occlusionPadding = this.getConfigValue('world.plants.occlusion.padding', 5);
-        
-        console.log(`OcclusionManager initialized (enabled: ${this.enabled})`);
     }
     
     /**

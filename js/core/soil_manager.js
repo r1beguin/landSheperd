@@ -26,8 +26,6 @@ class SoilManager {
         const configSeed = this.config.world?.terrain?.seed;
         this.seed = configSeed !== undefined && configSeed !== null ? configSeed : this.generateRandomSeed();
         
-        console.log(`Seed initialized: ${this.seed}`);
-        
         // Soil grid (Map for efficient access)
         this.soilGrid = new Map();
         
@@ -400,12 +398,6 @@ class SoilManager {
      * Render soils in isometric mode (diamond tiles with depth sorting)
      */
     renderIsometricSoils(renderSystem, viewMatrix, lightingManager, time) {
-        // Log once when first switching to isometric mode
-        if (!this.isometricLogged) {
-            console.log('Rendering in isometric mode');
-            this.isometricLogged = true;
-        }
-        
         const isoConfig = this.config.world.rendering.isometric;
         const tileWidth = isoConfig.tileWidth;
         const tileHeight = isoConfig.tileHeight;
@@ -551,11 +543,7 @@ class SoilManager {
             }
             this.lastWeatherEffectsHour = absoluteHour;
             
-            // Debug log (only during rain)
-            const weatherManager = window.graphicsEngine?.weatherManager;
-            if (weatherManager && weatherManager.getCurrentWeather() === 'rainy') {
-                console.log(`[WEATHER] Effects applied at hour ${absoluteHour} (day ${currentDay}, time ${currentHour})`);
-            }
+
         }
         
         // === DECOMPOSITION THROTTLING (once per game DAY) ===
@@ -574,8 +562,6 @@ class SoilManager {
                 this.needsRefresh = true;
             }
             this.lastDecompositionDay = currentDay;
-            
-            console.log(`[DECOMPOSITION] Applied on day ${currentDay}`);
         }
         
         // === NITROGEN REGENERATION THROTTLING (once per game DAY) ===
@@ -593,8 +579,6 @@ class SoilManager {
                 this.needsRefresh = true;
             }
             this.lastNitrogenRegenDay = currentDay;
-            
-            console.log(`[NITROGEN] Regeneration applied on day ${currentDay}`);
         }
         
         // === P/K WEATHERING THROTTLING (once per game DAY) ===
@@ -611,12 +595,6 @@ class SoilManager {
                 this.needsRefresh = true;
             }
             this.lastWeatheringDay = currentDay;
-            
-            // Log weathering if enabled in config
-            const weatheringConfig = this.config.world?.soil?.weathering;
-            if (weatheringConfig?.enableLogging) {
-                console.log(`[WEATHERING] P/K weathering applied on day ${currentDay}`);
-            }
         }
         
         // === WATER SEEPING THROTTLING (once per game DAY) ===
@@ -647,7 +625,6 @@ class SoilManager {
                 this.lastSeepingDay = currentDay;
                 
                 if (seepingUpdated > 0) {
-                    console.log(`[WATER] Seeping updated ${seepingUpdated} cells on day ${currentDay}`);
                     this.needsRefresh = true;
                 }
             }
@@ -830,5 +807,118 @@ class SoilManager {
         this.soilEffectsManager.clearActiveCells();
         this.soilGrid.clear();
         this.visibleCells = [];
+    }
+    
+    /**
+     * Serialize soil grid state for saving
+     * Only saves dynamic state (nutrients, water), not static terrain
+     * @returns {Object} Serialized soil state
+     */
+    serialize() {
+        const cells = [];
+        
+        this.soilGrid.forEach((soil, key) => {
+            // Only save cells with modified state (not pristine)
+            // For efficiency, we save all cells but only dynamic properties
+            cells.push({
+                key: key,
+                // Nutrient layers (using actual Soil entity structure)
+                surface: {
+                    nitrogen: soil.nutrientLayers.surface.nitrogen,
+                    phosphorus: soil.nutrientLayers.surface.phosphorus,
+                    potassium: soil.nutrientLayers.surface.potassium,
+                    organicMatter: soil.nutrientLayers.surface.organicMatter
+                },
+                deep: {
+                    nitrogen: soil.nutrientLayers.deep.nitrogen,
+                    phosphorus: soil.nutrientLayers.deep.phosphorus,
+                    potassium: soil.nutrientLayers.deep.potassium,
+                    organicMatter: soil.nutrientLayers.deep.organicMatter
+                },
+                // Legacy top-level nutrients (kept in sync with surface layer)
+                nitrogen: soil.nitrogen,
+                phosphorus: soil.phosphorus,
+                potassium: soil.potassium,
+                organicMatter: soil.organicMatter,
+                // Water and pollution
+                waterRetention: soil.waterRetention,
+                pollution: soil.pollution,
+                // Derived properties (can be recalculated, but saving for consistency)
+                fertility: soil.fertility
+            });
+        });
+        
+        return {
+            seed: this.seed,
+            cells: cells,
+            lastWeatherEffectsHour: this.lastWeatherEffectsHour,
+            lastDecompositionDay: this.lastDecompositionDay,
+            lastNitrogenRegenDay: this.lastNitrogenRegenDay,
+            lastWeatheringDay: this.lastWeatheringDay,
+            lastSeepingDay: this.lastSeepingDay
+        };
+    }
+    
+    /**
+     * Deserialize soil grid state from saved data
+     * @param {Object} data - Saved soil state
+     */
+    deserialize(data) {
+        if (!data) {
+            console.warn('[SOIL] No data to deserialize');
+            return;
+        }
+        
+        // Restore throttling state
+        this.lastWeatherEffectsHour = data.lastWeatherEffectsHour ?? -1;
+        this.lastDecompositionDay = data.lastDecompositionDay ?? 0;
+        this.lastNitrogenRegenDay = data.lastNitrogenRegenDay ?? 0;
+        this.lastWeatheringDay = data.lastWeatheringDay ?? 0;
+        this.lastSeepingDay = data.lastSeepingDay ?? 0;
+        
+        // Restore cell states
+        let restoredCount = 0;
+        
+        if (data.cells && Array.isArray(data.cells)) {
+            data.cells.forEach(cellData => {
+                const soil = this.soilGrid.get(cellData.key);
+                if (soil) {
+                    // Restore nutrient layers (using actual Soil entity structure)
+                    if (cellData.surface) {
+                        soil.nutrientLayers.surface.nitrogen = cellData.surface.nitrogen ?? soil.nutrientLayers.surface.nitrogen;
+                        soil.nutrientLayers.surface.phosphorus = cellData.surface.phosphorus ?? soil.nutrientLayers.surface.phosphorus;
+                        soil.nutrientLayers.surface.potassium = cellData.surface.potassium ?? soil.nutrientLayers.surface.potassium;
+                        soil.nutrientLayers.surface.organicMatter = cellData.surface.organicMatter ?? soil.nutrientLayers.surface.organicMatter;
+                    }
+                    
+                    if (cellData.deep) {
+                        soil.nutrientLayers.deep.nitrogen = cellData.deep.nitrogen ?? soil.nutrientLayers.deep.nitrogen;
+                        soil.nutrientLayers.deep.phosphorus = cellData.deep.phosphorus ?? soil.nutrientLayers.deep.phosphorus;
+                        soil.nutrientLayers.deep.potassium = cellData.deep.potassium ?? soil.nutrientLayers.deep.potassium;
+                        soil.nutrientLayers.deep.organicMatter = cellData.deep.organicMatter ?? soil.nutrientLayers.deep.organicMatter;
+                    }
+                    
+                    // Restore legacy top-level nutrients (kept in sync with surface layer)
+                    soil.nitrogen = cellData.nitrogen ?? soil.nitrogen;
+                    soil.phosphorus = cellData.phosphorus ?? soil.phosphorus;
+                    soil.potassium = cellData.potassium ?? soil.potassium;
+                    soil.organicMatter = cellData.organicMatter ?? soil.organicMatter;
+                    
+                    // Restore water and pollution
+                    soil.waterRetention = cellData.waterRetention ?? soil.waterRetention;
+                    soil.pollution = cellData.pollution ?? soil.pollution;
+                    
+                    // Recalculate derived properties
+                    soil.fertility = soil.calculateFertility();
+                    soil.baseColor = soil.calculateBaseColor();
+                    soil.needsUpdate = true;
+                    
+                    restoredCount++;
+                }
+            });
+        }
+        
+        // Mark for visual refresh
+        this.needsRefresh = true;
     }
 }

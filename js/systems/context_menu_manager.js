@@ -814,7 +814,6 @@ class ContextMenuManager {
                         speciesId,
                         currentDay
                     );
-                    console.log(`Planted ${speciesId} at (${this.currentGridX}, ${this.currentGridY}) on ${layer} layer`);
                 }
                 break;
                 

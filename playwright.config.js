@@ -90,7 +90,17 @@ module.exports = defineConfig({
     ? '**/milestone3-visual-validation.spec.js'
     : process.env.TEST_PK_BALANCE === 'true'
     ? '**/pk-balance-fix.spec.js'
-    : process.env.TEST_INTERACTIVE === 'true' ||
+    : process.env.TEST_SETTINGS_UI === 'true'
+    ? '**/settings-ui-m2.spec.js'
+     : process.env.TEST_AUTO_SAVE === 'true'
+     ? '**/auto-save-system.spec.js'
+     : process.env.TEST_AUTO_SAVE_CYCLE === 'true'
+     ? '**/auto-save-cycle.spec.js'
+     : process.env.TEST_SAVE_SLOTS_UI === 'true'
+     ? '**/save-slots-ui-m4.spec.js'
+     : process.env.TEST_NEW_GAME === 'true'
+     ? '**/new-game-functionality.spec.js'
+     : process.env.TEST_INTERACTIVE === 'true' ||
       process.env.TEST_SCREENSHOT_ONLY === 'true' || 
       process.env.TEST_LOG_ONLY === 'true'
     ? '**/interactive.spec.js'

@@ -29,14 +29,6 @@ class SoilEffectsManager {
         // Active cells for localized decomposition (Phase 2 optimization)
         this.activeCells = new Set(); // Set of "x,y" strings
         this.cellLastPlantActivity = new Map(); // Map<"x,y", gameDay>
-        
-        console.log('[SoilEffectsManager] Initialized', {
-            weatherEffectsEnabled: !!this.weatherEffectsConfig,
-            decompositionEnabled: this.decompositionConfig?.enabled || false,
-            nitrogenRegenEnabled: this.nitrogenRegenConfig?.enabled || false,
-            weatheringEnabled: this.weatheringConfig?.enabled || false,
-            activityWindow: this.decompositionActivityWindow
-        });
     }
     
     /**
@@ -785,11 +777,6 @@ class SoilEffectsManager {
         
         const endTime = performance.now();
         const processingTime = (endTime - startTime).toFixed(1);
-        
-        // Log if enabled
-        if (config.enableLogging) {
-            console.log(`[FLOOD] Flood effects applied to ${affectedCells.size} cells near ${riverTiles.size} river tiles (${processingTime}ms)`);
-        }
         
         // Return true to signal texture refresh needed
         return affectedCells.size > 0;

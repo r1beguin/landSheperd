@@ -51,8 +51,6 @@ class ProceduralGenerator {
         
         // Fusionner avec la configuration fournie
         this.config = this.mergeConfig(this.defaultConfig, config);
-        
-        console.log(`ProceduralGenerator using seed: ${this.seed}`);
     }
     
     /**
@@ -78,7 +76,6 @@ class ProceduralGenerator {
     setSeed(seed) {
         this.seed = seed;
         this.initializePRNG(seed);
-        console.log(`ProceduralGenerator seed changed to: ${this.seed}`);
     }
     
     /**

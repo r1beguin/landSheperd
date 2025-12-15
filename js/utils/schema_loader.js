@@ -41,6 +41,11 @@ class SchemaLoader {
             
             return schema;
         } catch (error) {
+            // Suppress network errors during page navigation (expected during reload)
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                // Silently fail - page is navigating away
+                return null;
+            }
             console.error(`SchemaLoader: Error loading schema from ${path}:`, error);
             throw error;
         }

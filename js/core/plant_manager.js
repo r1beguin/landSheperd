@@ -19,7 +19,8 @@ class PlantManager {
         // LOD manager reference (set externally) - Milestone 4
         this.lodManager = null;
         
-        this.loadSpeciesConfigs();
+        // Promise that resolves when species are loaded
+        this.speciesLoaded = this.loadSpeciesConfigs();
     }
     
     /**
@@ -36,7 +37,6 @@ class PlantManager {
      */
     setLODManager(lodManager) {
         this.lodManager = lodManager;
-        console.log('PlantManager: LODManager reference set');
     }
     
     /**
@@ -59,13 +59,20 @@ class PlantManager {
             this.schemaLoader = new SchemaLoader();
             this.speciesSchema = await this.schemaLoader.loadSchema('schemas/species.schema.json');
             
+            // If schema load was cancelled (page navigation), exit silently
+            if (!this.speciesSchema) {
+                return;
+            }
+            
             // Load and validate each species
             await this.loadSpecies('./species/nettles.json', 'urtica_dioica');
             await this.loadSpecies('./species/oak.json', 'quercus_robur');
             await this.loadSpecies('./species/clover.json', 'trifolium_repens');
-            
-            console.log(`PlantManager loaded ${this.speciesConfigs.size} species: ${Array.from(this.speciesConfigs.keys()).join(', ')}`);
         } catch (error) {
+            // Suppress errors during page navigation
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                return; // Page is navigating away, silently exit
+            }
             console.error('Failed to load species configs:', error);
             throw error; // Re-throw to halt initialization
         }
@@ -106,6 +113,10 @@ class PlantManager {
             this.speciesConfigs.set(speciesData.id, speciesData);
             
         } catch (error) {
+            // Suppress errors during page navigation
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                return; // Page is navigating away, silently exit
+            }
             console.error(`Error loading species from ${speciesPath}:`, error);
             throw error;
         }
@@ -135,7 +146,6 @@ class PlantManager {
     setSelectedSpecies(speciesId) {
         if (this.speciesConfigs.has(speciesId)) {
             this.selectedSpecies = speciesId;
-            console.log(`Selected species: ${speciesId}`);
         } else {
             console.warn(`Species ${speciesId} not found`);
         }
@@ -587,11 +597,7 @@ class PlantManager {
                 parentSoil.updateNutrients(newN, newP, newK, newOM);
                 this.soilManager.needsRefresh = true;
                 
-                // Optional: Log reproduction cost application
-                const config = window.config?.world?.plants?.reproduction;
-                if (config?.enableLogging) {
-                    console.log(`[REPRO COST] ${speciesConfig.commonName} rhizome: -N${event.reproductionCost.nitrogen.toFixed(1)} -P${event.reproductionCost.phosphorus.toFixed(1)} -K${event.reproductionCost.potassium.toFixed(1)} -OM${event.reproductionCost.organicMatter.toFixed(1)}`);
-                }
+
             }
         }
         
@@ -665,11 +671,7 @@ class PlantManager {
                 parentSoil.updateNutrients(newN, newP, newK, newOM);
                 this.soilManager.needsRefresh = true;
                 
-                // Optional: Log reproduction cost application
-                const config = window.config?.world?.plants?.reproduction;
-                if (config?.enableLogging) {
-                    console.log(`[REPRO COST] ${speciesConfig.commonName} seed: -N${event.reproductionCost.nitrogen.toFixed(1)} -P${event.reproductionCost.phosphorus.toFixed(1)} -K${event.reproductionCost.potassium.toFixed(1)} -OM${event.reproductionCost.organicMatter.toFixed(1)}`);
-                }
+
             }
         }
         
@@ -699,10 +701,6 @@ class PlantManager {
         
         if (!partner) {
             // Log partner search failure if logging enabled
-            const config = window.config?.world?.plants?.reproduction;
-            if (config?.enableLogging) {
-                console.log(`[REPRO FAIL] ${speciesConfig.commonName} at grid (${parentGrid.x},${parentGrid.y}) - No mature partner found within ${event.proximityDistance} cells`);
-            }
             return; // No valid partner found
         }
         
@@ -729,10 +727,6 @@ class PlantManager {
         
         if (!spawnLocation) {
             // Log spawn location failure if logging enabled
-            const config = window.config?.world?.plants?.reproduction;
-            if (config?.enableLogging) {
-                console.log(`[REPRO FAIL] ${speciesConfig.commonName} at grid (${parentGrid.x},${parentGrid.y}) - No valid spawn location within ${event.maxOffspringDistance} cells of either parent`);
-            }
             return; // No valid spawn location
         }
         
@@ -749,10 +743,7 @@ class PlantManager {
                 this.soilManager.needsRefresh = true;
                 
                 // Optional: Log reproduction cost application
-                const config = window.config?.world?.plants?.reproduction;
-                if (config?.enableLogging) {
-                    console.log(`[REPRO COST] ${speciesConfig.commonName} acorn: -N${event.reproductionCost.nitrogen.toFixed(1)} -P${event.reproductionCost.phosphorus.toFixed(1)} -K${event.reproductionCost.potassium.toFixed(1)} -OM${event.reproductionCost.organicMatter.toFixed(1)}`);
-                }
+
             }
         }
         
@@ -761,11 +752,6 @@ class PlantManager {
         if (offspring) {
             offspring.genetics = offspringGenetics;
             offspring.generateSprite(); // Regenerate with new genetics
-            
-            const config = window.config?.world?.plants?.reproduction;
-            if (config?.enableLogging) {
-                console.log(`[REPRO SUCCESS] ${speciesConfig.commonName} Gen ${offspringGenetics.generation} sapling spawned at grid (${spawnLocation.x}, ${spawnLocation.y}) from parents at (${parentGrid.x},${parentGrid.y}) and (${this.soilManager.worldToGrid(partner.x, partner.y).x},${this.soilManager.worldToGrid(partner.x, partner.y).y})`);
-            }
         }
     }
     
@@ -975,5 +961,104 @@ class PlantManager {
                 neighborSoil.updateNutrientsLayered('deep', neighborDeepN, neighborDeepP, neighborDeepK, neighborDeepOM);
             });
         });
+    }
+    
+    /**
+     * Serialize all plants for saving
+     * @returns {Object} Serialized plant data
+     */
+    serialize() {
+        const plantData = [];
+        
+        for (const [key, layerMap] of this.plants.entries()) {
+            for (const [layer, plant] of layerMap.entries()) {
+                plantData.push({
+                    key: key,
+                    layer: layer,
+                    plant: plant.serialize()
+                });
+            }
+        }
+        
+        return {
+            plants: plantData,
+            selectedSpecies: this.selectedSpecies
+        };
+    }
+    
+    /**
+     * Deserialize and restore plants from saved data
+     * @param {Object} data - Saved plant data
+     */
+    deserialize(data) {
+        if (!data) {
+            console.warn('[PLANTS] No data to deserialize');
+            return;
+        }
+        
+        // Clear existing plants
+        this.plants.clear();
+        
+        // Restore selected species
+        if (data.selectedSpecies) {
+            this.selectedSpecies = data.selectedSpecies;
+        }
+        
+        // Restore plants
+        let restoredCount = 0;
+        
+        if (data.plants && Array.isArray(data.plants)) {
+            for (const entry of data.plants) {
+                const plantData = entry.plant;
+                
+                // Get species config
+                const speciesConfig = this.speciesConfigs.get(plantData.speciesId);
+                if (!speciesConfig) {
+                    console.warn(`[PLANTS] Unknown species: ${plantData.speciesId}, skipping`);
+                    continue;
+                }
+                
+                // Create plant with saved state
+                const plant = new Plant(
+                    plantData.x,
+                    plantData.y,
+                    speciesConfig,
+                    plantData.stage,
+                    plantData.stageStartDay
+                );
+                
+                // Restore additional state
+                plant.age = plantData.age ?? 0;
+                plant.accumulatedGrowthDays = plantData.accumulatedGrowthDays ?? 0;
+                plant.health = plantData.health ?? 1.0;
+                plant.lastReproductionDay = plantData.lastReproductionDay ?? 0;
+                plant.daysStunted = plantData.daysStunted ?? 0;
+                plant.isStunted = plantData.isStunted ?? false;
+                
+                // Restore genetics if present
+                if (plantData.genetics) {
+                    plant.genetics = plantData.genetics;
+                }
+                
+                // Regenerate sprite with restored state
+                plant.generateSprite(plant.currentLOD);
+                
+                // Store in plants map using key and layer from save data
+                const key = entry.key;
+                const layer = entry.layer;
+                
+                if (!this.plants.has(key)) {
+                    this.plants.set(key, new Map());
+                }
+                this.plants.get(key).set(layer, plant);
+                
+                restoredCount++;
+            }
+        }
+        
+        // Invalidate occlusion cache
+        if (this.occlusionManager) {
+            this.occlusionManager.invalidateCache();
+        }
     }
 }

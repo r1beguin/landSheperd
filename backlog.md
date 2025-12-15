@@ -6,9 +6,10 @@
 -* DEGUG page to test unitary texture generation
 -* documentation reorganisation and clean up
 -* Fix fertility visualiser
+-* game state saving
+- mega seeds
 - refactor tree generation, LOD improvements
 - shadows
-- game state saving
 - Infinite map chunck generation
 - Terrain elevation
 - quality check

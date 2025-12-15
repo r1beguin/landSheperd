@@ -43,6 +43,3 @@ class IsometricUtils {
         return gridX + gridY;
     }
 }
-
-// Log initialization
-console.log('IsometricUtils initialized');

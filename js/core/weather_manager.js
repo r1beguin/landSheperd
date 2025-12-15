@@ -300,6 +300,43 @@ class WeatherManager {
     }
     
     /**
+     * Serialize weather state for saving
+     * @returns {Object} Serialized weather state
+     */
+    serialize() {
+        return {
+            currentState: this.currentState,
+            rainIntensity: this.rainIntensity,
+            stateStartDay: this.stateStartDay,
+            stateDuration: this.stateDuration,
+            nextTransitionDay: this.nextTransitionDay,
+            initialized: this.initialized
+        };
+    }
+    
+    /**
+     * Deserialize weather state from saved data
+     * @param {Object} data - Saved weather state
+     */
+    deserialize(data) {
+        if (!data) {
+            console.warn('[WEATHER] No data to deserialize');
+            return;
+        }
+        
+        this.currentState = data.currentState ?? 'sunny';
+        this.rainIntensity = data.rainIntensity ?? 0;
+        this.stateStartDay = data.stateStartDay ?? 0;
+        this.stateDuration = data.stateDuration ?? 3;
+        this.nextTransitionDay = data.nextTransitionDay ?? 3;
+        this.initialized = data.initialized ?? true;
+        
+        // Clear particles on load (will rebuild naturally)
+        this.activeParticles = [];
+        this.particlesNeedUpdate = true;
+    }
+    
+    /**
      * Initialize particle pool for reuse
      * @private
      */

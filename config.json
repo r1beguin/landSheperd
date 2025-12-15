@@ -482,5 +482,12 @@
                 }
             }
         }
+    },
+    "saveSystem": {
+        "saveVersion": "1.0",
+        "maxManualSaves": 3,
+        "maxAutoSaves": 3,
+        "autoSaveIntervalDays": 7,
+        "enableLogging": true
     }
 }

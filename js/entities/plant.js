@@ -51,11 +51,6 @@ class Plant {
             this.genetics = null;
         }
         
-        // Log genetics initialization
-        if (this.genetics && speciesConfig.commonName) {
-            console.log(`${speciesConfig.commonName} genetics initialized: Gen ${this.genetics.generation}`);
-        }
-        
         // Generate initial sprite at medium LOD
         this.generateSprite('medium');
     }
@@ -548,23 +543,12 @@ class Plant {
         if (proximityConfig.reproductionCost) {
             if (!this.canAffordReproduction(proximityConfig.reproductionCost)) {
                 // Log nutrient failure if logging enabled
-                const config = window.config?.world?.plants?.reproduction;
-                if (config?.enableLogging) {
-                    const soil = window.graphicsEngine?.soilManager?.getSoilAtWorld(this.x, this.y);
-                    const cost = proximityConfig.reproductionCost;
-                    console.log(`[REPRO FAIL] ${this.species.commonName} at (${Math.round(this.x)},${Math.round(this.y)}) - Insufficient nutrients. Need: N${cost.nitrogen+5} P${cost.phosphorus+5} K${cost.potassium+5} OM${cost.organicMatter+5} | Has: N${soil?.nitrogen?.toFixed(1)} P${soil?.phosphorus?.toFixed(1)} K${soil?.potassium?.toFixed(1)} OM${soil?.organicMatter?.toFixed(1)}`);
-                }
                 return null; // Not enough nutrients in parent soil
             }
         }
         
         // Roll for success chance
         if (Math.random() > proximityConfig.successChance) {
-            // Log success roll failure if logging enabled
-            const config = window.config?.world?.plants?.reproduction;
-            if (config?.enableLogging) {
-                console.log(`[REPRO FAIL] ${this.species.commonName} at (${Math.round(this.x)},${Math.round(this.y)}) - Failed success roll (${(proximityConfig.successChance*100).toFixed(0)}% chance)`);
-            }
             return null;
         }
         
@@ -1593,5 +1577,39 @@ class Plant {
         
         // Regenerate sprite for withered appearance at current LOD level
         this.generateSprite(this.currentLOD);
+    }
+    
+    /**
+     * Serialize plant state for saving
+     * @returns {Object} Serialized plant data
+     */
+    serialize() {
+        return {
+            // Position - use grid coordinates for deterministic restoration
+            gridX: this.gridX,
+            gridY: this.gridY,
+            x: this.x,
+            y: this.y,
+            
+            // Identity
+            speciesId: this.species.id,
+            
+            // Growth state
+            stage: this.stage,
+            age: this.age,
+            stageStartDay: this.stageStartDay,
+            accumulatedGrowthDays: this.accumulatedGrowthDays,
+            health: this.health,
+            
+            // Reproduction
+            lastReproductionDay: this.lastReproductionDay,
+            
+            // Stress tracking
+            daysStunted: this.daysStunted,
+            isStunted: this.isStunted,
+            
+            // Genetics (if enabled)
+            genetics: this.genetics
+        };
     }
 }

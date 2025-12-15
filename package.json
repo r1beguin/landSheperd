@@ -41,6 +41,8 @@
     "test:time-speed-10x": "cross-env TEST_TIME_SPEED_10X=true playwright test --timeout=180000",
     "test:milestone3-visual": "cross-env TEST_MILESTONE3_VISUAL=true playwright test",
     "test:pk-balance": "cross-env TEST_PK_BALANCE=true playwright test --timeout=180000",
+    "test:settings-ui": "cross-env TEST_SETTINGS_UI=true playwright test",
+    "test:auto-save": "cross-env TEST_AUTO_SAVE=true playwright test",
     "dev": "npx http-server -p 8080",
     "postinstall": "playwright install chromium"
   },
